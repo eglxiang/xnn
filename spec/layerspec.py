@@ -2,6 +2,7 @@ from spec.initializerspec import *
 from spec.activationspec import *
 from copy import deepcopy
 from numbers import Number
+import lasagne.layers.base as layerbase
 
 class layerSpec(object):
     def __init__(self, **kwargs):
@@ -20,6 +21,9 @@ class inputLayerSpec(layerSpec):
         super(inputLayerSpec, self).__init__(**kwargs)
         self.shape = shape
 
+    def instantiate(self):
+        return layerbase.InputLayer(shape=self.shape)
+
 class singleParentLayerSpec(layerSpec):
     def __init__(self, parent, **kwargs):
         if not isinstance(parent, dict):
@@ -34,7 +38,7 @@ class singleParentLayerSpec(layerSpec):
         return properties
 
 class denseLayerSpec(singleParentLayerSpec):
-    def __init__(self, parent, num_units, Winit=UniformSpec(), binit=ConstantSpec(), nonlinearity=linearSpec(), **kwargs):
+    def __init__(self, parent, num_units, Winit=UniformSpec(range=(0,1)), binit=ConstantSpec(val=0), nonlinearity=linearSpec(), **kwargs):
         if not isinstance(Winit, initializerSpec):
             raise TypeError("Winit must be an object of type initializerSpec!")
 
@@ -57,6 +61,15 @@ class denseLayerSpec(singleParentLayerSpec):
         outdict['nonlinearity'] = self.nonlinearity.to_dict()
         return outdict
 
+    def instantiate(self):
+        return layerbase.DenseLayer(
+            input_layer=self.parent['layer'].instantiate(),
+            num_units=self.num_units,
+            W=self.Winit.instantiate(),
+            b=self.binit.instantiate(),
+            nonlinearity=self.nonlinearity.instantiate()
+        )
+
 class MultipleParentsLayerSpec(layerSpec):
     def __init__(self, parents, **kwargs):
         if not isinstance(parents, list):
@@ -71,8 +84,6 @@ class MultipleParentsLayerSpec(layerSpec):
         properties['parents'] = [parent['name'] for parent in properties['parents']]
         return properties
 
-
-
 class concatLayerSpec(MultipleParentsLayerSpec):
     def __init__(self, parents, axis=1, **kwargs):
         if not isinstance(axis, int):
@@ -80,9 +91,22 @@ class concatLayerSpec(MultipleParentsLayerSpec):
         super(concatLayerSpec, self).__init__(parents, **kwargs)
         self.axis = axis
 
+    def instantiate(self):
+        return layerbase.ConcatLayer(
+            input_layers=[parent['layer'].instantiate() for parent in self.parents],
+            axis=self.axis
+        )
+
 class ElemwiseSumLayerSpec(MultipleParentsLayerSpec):
     def __init__(self, parents, coeffs=1, **kwargs):
         if not isinstance(coeffs, Number):
             raise TypeError("coeffs must be a number!")
         super(ElemwiseSumLayerSpec, self).__init__(parents, **kwargs)
         self.coeffs = coeffs
+
+    def instantiate(self):
+        return layerbase.ElemwiseSumLayer(
+            input_layers=[parent['layer'].instantiate() for parent in self.parents],
+            nonlinearity=self.nonlinearity.instantiate(),
+            coeffs=self.coeffs
+        )

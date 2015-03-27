@@ -1,6 +1,9 @@
+--------------------------
 xnn neural network library
-explore
-experiment
-express
+--------------------------
+
+    explore!
+    experiment!
+    express!
 
 

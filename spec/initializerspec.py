@@ -1,4 +1,6 @@
 from numbers import Number
+from copy import deepcopy
+import lasagne.init as init
 
 class initializerSpec(object):
     def __init__(self, **kwargs):
@@ -6,7 +8,11 @@ class initializerSpec(object):
             self.additional_args = kwargs
 
     def to_dict(self):
-        return self.__dict__
+        properties = dict(
+            type=self.__class__.__name__,
+            properties=deepcopy(self.__dict__)
+        )
+        return properties
 
 class UniformSpec(initializerSpec):
     def __init__(self, range=None, **kwargs):
@@ -17,9 +23,15 @@ class UniformSpec(initializerSpec):
         super(UniformSpec, self).__init__(**kwargs)
         self.range = range
 
+    def instantiate(self):
+        return init.Uniform(range=self.range)
+
 class ConstantSpec(initializerSpec):
     def __init__(self, val=None, **kwargs):
         if val and not isinstance(val, Number):
             raise TypeError("val must be a number or None.")
         super(ConstantSpec, self).__init__(**kwargs)
         self.val = val
+
+    def instantiate(self):
+        return init.Constant(val=self.val)

@@ -69,3 +69,7 @@ class modelSpec(object):
             return None
         else:
             return self.layers[layer_names.index(name)]
+
+    def instantiate(self):
+        return [layer['layer'].instantiate() for layer in self.layers]
+

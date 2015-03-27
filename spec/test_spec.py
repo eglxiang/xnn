@@ -1,11 +1,11 @@
+# from spec.specbridge import *
 from spec import *
 
 # All 5 of the following models should be equal
 
 b_props = dict(
-    num_units=100, Winit=UniformSpec(range=(1,3)), binit=ConstantSpec(val=0.0), nonlinearity=LeakyRectifySpec(leakiness=0.01)
+    num_units=100, Winit=UniformSpec(range=(1,3)), binit=ConstantSpec(val=0.0), nonlinearity=linearSpec()#LeakyRectifySpec(leakiness=0.01)
 )
-
 
 # heterogenous
 m1 = modelSpec()
