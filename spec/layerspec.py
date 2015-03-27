@@ -4,43 +4,37 @@ from copy import deepcopy
 from numbers import Number
 
 class layerSpec(object):
-    def __init__(self, name, **kwargs):
-        if not isinstance(name, str):
-            raise TypeError("name must be a string")
+    def __init__(self, **kwargs):
         if kwargs:
             self.additional_args = kwargs
-        self.name = name
-        self.type = self.__class__.__name__
 
     def to_dict(self):
         properties = deepcopy(self.__dict__)
-        del(properties['name'])
-        del(properties['type'])
-        outdict = dict(
-            name=self.name,
-            type=self.type,
-            properties=properties
-        )
-        return outdict
+        return properties
 
 class inputLayerSpec(layerSpec):
-    def __init__(self, name, shape=(48,48), **kwargs):
+    def __init__(self, shape=(48,48), **kwargs):
         if not isinstance(shape, (list, tuple)) \
                 or any(not isinstance(x, Number) for x in shape):
             raise TypeError("shape must be a list or tuple of integers!")
-        super(inputLayerSpec, self).__init__(name=name, **kwargs)
+        super(inputLayerSpec, self).__init__(**kwargs)
         self.shape = shape
 
 class singleParentLayerSpec(layerSpec):
-    def __init__(self, name, parent, **kwargs):
-        if not isinstance(parent, str):
+    def __init__(self, parent, **kwargs):
+        if not isinstance(parent, dict):
             raise TypeError("parent for singleParentLayerSpec type layers"
-                            " must be a single string referring to a layer name.")
-        super(singleParentLayerSpec, self).__init__(name, **kwargs)
+                            " must be a single dict containing a key='layer' with value specifying a layerSpec object.")
+        super(singleParentLayerSpec, self).__init__(**kwargs)
         self.parent = parent
 
+    def to_dict(self):
+        properties = super(singleParentLayerSpec, self).to_dict()
+        properties['parent'] = properties['parent']['name']
+        return properties
+
 class denseLayerSpec(singleParentLayerSpec):
-    def __init__(self, name, parent, num_units, Winit=UniformSpec(), binit=ConstantSpec(), nonlinearity=linearSpec(), **kwargs):
+    def __init__(self, parent, num_units, Winit=UniformSpec(), binit=ConstantSpec(), nonlinearity=linearSpec(), **kwargs):
         if not isinstance(Winit, initializerSpec):
             raise TypeError("Winit must be an object of type initializerSpec!")
 
@@ -50,7 +44,7 @@ class denseLayerSpec(singleParentLayerSpec):
         if not isinstance(nonlinearity, activationSpec):
             raise TypeError("nonlinearity must be an object of type activationSpec!")
 
-        super(denseLayerSpec, self).__init__(name, parent, **kwargs)
+        super(denseLayerSpec, self).__init__(parent, **kwargs)
         self.num_units = num_units
         self.Winit = Winit
         self.binit = binit
@@ -58,29 +52,37 @@ class denseLayerSpec(singleParentLayerSpec):
 
     def to_dict(self):
         outdict = super(denseLayerSpec, self).to_dict()
-        outdict['properties']['Winit'] = self.Winit.to_dict()
-        outdict['properties']['binit'] = self.binit.to_dict()
-        outdict['properties']['nonlinearity'] = self.nonlinearity.to_dict()
+        outdict['Winit'] = self.Winit.to_dict()
+        outdict['binit'] = self.binit.to_dict()
+        outdict['nonlinearity'] = self.nonlinearity.to_dict()
         return outdict
 
 class MultipleParentsLayerSpec(layerSpec):
-    def __init__(self, name, parents, **kwargs):
+    def __init__(self, parents, **kwargs):
         if not isinstance(parents, list):
             raise TypeError("parents for MultipleParentsLayerSpec type layers"
-                            " must be a list of strings referring to layer names.")
-        super(MultipleParentsLayerSpec, self).__init__(name, **kwargs)
+                            " must be a list of dicts each containing a key='layer'"
+                            " with value specifying a layerSpec object.")
+        super(MultipleParentsLayerSpec, self).__init__(**kwargs)
         self.parents = parents
 
+    def to_dict(self):
+        properties = super(MultipleParentsLayerSpec, self).to_dict()
+        properties['parents'] = [parent['name'] for parent in properties['parents']]
+        return properties
+
+
+
 class concatLayerSpec(MultipleParentsLayerSpec):
-    def __init__(self, name, parents, axis=1, **kwargs):
+    def __init__(self, parents, axis=1, **kwargs):
         if not isinstance(axis, int):
             raise TypeError("axis must be 1 or 0!")
-        super(concatLayerSpec, self).__init__(name, parents, **kwargs)
+        super(concatLayerSpec, self).__init__(parents, **kwargs)
         self.axis = axis
 
 class ElemwiseSumLayerSpec(MultipleParentsLayerSpec):
-    def __init__(self, name, parents, coeffs=1, **kwargs):
+    def __init__(self, parents, coeffs=1, **kwargs):
         if not isinstance(coeffs, Number):
             raise TypeError("coeffs must be a number!")
-        super(ElemwiseSumLayerSpec, self).__init__(name, parents, **kwargs)
+        super(ElemwiseSumLayerSpec, self).__init__(parents, **kwargs)
         self.coeffs = coeffs

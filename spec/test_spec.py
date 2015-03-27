@@ -1,24 +1,46 @@
 from spec import *
 
+# All 5 of the following models should be equal
+
 b_props = dict(
     num_units=100, Winit=UniformSpec(range=(1,3)), binit=ConstantSpec(val=0.0), nonlinearity=LeakyRectifySpec(leakiness=0.01)
 )
 
-m = modelSpec()
-m.add(inputLayerSpec(name="in0", shape=(48,48)))
-m.add(denseLayerSpec(name="d1", parent="in0", **b_props))
-m.add(concatLayerSpec(name="c2", parents=["in0", "d1"]))
-m.add(denseLayerSpec(name="o3", parent="c2", num_units=100))
 
-# TODO:
-# Currently the LayerSpec object expects a string to be passed to the constructor to refer to a parent.
-# On the other hand, the underlying lasagne layer objects expect parent layers to be passed to their consructors.
-# Thus layer objects in lasagne are not independent entities but keep track of their predecessors.
-# In our spec library, the modelspec is a container class that explicitly keeps track of layers but may be redundant.
-# For instance, instead of specifying the model as above, we could do so with only using layer object like this:
-#   in0 = inputLayerSpec(name="in0", shape=(48,48))
-#   d1 = denseLayerSpec(name="d1", parent=in0, **b_props)
-#   c2 = concatLayerSpec(name="c2", parents=[in0, d1])
-#   o3 = denseLayerSpec(name="o3", parent=c2, num_units=100)
-# However, we may want to keep track of a machine more explicitly,
-# especially if we have multiple branching output layers.
+# heterogenous
+m1 = modelSpec()
+l0 = m1.add(inputLayerSpec(shape=(48,48)))
+m1.add(denseLayerSpec(parent=l0, **b_props))
+m1.add(concatLayerSpec(parents=[m1.first(), m1.last()]))
+m1.add(denseLayerSpec(parent=m1.get_layer("concatLayer_2"), num_units=100))
+
+# using passed back layer objects
+m2 = modelSpec()
+l0 = m2.add(inputLayerSpec(shape=(48,48)))
+l1 = m2.add(denseLayerSpec(parent=l0, **b_props))
+l2 = m2.add(concatLayerSpec(parents=[l0, l1]))
+l3 = m2.add(denseLayerSpec(parent=l2, num_units=100))
+
+# using first and last functions
+m3 = modelSpec()
+m3.add(inputLayerSpec(shape=(48,48)))
+m3.add(denseLayerSpec(parent=m3.first(), **b_props))
+m3.add(concatLayerSpec(parents=[m3.first(), m3.last()]))
+m3.add(denseLayerSpec(parent=m3.last(), num_units=100))
+
+# using explicit reference by layer name (where names are auto-generated)
+m4 = modelSpec()
+m4.add(inputLayerSpec(shape=(48,48)))
+m4.add(denseLayerSpec(parent=m4.get_layer("inputLayer_0"), **b_props))
+m4.add(concatLayerSpec(parents=[m4.get_layer("inputLayer_0"), m4.get_layer("denseLayer_1")]))
+m4.add(denseLayerSpec(parent=m4.get_layer("concatLayer_2"), num_units=100))
+
+# using explicit reference by layer name (where names are manually specified)
+m5 = modelSpec()
+m5.add(inputLayerSpec(shape=(48,48)), name="inputLayer_0")
+m5.add(denseLayerSpec(parent=m5.get_layer("inputLayer_0"), **b_props), name="denseLayer_1")
+m5.add(concatLayerSpec(parents=[m5.get_layer("inputLayer_0"), m5.get_layer("denseLayer_1")]), name="concatLayer_2")
+m5.add(denseLayerSpec(parent=m5.get_layer("concatLayer_2"), num_units=100), name="denseLayer_3")
+
+
+assert m1.to_dict()==m2.to_dict()==m3.to_dict()==m4.to_dict()==m5.to_dict()

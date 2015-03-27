@@ -4,7 +4,6 @@ class initializerSpec(object):
     def __init__(self, **kwargs):
         if kwargs:
             self.additional_args = kwargs
-        self.type = self.__class__.__name__
 
     def to_dict(self):
         return self.__dict__
