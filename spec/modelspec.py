@@ -2,14 +2,14 @@ from spec.outputspec import *
 from copy import deepcopy
 import sys
 
-class layerContainer():
+class LayerContainer():
     def __init__(self, name, layer, type, output_settings=None):
         self.name = name
         self.layer = layer
         self.type = type
         self.output_settings = output_settings
 
-class modelSpec(object):
+class Model(object):
 
     def __init__(self, **kwargs):
         if kwargs:
@@ -34,18 +34,18 @@ class modelSpec(object):
                 modeldict['outputs'].append(output_settings)
         return modeldict
 
-    def bind_output(self, layername, settings=outputSpec()):
-        if not isinstance(settings, outputSpec):
-            raise TypeError("settings must be an object of type outputSpec.")
+    def bind_output(self, layername, settings=Output()):
+        if not isinstance(settings, Output):
+            raise TypeError("settings must be an object of type Output.")
         layer = self.get_layer(layername)
         layer.output_settings = settings
 
     def add(self, layer_spec, name=None):
-        if not isinstance(layer_spec, layerSpec):
-            raise TypeError("layer_spec must be an object of type layerSpec!")
+        if not isinstance(layer_spec, Layer):
+            raise TypeError("layer_spec must be an object of type Layer!")
         if len(self.layers)==0:
-            if not isinstance(layer_spec, inputLayerSpec):
-                raise TypeError("The first layer_spec added to the model must be an object of type inputLayerSpec!")
+            if not isinstance(layer_spec, InputLayer):
+                raise TypeError("The first layer_spec added to the model must be an object of type InputLayer!")
         if name is not None and not isinstance(name, str):
             raise TypeError("name is an optional argument that must be a string or None. "
                             "Otherwise name is auto-generated.")
@@ -60,7 +60,7 @@ class modelSpec(object):
                                "Each layer must have a unique name!" % name)
 
         # create layer container with extra information used to keep track of layers in a graph
-        layercontainer = layerContainer(
+        layercontainer = LayerContainer(
             layer=layer_spec,
             name=name,
             type=layer_spec.__class__.__name__,

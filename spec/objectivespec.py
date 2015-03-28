@@ -1,7 +1,7 @@
 from copy import deepcopy
-import lasagne.objectives as objectives
+import lasagne.objectives as lasobjectives
 
-class objectiveSpec(object):
+class Objective(object):
     def __init__(self, **kwargs):
         if kwargs:
             self.additional_args = kwargs
@@ -11,47 +11,47 @@ class objectiveSpec(object):
         properties = deepcopy(self.__dict__)
         return properties
 
-class mseSpec(objectiveSpec):
+class mse(Objective):
     def __init__(self, **kwargs):
-        super(mseSpec, self).__init__(**kwargs)
+        super(mse, self).__init__(**kwargs)
 
     def instantiate(self):
-        return objectives.Objective(loss_function=objectives.mse)
+        return lasobjectives.Objective(loss_function=lasobjectives.mse)
 
-class crossentropySpec(objectiveSpec):
+class crossentropy(Objective):
     def __init__(self, **kwargs):
-        super(crossentropySpec, self).__init__(**kwargs)
+        super(crossentropy, self).__init__(**kwargs)
 
     def instantiate(self):
-        return objectives.Objective(loss_function=objectives.crossentropy)
+        return lasobjectives.Objective(loss_function=lasobjectives.crossentropy)
 
-class categorical_crossentropySpec(objectiveSpec):
+class categorical_crossentropy(Objective):
     def __init__(self, **kwargs):
-        super(categorical_crossentropySpec, self).__init__(**kwargs)
+        super(categorical_crossentropy, self).__init__(**kwargs)
 
     def instantiate(self):
-        return objectives.Objective(loss_function=objectives.categorical_crossentropy)
+        return lasobjectives.Objective(loss_function=lasobjectives.categorical_crossentropy)
 
-class hinge_lossSpec(objectiveSpec):
+class hinge_loss(Objective):
     def __init__(self, threshold=0.0, **kwargs):
-        super(hinge_lossSpec, self).__init__(**kwargs)
+        super(hinge_loss, self).__init__(**kwargs)
         self.threshold = threshold
 
     def instantiate(self):
-        return objectives.Objective(loss_function=objectives.hinge_loss, threshold=self.threshold)
+        return lasobjectives.Objective(loss_function=lasobjectives.hinge_loss, threshold=self.threshold)
 
-class squared_hinge_lossSpec(objectiveSpec):
+class squared_hinge_loss(Objective):
     def __init__(self, gamma=2.0, **kwargs):
-        super(squared_hinge_lossSpec, self).__init__(**kwargs)
+        super(squared_hinge_loss, self).__init__(**kwargs)
         self.gamma = gamma
 
     def instantiate(self):
-        return objectives.Objective(loss_function=objectives.squared_hinge_loss, gamma=self.gamma)
+        return lasobjectives.Objective(loss_function=lasobjectives.squared_hinge_loss, gamma=self.gamma)
 
-class kl_divergenceSpec(objectiveSpec):
+class kl_divergence(Objective):
     def __init__(self, eps=1e-08, **kwargs):
-        super(kl_divergenceSpec, self).__init__(**kwargs)
+        super(kl_divergence, self).__init__(**kwargs)
         self.eps = eps
 
     def instantiate(self):
-        return objectives.Objective(loss_function=objectives.kl_divergence, eps=self.eps)
+        return lasobjectives.Objective(loss_function=lasobjectives.kl_divergence, eps=self.eps)

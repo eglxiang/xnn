@@ -1,7 +1,7 @@
 from copy import deepcopy
 import lasagne.nonlinearities as nonlinearities
 
-class activationSpec(object):
+class Activation(object):
     def __init__(self, **kwargs):
         if kwargs:
             self.additional_args = kwargs
@@ -11,44 +11,44 @@ class activationSpec(object):
         properties = deepcopy(self.__dict__)
         return properties
 
-class linearSpec(activationSpec):
+class linear(Activation):
     def __init__(self, **kwargs):
-        super(linearSpec, self).__init__(**kwargs)
+        super(linear, self).__init__(**kwargs)
 
     def instantiate(self):
         return nonlinearities.linear
 
-class tanhSpec(activationSpec):
+class tanh(Activation):
     def __init__(self, **kwargs):
-        super(tanhSpec, self).__init__(**kwargs)
+        super(tanh, self).__init__(**kwargs)
 
     def instantiate(self):
         return nonlinearities.tanh
 
-class sigmoidSpec(activationSpec):
+class sigmoid(Activation):
     def __init__(self, **kwargs):
-        super(sigmoidSpec, self).__init__(**kwargs)
+        super(sigmoid, self).__init__(**kwargs)
 
     def instantiate(self):
         return nonlinearities.sigmoid
 
-class rectifySpec(activationSpec):
+class rectify(Activation):
     def __init__(self, **kwargs):
-        super(rectifySpec, self).__init__(**kwargs)
+        super(rectify, self).__init__(**kwargs)
 
     def instantiate(self):
         return nonlinearities.rectify
 
-class softmaxSpec(activationSpec):
+class softmax(Activation):
     def __init__(self, **kwargs):
-        super(softmaxSpec, self).__init__(**kwargs)
+        super(softmax, self).__init__(**kwargs)
 
     def instantiate(self):
         return nonlinearities.softmax
 
-class LeakyRectifySpec(activationSpec):
+class LeakyRectify(Activation):
     def __init__(self, leakiness=0.01, **kwargs):
-        super(LeakyRectifySpec, self).__init__(**kwargs)
+        super(LeakyRectify, self).__init__(**kwargs)
         self.leakiness = leakiness
 
     def instantiate(self):

@@ -6,40 +6,38 @@ from lasagne.utils import Separator
 
 from copy import deepcopy
 
-class TargetSpec(object):
+class Target(object):
     def to_dict(self):
         outdict = deepcopy(self.__dict__)
         outdict['type'] = self.__class__.__name__
         return outdict
 
-class ChannelsTargetSpec(TargetSpec):
+class ChannelsTarget(Target):
     def __init__(self, separator=None):
         # Separator(channels=CHANNELS,logic=any,separate=[['Group','2']],include=False)
         if separator and not isinstance(separator, Separator):
-            raise TypeError("settings for ChannelsTargetSpec must be a Separator object or None.")
+            raise TypeError("settings for ChannelsTarget must be a Separator object or None.")
         self.separator = separator
 
-class ReconstructionTargetSpec(TargetSpec):
+class ReconstructionTarget(Target):
     def __init__(self, layer):
         if not isinstance(layer, str):
-            raise TypeError("layer for ReconstructionTargetSpec must be a string "
-                            "referring to a layerSpec object.")
+            raise TypeError("layer for ReconstructionTarget must be a string.")
         self.layer = layer
 
     def to_dict(self):
-        outdict = super(ReconstructionTargetSpec, self).to_dict()
+        outdict = super(ReconstructionTarget, self).to_dict()
         return outdict
 
-class outputSpec(object):
+class Output(object):
     # TODO: Allow for scheduled scale
-    def __init__(self, loss=crossentropySpec(), eval_output_activation=linearSpec(), scale=1.0, target=ChannelsTargetSpec(), **kwargs):
+    def __init__(self, loss=crossentropy(), eval_output_activation=linear(), scale=1.0, target=ChannelsTarget(), **kwargs):
         if kwargs:
             self.additional_args = kwargs
         self.loss = loss
         self.eval_output_activation = eval_output_activation
         self.scale = scale
         self.target = target
-        self.type = self.__class__.__name__
 
     def to_dict(self):
         outdict = deepcopy(self.__dict__)
@@ -50,9 +48,9 @@ class outputSpec(object):
 
     def instantiate(self, instantiated_layers):
         target_obj = None
-        if isinstance(self.target, ChannelsTargetSpec):
+        if isinstance(self.target, ChannelsTarget):
             target_obj = self.target.separator
-        elif isinstance(self.target, ReconstructionTargetSpec):
+        elif isinstance(self.target, ReconstructionTarget):
             target_obj = instantiated_layers[self.target.layer]
         output_settings = dict(
             loss=self.loss.instantiate(),

@@ -5,23 +5,23 @@ import json
 # -------------------------------------------------------------------- #
 # Basic nonlinear autoencoder (without weight-sharing)
 # -------------------------------------------------------------------- #
-autoencoder = modelSpec()
+autoencoder = Model()
 pixels = autoencoder.add(
-    inputLayerSpec(shape=(48,48)))
+    InputLayer(shape=(48,48)))
 hidden = autoencoder.add(
-    denseLayerSpec(parent=pixels.name,
+    DenseLayer(parent=pixels.name,
                    num_units=100,
-                   nonlinearity=tanhSpec()))
+                   nonlinearity=tanh()))
 recon = autoencoder.add(
-    denseLayerSpec(parent=hidden.name,
+    DenseLayer(parent=hidden.name,
                    num_units=48*48,
-                   nonlinearity=linearSpec()))
+                   nonlinearity=linear()))
 
 autoencoder.bind_output(
     layername=recon.name,
-    settings=outputSpec(
-        loss=mseSpec(),
-        target=ReconstructionTargetSpec(layer=pixels.name)
+    settings=Output(
+        loss=mse(),
+        target=ReconstructionTarget(layer=pixels.name)
     )
 )
 print '---------------------------------'
@@ -33,27 +33,27 @@ pprint.pprint(autoencoder.instantiate())
 # -------------------------------------------------------------------- #
 # Basic mlp with softmax layers
 # -------------------------------------------------------------------- #
-mlp = modelSpec()
+mlp = Model()
 pixels = mlp.add(
-    inputLayerSpec(shape=(48,48)))
+    InputLayer(shape=(48,48)))
 hidden1 = mlp.add(
-    denseLayerSpec(parent=pixels.name,
+    DenseLayer(parent=pixels.name,
                    num_units=100,
-                   nonlinearity=rectifySpec()))
+                   nonlinearity=rectify()))
 hidden2 = mlp.add(
-    denseLayerSpec(parent=hidden1.name,
+    DenseLayer(parent=hidden1.name,
                    num_units=100,
-                   nonlinearity=rectifySpec()))
+                   nonlinearity=rectify()))
 labels = mlp.add(
-    denseLayerSpec(parent=hidden2.name,
+    DenseLayer(parent=hidden2.name,
                    num_units=20,
-                   nonlinearity=softmaxSpec()))
+                   nonlinearity=rectify()))
 
 mlp.bind_output(
     layername=labels.name,
-    settings=outputSpec(
-        loss=categorical_crossentropySpec(),
-        target=ChannelsTargetSpec()
+    settings=Output(
+        loss=categorical_crossentropy(),
+        target=ChannelsTarget()
     )
 )
 
@@ -66,48 +66,48 @@ pprint.pprint(mlp.instantiate())
 # -------------------------------------------------------------------- #
 # Joint nonlinear autoencoder+mlp (without weight-sharing)
 # -------------------------------------------------------------------- #
-joint = modelSpec()
+joint = Model()
 pixels = joint.add(
-    inputLayerSpec(shape=(48,48)))
+    InputLayer(shape=(48,48)))
 hid1up = joint.add(
-    denseLayerSpec(parent=pixels.name,
+    DenseLayer(parent=pixels.name,
                    num_units=100,
-                   nonlinearity=rectifySpec()))
+                   nonlinearity=rectify()))
 encoder = joint.add(
-    denseLayerSpec(parent=hid1up.name,
+    DenseLayer(parent=hid1up.name,
                    num_units=100,
-                   nonlinearity=rectifySpec()))
+                   nonlinearity=rectify()))
 hid1down = joint.add(
-    denseLayerSpec(parent=encoder.name,
+    DenseLayer(parent=encoder.name,
                    num_units=100,
-                   nonlinearity=rectifySpec()))
+                   nonlinearity=rectify()))
 # This is the pixel reconstruction layer
 recon = joint.add(
-    denseLayerSpec(parent=hid1down.name,
+    DenseLayer(parent=hid1down.name,
                    num_units=48*48,
-                   nonlinearity=linearSpec()))
+                   nonlinearity=linear()))
 # This is the label layer for supervised learning
 labels = joint.add(
-    denseLayerSpec(parent=encoder.name,
+    DenseLayer(parent=encoder.name,
                    num_units=10,
-                   nonlinearity=softmaxSpec()))
+                   nonlinearity=softmax()))
 
 # Make the recon layer reconstruct the pixels with .5 scaling of the gradients
 joint.bind_output(
     layername=recon.name,
-    settings=outputSpec(
-        loss=mseSpec(),
+    settings=Output(
+        loss=mse(),
         scale=0.5,
-        target=ReconstructionTargetSpec(layer=pixels.name)
+        target=ReconstructionTarget(layer=pixels.name)
     )
 )
 
 # Make the label layer recognize the labels with full gradients
 joint.bind_output(
     layername=labels.name,
-    settings=outputSpec(
-        loss=categorical_crossentropySpec(),
-        target=ChannelsTargetSpec()
+    settings=Output(
+        loss=categorical_crossentropy(),
+        target=ChannelsTarget()
     )
 )
 
@@ -120,51 +120,51 @@ pprint.pprint(joint.instantiate())
 # -------------------------------------------------------------------- #
 # Semi-supervised autoencoder (without weight-sharing)
 # -------------------------------------------------------------------- #
-semi = modelSpec()
+semi = Model()
 pixels = semi.add(
-    inputLayerSpec(shape=(48,48)))
+    InputLayer(shape=(48,48)))
 hid1up = semi.add(
-    denseLayerSpec(parent=pixels.name,
+    DenseLayer(parent=pixels.name,
                    num_units=100,
-                   nonlinearity=rectifySpec()))
+                   nonlinearity=rectify()))
 # Use sigmoid labels (like we do in practice)
 labelencoder = semi.add(
-    denseLayerSpec(parent=hid1up.name,
+    DenseLayer(parent=hid1up.name,
                    num_units=10,
-                   nonlinearity=sigmoidSpec()))
+                   nonlinearity=sigmoid()))
 # Make hidden encoder also use sigmoid for consistency
 hidencoder = semi.add(
-    denseLayerSpec(parent=hid1up.name,
+    DenseLayer(parent=hid1up.name,
                    num_units=100,
-                   nonlinearity=sigmoidSpec()))
+                   nonlinearity=sigmoid()))
 # This is the joint encoder layer with label predictions and hidden units
 jointencoder = semi.add(
-    concatLayerSpec(parents=[labelencoder.name, hidencoder.name]))
+    ConcatLayer(parents=[labelencoder.name, hidencoder.name]))
 hid1down = semi.add(
-    denseLayerSpec(parent=jointencoder.name,
+    DenseLayer(parent=jointencoder.name,
                    num_units=100,
-                   nonlinearity=rectifySpec()))
+                   nonlinearity=rectify()))
 # This is the pixel reconstruction layer
 recon = semi.add(
-    denseLayerSpec(parent=hid1down.name,
+    DenseLayer(parent=hid1down.name,
                    num_units=48*48,
-                   nonlinearity=linearSpec()))
+                   nonlinearity=linear()))
 
 # Make the recon layer reconstruct the pixels
 semi.bind_output(
     layername=recon.name,
-    settings=outputSpec(
-        loss=mseSpec(),
-        target=ReconstructionTargetSpec(layer=pixels.name)
+    settings=Output(
+        loss=mse(),
+        target=ReconstructionTarget(layer=pixels.name)
     )
 )
 
 # Make the label encoder layer recognize the labels
 semi.bind_output(
     layername=labelencoder.name,
-    settings=outputSpec(
-        loss=crossentropySpec(),
-        target=ChannelsTargetSpec()
+    settings=Output(
+        loss=crossentropy(),
+        target=ChannelsTarget()
     )
 )
 
