@@ -1,7 +1,5 @@
-from spec.activationspec import *
-from spec.objectivespec import *
-from spec.layerspec import *
-
+from spec.objectives import *
+from spec.nonlinearities import *
 from lasagne.utils import Separator
 
 from copy import deepcopy

@@ -1,4 +1,5 @@
-from spec.outputspec import *
+from spec.output import *
+from spec.layers import base
 from copy import deepcopy
 import sys
 
@@ -41,10 +42,10 @@ class Model(object):
         layer.output_settings = settings
 
     def add(self, layer_spec, name=None):
-        if not isinstance(layer_spec, Layer):
+        if not isinstance(layer_spec, base.Layer):
             raise TypeError("layer_spec must be an object of type Layer!")
         if len(self.layers)==0:
-            if not isinstance(layer_spec, InputLayer):
+            if not isinstance(layer_spec, base.InputLayer):
                 raise TypeError("The first layer_spec added to the model must be an object of type InputLayer!")
         if name is not None and not isinstance(name, str):
             raise TypeError("name is an optional argument that must be a string or None. "

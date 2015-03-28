@@ -1,6 +1,6 @@
 from numbers import Number
 from copy import deepcopy
-import lasagne.init as init
+import lasagne.init
 
 class Initializer(object):
     def __init__(self, **kwargs):
@@ -22,7 +22,7 @@ class Uniform(Initializer):
         self.range = range
 
     def instantiate(self):
-        return init.Uniform(range=self.range)
+        return lasagne.init.Uniform(range=self.range)
 
 class Constant(Initializer):
     def __init__(self, val=None, **kwargs):
@@ -32,4 +32,4 @@ class Constant(Initializer):
         self.val = val
 
     def instantiate(self):
-        return init.Constant(val=self.val)
+        return lasagne.init.Constant(val=self.val)

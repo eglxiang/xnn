@@ -1,6 +1,6 @@
 from spec import *
+from spec.layers.base import *
 import pprint
-import json
 
 # -------------------------------------------------------------------- #
 # Basic nonlinear autoencoder (without weight-sharing)

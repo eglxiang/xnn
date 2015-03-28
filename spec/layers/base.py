@@ -1,8 +1,8 @@
-from spec.initializerspec import *
-from spec.activationspec import *
+from spec.init import *
+from spec.nonlinearities import *
 from copy import deepcopy
 from numbers import Number
-import lasagne.layers.base as layerbase
+import lasagne.layers.base
 
 class Layer(object):
     def __init__(self, **kwargs):
@@ -23,7 +23,7 @@ class InputLayer(Layer):
         self.shape = shape
 
     def instantiate(self, instantiated_layers, layer_name):
-        layer_obj = layerbase.InputLayer(shape=self.shape)
+        layer_obj = lasagne.layers.base.InputLayer(shape=self.shape)
         instantiated_layers[layer_name] = layer_obj
         return layer_obj
 
@@ -39,7 +39,8 @@ class SingleParentLayer(Layer):
         return properties
 
 class DenseLayer(SingleParentLayer):
-    def __init__(self, parent, num_units, Winit=Uniform(range=(0,1)), binit=Constant(val=0), nonlinearity=linear(), **kwargs):
+    def __init__(self, parent, num_units, Winit=Uniform(range=(0,1)),
+                 binit=Constant(val=0), nonlinearity=linear(), **kwargs):
         if not isinstance(Winit, Initializer):
             raise TypeError("Winit must be an object of type Initializer!")
         if not isinstance(binit, Initializer):
@@ -61,7 +62,7 @@ class DenseLayer(SingleParentLayer):
         return outdict
 
     def instantiate(self, instantiated_layers, layer_name):
-        layer_obj = layerbase.DenseLayer(
+        layer_obj = lasagne.layers.base.DenseLayer(
             input_layer=instantiated_layers[self.parent],
             num_units=self.num_units,
             W=self.Winit.instantiate(),
@@ -90,7 +91,7 @@ class ConcatLayer(MultipleParentsLayer):
         self.axis = axis
 
     def instantiate(self, instantiated_layers, layer_name):
-        layer_obj = layerbase.ConcatLayer(
+        layer_obj = lasagne.layers.base.ConcatLayer(
             input_layers=[instantiated_layers[parent] for parent in self.parents],
             axis=self.axis
         )
@@ -105,7 +106,7 @@ class ElemwiseSumLayer(MultipleParentsLayer):
         self.coeffs = coeffs
 
     def instantiate(self, instantiated_layers, layer_name):
-        layer_obj = layerbase.ElemwiseSumLayer(
+        layer_obj = lasagne.layers.base.ElemwiseSumLayer(
             input_layers=[instantiated_layers[parent] for parent in self.parents],
             nonlinearity=self.nonlinearity.instantiate(),
             coeffs=self.coeffs

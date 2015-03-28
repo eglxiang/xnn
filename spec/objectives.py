@@ -1,5 +1,5 @@
 from copy import deepcopy
-import lasagne.objectives as lasobjectives
+import lasagne.objectives
 
 class Objective(object):
     def __init__(self, **kwargs):
@@ -16,21 +16,22 @@ class mse(Objective):
         super(mse, self).__init__(**kwargs)
 
     def instantiate(self):
-        return lasobjectives.Objective(loss_function=lasobjectives.mse)
+        return lasagne.objectives.Objective(loss_function=lasagne.objectives.mse)
 
 class crossentropy(Objective):
     def __init__(self, **kwargs):
         super(crossentropy, self).__init__(**kwargs)
 
     def instantiate(self):
-        return lasobjectives.Objective(loss_function=lasobjectives.crossentropy)
+        return lasagne.objectives.Objective(loss_function=lasagne.objectives.crossentropy)
 
 class categorical_crossentropy(Objective):
     def __init__(self, **kwargs):
         super(categorical_crossentropy, self).__init__(**kwargs)
 
     def instantiate(self):
-        return lasobjectives.Objective(loss_function=lasobjectives.categorical_crossentropy)
+        return lasagne.objectives.Objective(
+            loss_function=lasagne.objectives.categorical_crossentropy)
 
 class hinge_loss(Objective):
     def __init__(self, threshold=0.0, **kwargs):
@@ -38,7 +39,8 @@ class hinge_loss(Objective):
         self.threshold = threshold
 
     def instantiate(self):
-        return lasobjectives.Objective(loss_function=lasobjectives.hinge_loss, threshold=self.threshold)
+        return lasagne.objectives.Objective(
+            loss_function=lasagne.objectives.hinge_loss, threshold=self.threshold)
 
 class squared_hinge_loss(Objective):
     def __init__(self, gamma=2.0, **kwargs):
@@ -46,7 +48,8 @@ class squared_hinge_loss(Objective):
         self.gamma = gamma
 
     def instantiate(self):
-        return lasobjectives.Objective(loss_function=lasobjectives.squared_hinge_loss, gamma=self.gamma)
+        return lasagne.objectives.Objective(
+            loss_function=lasagne.objectives.squared_hinge_loss, gamma=self.gamma)
 
 class kl_divergence(Objective):
     def __init__(self, eps=1e-08, **kwargs):
@@ -54,4 +57,5 @@ class kl_divergence(Objective):
         self.eps = eps
 
     def instantiate(self):
-        return lasobjectives.Objective(loss_function=lasobjectives.kl_divergence, eps=self.eps)
+        return lasagne.objectives.Objective(
+            loss_function=lasagne.objectives.kl_divergence, eps=self.eps)

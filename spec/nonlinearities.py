@@ -1,5 +1,5 @@
 from copy import deepcopy
-import lasagne.nonlinearities as nonlinearities
+import lasagne.nonlinearities
 
 class Activation(object):
     def __init__(self, **kwargs):
@@ -16,35 +16,35 @@ class linear(Activation):
         super(linear, self).__init__(**kwargs)
 
     def instantiate(self):
-        return nonlinearities.linear
+        return lasagne.nonlinearities.linear
 
 class tanh(Activation):
     def __init__(self, **kwargs):
         super(tanh, self).__init__(**kwargs)
 
     def instantiate(self):
-        return nonlinearities.tanh
+        return lasagne.nonlinearities.tanh
 
 class sigmoid(Activation):
     def __init__(self, **kwargs):
         super(sigmoid, self).__init__(**kwargs)
 
     def instantiate(self):
-        return nonlinearities.sigmoid
+        return lasagne.nonlinearities.sigmoid
 
 class rectify(Activation):
     def __init__(self, **kwargs):
         super(rectify, self).__init__(**kwargs)
 
     def instantiate(self):
-        return nonlinearities.rectify
+        return lasagne.nonlinearities.rectify
 
 class softmax(Activation):
     def __init__(self, **kwargs):
         super(softmax, self).__init__(**kwargs)
 
     def instantiate(self):
-        return nonlinearities.softmax
+        return lasagne.nonlinearities.softmax
 
 class LeakyRectify(Activation):
     def __init__(self, leakiness=0.01, **kwargs):
