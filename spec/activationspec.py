@@ -25,6 +25,27 @@ class tanhSpec(activationSpec):
     def instantiate(self):
         return nonlinearities.tanh
 
+class sigmoidSpec(activationSpec):
+    def __init__(self, **kwargs):
+        super(sigmoidSpec, self).__init__(**kwargs)
+
+    def instantiate(self):
+        return nonlinearities.sigmoid
+
+class rectifySpec(activationSpec):
+    def __init__(self, **kwargs):
+        super(rectifySpec, self).__init__(**kwargs)
+
+    def instantiate(self):
+        return nonlinearities.rectify
+
+class softmaxSpec(activationSpec):
+    def __init__(self, **kwargs):
+        super(softmaxSpec, self).__init__(**kwargs)
+
+    def instantiate(self):
+        return nonlinearities.softmax
+
 class LeakyRectifySpec(activationSpec):
     def __init__(self, leakiness=0.01, **kwargs):
         super(LeakyRectifySpec, self).__init__(**kwargs)

@@ -22,30 +22,29 @@ class inputLayerSpec(layerSpec):
         super(inputLayerSpec, self).__init__(**kwargs)
         self.shape = shape
 
-    def instantiate(self):
-        return layerbase.InputLayer(shape=self.shape)
+    def instantiate(self, instantiated_layers, layer_name):
+        layer_obj = layerbase.InputLayer(shape=self.shape)
+        instantiated_layers[layer_name] = layer_obj
+        return layer_obj
 
 class singleParentLayerSpec(layerSpec):
     def __init__(self, parent, **kwargs):
-        if not isinstance(parent, dict):
-            raise TypeError("parent for singleParentLayerSpec type layers"
-                            " must be a single dict containing a key='layer' with value specifying a layerSpec object.")
+        if not isinstance(parent, str):
+            raise TypeError("parent for singleParentLayerSpec type layers must be "
+                            "a single string specifying the name of a layerSpec object.")
         super(singleParentLayerSpec, self).__init__(**kwargs)
         self.parent = parent
 
     def to_dict(self):
         properties = super(singleParentLayerSpec, self).to_dict()
-        properties['parent'] = properties['parent']['name']
         return properties
 
 class denseLayerSpec(singleParentLayerSpec):
     def __init__(self, parent, num_units, Winit=UniformSpec(range=(0,1)), binit=ConstantSpec(val=0), nonlinearity=linearSpec(), **kwargs):
         if not isinstance(Winit, initializerSpec):
             raise TypeError("Winit must be an object of type initializerSpec!")
-
         if not isinstance(binit, initializerSpec):
             raise TypeError("binit must be an object of type initializerSpec!")
-
         if not isinstance(nonlinearity, activationSpec):
             raise TypeError("nonlinearity must be an object of type activationSpec!")
 
@@ -62,27 +61,28 @@ class denseLayerSpec(singleParentLayerSpec):
         outdict['nonlinearity'] = self.nonlinearity.to_dict()
         return outdict
 
-    def instantiate(self):
-        return layerbase.DenseLayer(
-            input_layer=self.parent['layer'].instantiate(),
+    def instantiate(self, instantiated_layers, layer_name):
+        layer_obj = layerbase.DenseLayer(
+            input_layer=instantiated_layers[self.parent],
             num_units=self.num_units,
             W=self.Winit.instantiate(),
             b=self.binit.instantiate(),
             nonlinearity=self.nonlinearity.instantiate()
         )
+        instantiated_layers[layer_name] = layer_obj
+        return layer_obj
 
 class MultipleParentsLayerSpec(layerSpec):
     def __init__(self, parents, **kwargs):
         if not isinstance(parents, list):
-            raise TypeError("parents for MultipleParentsLayerSpec type layers"
-                            " must be a list of dicts each containing a key='layer'"
-                            " with value specifying a layerSpec object.")
+            raise TypeError("parents for MultipleParentsLayerSpec type layers must be "
+                            "a list of strings each specifying the name of "
+                            "a layerSpec object.")
         super(MultipleParentsLayerSpec, self).__init__(**kwargs)
         self.parents = parents
 
     def to_dict(self):
         properties = super(MultipleParentsLayerSpec, self).to_dict()
-        properties['parents'] = [parent['name'] for parent in properties['parents']]
         return properties
 
 class concatLayerSpec(MultipleParentsLayerSpec):
@@ -92,11 +92,13 @@ class concatLayerSpec(MultipleParentsLayerSpec):
         super(concatLayerSpec, self).__init__(parents, **kwargs)
         self.axis = axis
 
-    def instantiate(self):
-        return layerbase.ConcatLayer(
-            input_layers=[parent['layer'].instantiate() for parent in self.parents],
+    def instantiate(self, instantiated_layers, layer_name):
+        layer_obj = layerbase.ConcatLayer(
+            input_layers=[instantiated_layers[parent] for parent in self.parents],
             axis=self.axis
         )
+        instantiated_layers[layer_name] = layer_obj
+        return layer_obj
 
 class ElemwiseSumLayerSpec(MultipleParentsLayerSpec):
     def __init__(self, parents, coeffs=1, **kwargs):
@@ -105,9 +107,11 @@ class ElemwiseSumLayerSpec(MultipleParentsLayerSpec):
         super(ElemwiseSumLayerSpec, self).__init__(parents, **kwargs)
         self.coeffs = coeffs
 
-    def instantiate(self):
-        return layerbase.ElemwiseSumLayer(
-            input_layers=[parent['layer'].instantiate() for parent in self.parents],
+    def instantiate(self, instantiated_layers, layer_name):
+        layer_obj = layerbase.ElemwiseSumLayer(
+            input_layers=[instantiated_layers[parent] for parent in self.parents],
             nonlinearity=self.nonlinearity.instantiate(),
             coeffs=self.coeffs
         )
+        instantiated_layers[layer_name] = layer_obj
+        return layer_obj

@@ -21,14 +21,13 @@ class ChannelsTargetSpec(TargetSpec):
 
 class ReconstructionTargetSpec(TargetSpec):
     def __init__(self, layer):
-        if not isinstance(layer, dict):
-            raise TypeError("parent for ReconstructionTargetSpec must be a single dict "
-                            "containing a key='layer' with value specifying a layerSpec object.")
+        if not isinstance(layer, str):
+            raise TypeError("layer for ReconstructionTargetSpec must be a string "
+                            "referring to a layerSpec object.")
         self.layer = layer
 
     def to_dict(self):
         outdict = super(ReconstructionTargetSpec, self).to_dict()
-        outdict['layer'] = outdict['layer']['name']
         return outdict
 
 class outputSpec(object):
@@ -47,5 +46,18 @@ class outputSpec(object):
         outdict['loss'] = outdict['loss'].to_dict()
         outdict['eval_output_activation'] = outdict['eval_output_activation'].to_dict()
         outdict['target'] = outdict['target'].to_dict()
-
         return outdict
+
+    def instantiate(self, instantiated_layers):
+        target_obj = None
+        if isinstance(self.target, ChannelsTargetSpec):
+            target_obj = self.target.separator
+        elif isinstance(self.target, ReconstructionTargetSpec):
+            target_obj = instantiated_layers[self.target.layer]
+        output_settings = dict(
+            loss=self.loss.instantiate(),
+            eval_output_activation=self.eval_output_activation.instantiate(),
+            scale=self.scale,
+            target=target_obj
+        )
+        return output_settings

@@ -1,22 +1,31 @@
-from spec.layerspec import *
 from spec.outputspec import *
 from copy import deepcopy
 import sys
 
+class layerContainer():
+    def __init__(self, name, layer, type, output_settings=None):
+        self.name = name
+        self.layer = layer
+        self.type = type
+        self.output_settings = output_settings
+
 class modelSpec(object):
+
     def __init__(self, **kwargs):
         if kwargs:
             self.additional_args = kwargs
         self.layers = []
+        self.instantiated_layers = dict()
 
     def to_dict(self):
         modeldict = deepcopy(self.__dict__)
+        if 'instantiated_layers' in modeldict:
+            del(modeldict['instantiated_layers'])
         modeldict['outputs'] = []
-
         for i in range(len(modeldict['layers'])):
-            layer_name = modeldict['layers'][i]['name']
-            layer = modeldict['layers'][i]['layer']
-            output_settings = modeldict['layers'][i]['output_settings']
+            layer_name = modeldict['layers'][i].name
+            layer = modeldict['layers'][i].layer
+            output_settings = modeldict['layers'][i].output_settings
             modeldict['layers'][i] = layer.to_dict()
             modeldict['layers'][i]['name'] = layer_name
             if output_settings:
@@ -25,7 +34,13 @@ class modelSpec(object):
                 modeldict['outputs'].append(output_settings)
         return modeldict
 
-    def add(self, layer_spec, name=None, output_settings=None):
+    def bind_output(self, layername, settings=outputSpec()):
+        if not isinstance(settings, outputSpec):
+            raise TypeError("settings must be an object of type outputSpec.")
+        layer = self.get_layer(layername)
+        layer.output_settings = settings
+
+    def add(self, layer_spec, name=None):
         if not isinstance(layer_spec, layerSpec):
             raise TypeError("layer_spec must be an object of type layerSpec!")
         if len(self.layers)==0:
@@ -34,9 +49,6 @@ class modelSpec(object):
         if name is not None and not isinstance(name, str):
             raise TypeError("name is an optional argument that must be a string or None. "
                             "Otherwise name is auto-generated.")
-        if output_settings is not None and not isinstance(output_settings, outputSpec):
-            raise TypeError("output_settings must be an object of type outputSpec or None (only used for output layers.")
-
         # auto generate layer name if not passed in
         if name is None:
             layernum = len(self.layers)
@@ -47,17 +59,15 @@ class modelSpec(object):
             raise RuntimeError("Layer name %s is already used by the model. "
                                "Each layer must have a unique name!" % name)
 
-        # create layer dict with extra information used to keep track of layers in a graph
-        layerdict = dict(
+        # create layer container with extra information used to keep track of layers in a graph
+        layercontainer = layerContainer(
             layer=layer_spec,
             name=name,
             type=layer_spec.__class__.__name__,
-            output_settings=output_settings
+            output_settings=None
         )
-
-        self.layers.append(layerdict)
-
-        return layerdict
+        self.layers.append(layercontainer)
+        return layercontainer
 
     def first(self):
         return self.layers[0]
@@ -66,7 +76,7 @@ class modelSpec(object):
         return self.layers[-1]
 
     def get_layer_names(self):
-        layer_names = [layer['name'] for layer in self.layers]
+        layer_names = [layer.name for layer in self.layers]
         return layer_names
 
     def get_layer(self, name):
@@ -78,5 +88,16 @@ class modelSpec(object):
             return self.layers[layer_names.index(name)]
 
     def instantiate(self):
-        return [layer['layer'].instantiate() for layer in self.layers]
-
+        layers = []
+        for layerctr in self.layers:
+            layername = layerctr.name
+            layerobj = layerctr.layer.instantiate(self.instantiated_layers, layername)
+            layerdata = dict(
+                layer=layerobj,
+                name=layername
+            )
+            if layerctr.output_settings:
+                outputobj = layerctr.output_settings.instantiate(self.instantiated_layers)
+                layerdata['output_settings']=outputobj
+            layers.append(layerdata)
+        return layers
