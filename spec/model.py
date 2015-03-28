@@ -17,12 +17,14 @@ class Model(object):
             self.additional_args = kwargs
         self.layers = []
         self.instantiated_layers = dict()
+        self.channelsets = []
 
     def to_dict(self):
         modeldict = deepcopy(self.__dict__)
         if 'instantiated_layers' in modeldict:
             del(modeldict['instantiated_layers'])
         modeldict['outputs'] = []
+        modeldict['channelsets'] = [cs.to_dict() for cs in self.channelsets]
         for i in range(len(modeldict['layers'])):
             layer_name = modeldict['layers'][i].name
             layer = modeldict['layers'][i].layer
@@ -40,6 +42,11 @@ class Model(object):
             raise TypeError("settings must be an object of type Output.")
         layer = self.get_layer(layername)
         layer.output_settings = settings
+
+    def add_channel_set(self, channelset):
+        if not isinstance(channelset, ChannelSet):
+            raise TypeError("channelset must be an object of type ChannelSet.")
+        self.channelsets.append(channelset)
 
     def add(self, layer_spec, name=None):
         if not isinstance(layer_spec, base.Layer):
