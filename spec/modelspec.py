@@ -1,4 +1,5 @@
 from spec.layerspec import *
+from spec.outputspec import *
 from copy import deepcopy
 import sys
 
@@ -10,18 +11,21 @@ class modelSpec(object):
 
     def to_dict(self):
         modeldict = deepcopy(self.__dict__)
+        modeldict['outputs'] = []
+
         for i in range(len(modeldict['layers'])):
             layer_name = modeldict['layers'][i]['name']
-            layer_type = modeldict['layers'][i]['type']
             layer = modeldict['layers'][i]['layer']
-            modeldict['layers'][i] = dict(
-                name=layer_name,
-                type=layer_type,
-                properties=layer.to_dict()
-            )
+            output_settings = modeldict['layers'][i]['output_settings']
+            modeldict['layers'][i] = layer.to_dict()
+            modeldict['layers'][i]['name'] = layer_name
+            if output_settings:
+                output_settings = output_settings.to_dict()
+                output_settings['layer_name'] = layer_name
+                modeldict['outputs'].append(output_settings)
         return modeldict
 
-    def add(self, layer_spec, name=None):
+    def add(self, layer_spec, name=None, output_settings=None):
         if not isinstance(layer_spec, layerSpec):
             raise TypeError("layer_spec must be an object of type layerSpec!")
         if len(self.layers)==0:
@@ -30,6 +34,8 @@ class modelSpec(object):
         if name is not None and not isinstance(name, str):
             raise TypeError("name is an optional argument that must be a string or None. "
                             "Otherwise name is auto-generated.")
+        if output_settings is not None and not isinstance(output_settings, outputSpec):
+            raise TypeError("output_settings must be an object of type outputSpec or None (only used for output layers.")
 
         # auto generate layer name if not passed in
         if name is None:
@@ -45,7 +51,8 @@ class modelSpec(object):
         layerdict = dict(
             layer=layer_spec,
             name=name,
-            type=layer_spec.__class__.__name__
+            type=layer_spec.__class__.__name__,
+            output_settings=output_settings
         )
 
         self.layers.append(layerdict)

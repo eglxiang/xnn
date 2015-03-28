@@ -5,12 +5,10 @@ class activationSpec(object):
     def __init__(self, **kwargs):
         if kwargs:
             self.additional_args = kwargs
+        self.type = self.__class__.__name__
 
     def to_dict(self):
-        properties = dict(
-            type=self.__class__.__name__,
-            properties=deepcopy(self.__dict__)
-        )
+        properties = deepcopy(self.__dict__)
         return properties
 
 class linearSpec(activationSpec):
