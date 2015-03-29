@@ -39,18 +39,18 @@ class ReconstructionTarget(Target):
 
 class Output(object):
     # TODO: Allow for scheduled scale
-    def __init__(self, loss=crossentropy(), eval_output_activation=linear(), scale=1.0, target=None, **kwargs):
+    def __init__(self, loss=crossentropy(), runtime_nonlinearity=linear(), scale=1.0, target=None, **kwargs):
         if kwargs:
             self.additional_args = kwargs
         self.loss = loss
-        self.eval_output_activation = eval_output_activation
+        self.runtime_nonlinearity = runtime_nonlinearity
         self.scale = scale
         self.target = target
 
     def to_dict(self):
         outdict = deepcopy(self.__dict__)
         outdict['loss'] = outdict['loss'].to_dict()
-        outdict['eval_output_activation'] = outdict['eval_output_activation'].to_dict()
+        outdict['runtime_nonlinearity'] = outdict['runtime_nonlinearity'].to_dict()
         outdict['target'] = outdict['target'].to_dict()
         if isinstance(self.target, ChannelsTarget):
             outdict['target']['channelsets'] = [cs['name'] for cs in outdict['target']['channelsets']]
@@ -64,7 +64,7 @@ class Output(object):
             target_obj = instantiated_layers[self.target.layer]
         output_settings = dict(
             loss=self.loss.instantiate(),
-            eval_output_activation=self.eval_output_activation.instantiate(),
+            runtime_nonlinearity=self.runtime_nonlinearity.instantiate(),
             scale=self.scale,
             target=target_obj
         )
