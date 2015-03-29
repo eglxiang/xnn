@@ -28,6 +28,9 @@ class ChannelSet(object):
         ind = self.get_channel_names().index(name)
         return self.channels[ind]
 
+    def size(self):
+        return len(self.channels)
+
     def to_dict(self):
         outdict = deepcopy(self.__dict__)
         outdict['channels'] = [channel.to_dict() for channel in outdict['channels']]
