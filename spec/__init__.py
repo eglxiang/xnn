@@ -3,5 +3,9 @@ from .init import *
 from .layers import *
 from .output import *
 from .objectives import *
+from .adjusters import *
+from .updates import *
+from .regularization import *
+from .settings import *
 from .model import *
 from .data import *

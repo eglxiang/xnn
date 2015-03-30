@@ -1,14 +1,16 @@
 from spec.output import *
 from spec.layers import base
+from spec.settings import *
 from copy import deepcopy
 import sys
 
 class LayerContainer():
-    def __init__(self, name, layer, type, output_settings=None):
+    def __init__(self, name, layer, type, output_settings=None, update_settings=None):
         self.name = name
         self.layer = layer
         self.type = type
         self.output_settings = output_settings
+        self.update_settings = update_settings
 
 class Model(object):
 
@@ -24,24 +26,40 @@ class Model(object):
         if 'instantiated_layers' in modeldict:
             del(modeldict['instantiated_layers'])
         modeldict['outputs'] = []
+        modeldict['updates'] = []
         modeldict['channelsets'] = [cs.to_dict() for cs in self.channelsets]
         for i in range(len(modeldict['layers'])):
             layer_name = modeldict['layers'][i].name
             layer = modeldict['layers'][i].layer
             output_settings = modeldict['layers'][i].output_settings
+            update_settings = modeldict['layers'][i].update_settings
             modeldict['layers'][i] = layer.to_dict()
             modeldict['layers'][i]['name'] = layer_name
             if output_settings:
                 output_settings = output_settings.to_dict()
                 output_settings['layer_name'] = layer_name
                 modeldict['outputs'].append(output_settings)
+            if update_settings:
+                update_settings = update_settings.to_dict()
+                update_settings['layer_name'] = layer_name
+                modeldict['updates'].append(update_settings)
         return modeldict
 
     def bind_output(self, layername, settings=Output()):
         if not isinstance(settings, Output):
             raise TypeError("settings must be an object of type Output.")
-        layer = self.get_layer(layername)
-        layer.output_settings = settings
+        layerctr = self.get_layer(layername)
+        layerctr.output_settings = settings
+
+    def bind_param_update_settings(self, layername, settings=ParamUpdateSettings()):
+        if not isinstance(settings, ParamUpdateSettings):
+            raise TypeError("settings must be an object of type ParamUpdateSettings")
+        layerctr = self.get_layer(layername)
+        if layerctr.layer.has_learned_params:
+            layerctr.update_settings = settings
+        else:
+            layertype = layerctr.layer.type
+            raise RuntimeError("Cannot bind param update settings to a layer of type %s!" % layertype)
 
     def add_channel_set(self, channelset):
         if not isinstance(channelset, ChannelSet):
@@ -71,8 +89,7 @@ class Model(object):
         layercontainer = LayerContainer(
             layer=layer_spec,
             name=name,
-            type=layer_spec.__class__.__name__,
-            output_settings=None
+            type=layer_spec.__class__.__name__
         )
         self.layers.append(layercontainer)
         return layercontainer
@@ -107,5 +124,9 @@ class Model(object):
             if layerctr.output_settings:
                 outputobj = layerctr.output_settings.instantiate(self.instantiated_layers)
                 layerdata['output_settings']=outputobj
+            if layerctr.update_settings:
+                # TODO: does this need to change?
+                updateobj = layerctr.update_settings#.instantiate(self.instantiated_layers)
+                layerdata['update_settings']=updateobj
             layers.append(layerdata)
         return layers

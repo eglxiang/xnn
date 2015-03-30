@@ -9,6 +9,7 @@ class Layer(object):
         if kwargs:
             self.additional_args = kwargs
         self.type = self.__class__.__name__
+        self.has_learned_params = False
 
     def to_dict(self):
         properties = deepcopy(self.__dict__)
@@ -53,6 +54,7 @@ class DenseLayer(SingleParentLayer):
         self.Winit = Winit
         self.binit = binit
         self.nonlinearity = nonlinearity
+        self.has_learned_params = True
 
     def to_dict(self):
         outdict = super(DenseLayer, self).to_dict()
