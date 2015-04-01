@@ -1,14 +1,8 @@
 from spec.settings import *
-from spec.regularization import *
+# from spec.regularization import *
+from spec.data.manager import *
+
 from copy import deepcopy
-
-class DataManager(object):
-    def __init__(self, batch_size=128, shuffle_batches=False):
-        self.batch_size = batch_size
-        self.shuffle_batches = shuffle_batches
-
-    def to_dict(self):
-        return deepcopy(self.__dict__)
 
 
 class Trainer(object):
