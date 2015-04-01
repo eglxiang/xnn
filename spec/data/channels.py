@@ -19,6 +19,8 @@ class ChannelSet(object):
         self.type_weight = type_weight
 
     def add(self, channel):
+        if not isinstance(channel, Channel):
+            raise TypeError("channel must be an object of type Channel.")
         self.channels.append(channel)
 
     def get_channel_names(self):
