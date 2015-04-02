@@ -52,4 +52,5 @@ class LeakyRectify(Activation):
         self.leakiness = leakiness
 
     def instantiate(self):
+        #TODO: instantiate LeakyRectify
         return None
