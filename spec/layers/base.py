@@ -115,3 +115,27 @@ class ElemwiseSumLayer(MultipleParentsLayer):
         )
         instantiated_layers[layer_name] = layer_obj
         return layer_obj
+
+
+class DropoutLayer(SingleParentLayer):
+    def __init__(self, parent, p=0.5, rescale=True, **kwargs):
+        if not isinstance(p,Number)\
+                or p<0 or p>1:
+            raise TypeError("p must be a number between 0 and 1 inclusive!")
+        if not rescale in [True,False]:
+            raise TypeError("rescale must be True or False!")
+        super(DropoutLayer, self).__init__(parent, **kwargs)
+        self.p=p
+        self.rescale=rescale
+
+    def to_dict(self):
+        outdict = super(DropoutLayer, self).to_dict()
+        return outdict
+
+    def instantiate(self,instantiated_layers, layer_name):
+        layer_obj = lasagne.layers.base.DropoutLayer(
+            self.parent,
+            p=self.p,
+            rescale=self.rescale
+        )
+        return layer_obj
