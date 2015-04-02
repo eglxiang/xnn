@@ -1,4 +1,4 @@
-from spec.output import *
+from ..output import *
 from copy import deepcopy
 
 class DataManager(object):

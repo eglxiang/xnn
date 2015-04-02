@@ -1,6 +1,6 @@
-from spec.settings import *
+from ..settings import *
 # from spec.regularization import *
-from spec.data.manager import *
+from ..data.manager import *
 
 from copy import deepcopy
 

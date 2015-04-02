@@ -1,6 +1,6 @@
-from spec.output import *
-from spec.layers import base
-from spec.settings import *
+from .output import *
+from .layers import base
+from .settings import *
 from copy import deepcopy
 import sys
 

@@ -1,4 +1,4 @@
-from spec.adjusters import *
+from .adjusters import *
 import lasagne.updates
 
 LR_DEFAULT = ConstantVal(start=0.01)

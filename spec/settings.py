@@ -1,6 +1,6 @@
-from spec.adjusters import *
-from spec.updates import *
-from spec.regularization import *
+from .adjusters import *
+from .updates import *
+from .regularization import *
 from copy import deepcopy
 
 class Settings(object):

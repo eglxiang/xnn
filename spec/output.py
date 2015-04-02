@@ -1,8 +1,8 @@
-from spec.objectives import *
-from spec.nonlinearities import *
-from spec.data.channels import *
+from .objectives import *
+from .nonlinearities import *
+from .data.channels import *
 
-from lasagne.utils import Separator
+# from lasagne.utils import Separator
 
 from copy import deepcopy
 

@@ -1,6 +1,6 @@
-from spec import *
-from spec.layers.base import *
-from spec.train.trainer import *
+from xnn.spec import *
+from xnn.spec.layers import *
+from xnn.spec.train.trainer import *
 
 import pprint
 
