@@ -43,6 +43,6 @@ class TrainerSettings(ParamUpdateSettings):
         self.epochs = epochs
 
     def to_dict(self):
-        properties = deepcopy(self.__dict__)
+        properties = super(TrainerSettings, self).to_dict()
         properties['update'] = properties['update'].__name__
         return properties

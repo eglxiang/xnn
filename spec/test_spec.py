@@ -1,16 +1,21 @@
 from spec import *
 from spec.layers.base import *
+from spec.train.trainer import *
+
 import pprint
 
 
-BATCHSIZE=128
-IMGWIDTH=48
-IMGHEIGHT=48
-IMGDIMS=IMGWIDTH*IMGHEIGHT
+BATCHSIZE = 128
+IMGWIDTH = 48
+IMGHEIGHT = 48
+IMGDIMS = IMGWIDTH*IMGHEIGHT
+
 
 # -------------------------------------------------------------------- #
-# First setup the data channel sets for supervised learning
+# First setup the data
 # -------------------------------------------------------------------- #
+input_names = ['patches']
+
 aus = ChannelSet(name="someaus", type="action_units", type_weight=.5)
 aus.add(Channel("AU1", negative_weight=.7, channel_weight=.4))
 aus.add(Channel("AU2", negative_weight=.5, channel_weight=.8))
@@ -19,6 +24,11 @@ aus.add(Channel("AU4", negative_weight=.7, channel_weight=.4))
 emos = ChannelSet(name="allemotions", type="emotions", type_weight=1.0)
 emos.add(Channel("anger", negative_weight=.1, channel_weight=.7))
 emos.add(Channel("contempt", negative_weight=.1, channel_weight=.9))
+
+data_mgr = DataManager(input_names=input_names,
+                       channel_sets=[aus, emos],
+                       batch_size=128,
+                       shuffle_batches=True)
 
 
 # -------------------------------------------------------------------- #
@@ -43,11 +53,20 @@ mlp.bind_output(
     )
 )
 
+# Training spec
+train_settings = TrainerSettings(learning_rate=ConstantVal(0.01),
+                                 momentum=ConstantVal(0.5),
+                                 update=NesterovMomentum,
+                                 weightdecay=L2(),
+                                 epochs=100)
+trainer = Trainer(mlp, data_manager=data_mgr, default_settings=train_settings)
+
 print '---------------------------------'
 print 'MLP dict representation'
 pprint.pprint(mlp.to_dict())
 print 'MLP instantiated representation'
 pprint.pprint(mlp.instantiate())
+
 
 
 # -------------------------------------------------------------------- #
@@ -182,15 +201,15 @@ pprint.pprint(semi.instantiate())
 
 
 
+
+#import os
+#from draw_net.draw_net import *
 #
-# import os
-# from draw_net.draw_net import *
-#
-# nettypes = ['mlp', 'autoencoder', 'joint', 'semi']
-# for nettype in nettypes:
-#     mynet = eval(nettype)
-#     layers=mynet.instantiate()
-#     # draw_to_notebook(layers, verbose=True, output_shape=False)
-#     draw_to_file(layers, "/tmp/%s.png" % nettype, verbose=True, output_shape=False)
-#     os.system('open /tmp/%s.png' % nettype)
-#
+#nettypes = ['mlp', 'autoencoder', 'joint', 'semi']
+#for nettype in nettypes:
+#    mynet = eval(nettype)
+#    layers=mynet.instantiate()
+#    # draw_to_notebook(layers, verbose=True, output_shape=False)
+#    draw_to_file(layers, "/tmp/%s.png" % nettype, verbose=True, output_shape=False)
+#    os.system('open /tmp/%s.png' % nettype)
+
