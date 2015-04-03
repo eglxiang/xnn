@@ -52,5 +52,4 @@ class LeakyRectify(Activation):
         self.leakiness = leakiness
 
     def instantiate(self):
-        #TODO: instantiate LeakyRectify
-        return None
+        return lasange.nonlinearities.LeakyRectify(leakiness=self.leakiness)
