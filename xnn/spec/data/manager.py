@@ -2,7 +2,14 @@ from ..output import *
 from copy import deepcopy
 
 class DataManager(object):
-    def __init__(self, input_names=None, channel_sets=None, batch_size=128, shuffle_batches=False):
+    __defaults__ = dict(input_names=None,
+                        channel_sets=None,
+                        batch_size=128,
+                        shuffle_batches=False)
+    def __init__(self, input_names=__defaults__['input_names'],
+                 channel_sets=__defaults__['channel_sets'],
+                 batch_size=__defaults__['batch_size'],
+                 shuffle_batches=__defaults__['shuffle_batches']):
         self.batch_size = batch_size
         self.shuffle_batches = shuffle_batches
         self.input_names = input_names if input_names else []
@@ -20,5 +27,8 @@ class DataManager(object):
 
     def to_dict(self):
         properties = deepcopy(self.__dict__)
+        for key in self.__defaults__.keys():
+            if properties[key] == self.__defaults__[key]:
+                del(properties[key])
         properties['channel_sets'] = [cs.to_dict() for cs in properties['channel_sets']]
         return properties
