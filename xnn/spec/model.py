@@ -5,6 +5,9 @@ from copy import deepcopy
 import sys
 
 class LayerContainer():
+    """
+    A struct for keeping track of auxiliary information for a layer spec.
+    """
     def __init__(self, name, layer, type, output_settings=None, update_settings=None):
         self.name = name
         self.layer = layer
@@ -13,7 +16,9 @@ class LayerContainer():
         self.update_settings = update_settings
 
 class Model(object):
-
+    """
+    A class to spec a model architecture using layers. Can represent arbitrary DAGs.
+    """
     def __init__(self, **kwargs):
         if kwargs:
             self.additional_args = kwargs
@@ -130,3 +135,19 @@ class Model(object):
                 layerdata['update_settings']=updateobj
             layers.append(layerdata)
         return layers
+
+class Sequential(Model):
+    """
+    A special model class for sequential graphs to mimic torch Sequential.
+    Does not require specifying the parent to each layer since that can be determined
+    through the sequential structure.
+    """
+    def __init__(self, **kwargs):
+        super(Sequential, self).__init__(**kwargs)
+
+    def add(self, layer_type, name=None, **kwargs):
+        if len(self.layers) == 0:
+            layer_spec = layer_type(**kwargs)
+        else:
+            layer_spec = layer_type(parent=self.last().name, **kwargs)
+        super(Sequential, self).add(layer_spec, name=name)

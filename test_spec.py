@@ -9,7 +9,7 @@ BATCHSIZE = 128
 IMGWIDTH = 48
 IMGHEIGHT = 48
 IMGDIMS = IMGWIDTH*IMGHEIGHT
-
+DRAWNETS = True # only if pydot is installed and draw_net is present
 
 # -------------------------------------------------------------------- #
 # First setup the data
@@ -29,6 +29,41 @@ data_mgr = DataManager(input_names=input_names,
                        channel_sets=[aus, emos],
                        batch_size=128,
                        shuffle_batches=True)
+
+
+# -------------------------------------------------------------------- #
+# Sequential basic mlp with softmax layers
+# -------------------------------------------------------------------- #
+seqmlp = Sequential()
+seqmlp.add(InputLayer, shape=(BATCHSIZE, IMGDIMS))
+seqmlp.add(DenseLayer, num_units=100, nonlinearity=rectify())
+seqmlp.add(DenseLayer, num_units=200, nonlinearity=rectify())
+seqmlp.add(DenseLayer, num_units=aus.size(), nonlinearity=softmax(), name="labels")
+
+seqmlp.add_channel_set(aus)
+
+seqmlp.bind_output(
+    layername="labels",
+    settings=Output(
+        loss=categorical_crossentropy(),
+        target=ChannelsTarget(channelsets=[aus])
+    )
+)
+
+# Training spec
+train_settings = TrainerSettings(learning_rate=ConstantVal(0.01),
+                                 momentum=ConstantVal(0.5),
+                                 update=NesterovMomentum,
+                                 weightdecay=L2(),
+                                 epochs=100)
+trainer = Trainer(seqmlp, data_manager=data_mgr, default_settings=train_settings)
+
+print '---------------------------------'
+print 'MLP dict representation'
+pprint.pprint(seqmlp.to_dict())
+print 'MLP instantiated representation'
+pprint.pprint(seqmlp.instantiate())
+
 
 
 # -------------------------------------------------------------------- #
@@ -201,15 +236,17 @@ pprint.pprint(semi.instantiate())
 
 
 
+if DRAWNETS:
+    import os
+    from draw_net.draw_net import *
 
-#import os
-#from draw_net.draw_net import *
-#
-#nettypes = ['mlp', 'autoencoder', 'joint', 'semi']
-#for nettype in nettypes:
-#    mynet = eval(nettype)
-#    layers=mynet.instantiate()
-#    # draw_to_notebook(layers, verbose=True, output_shape=False)
-#    draw_to_file(layers, "/tmp/%s.png" % nettype, verbose=True, output_shape=False)
-#    os.system('open /tmp/%s.png' % nettype)
+    nettypes = ['mlp', 'autoencoder', 'joint', 'semi']
+    for nettype in nettypes:
+        mynet = eval(nettype)
+        layers=mynet.instantiate()
+        # draw_to_notebook(layers, verbose=True, output_shape=False)
+        draw_to_file(layers, "/tmp/%s.png" % nettype, verbose=True, output_shape=False)
+        os.system('open /tmp/%s.png' % nettype)
+
+
 
