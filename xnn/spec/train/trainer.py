@@ -4,6 +4,12 @@ from ..data.manager import *
 
 from copy import deepcopy
 
+# TODO: Handle monitors for the following:
+# 1) Determining when to stop (e.g. early stopping with patience, stopping after some num epochs...)
+# 2) Keeping track of best performance so far
+# 3) Monitoring performance on various metrics
+# class Monitor(object):
+
 
 class Trainer(object):
     def __init__(self, model, data_manager=DataManager(), default_settings=Settings()):

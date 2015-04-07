@@ -36,11 +36,11 @@ class TrainerSettings(ParamUpdateSettings):
                  momentum=ConstantVal(0.5),
                  update=NesterovMomentum,
                  weightdecay=L2(),
-                 epochs=100,
+                 max_epochs=100,
                  **kwargs):
         super(TrainerSettings, self).__init__(learning_rate, momentum, weightdecay, **kwargs)
         self.update = update
-        self.epochs = epochs
+        self.max_epochs = max_epochs
 
     def to_dict(self):
         properties = super(TrainerSettings, self).to_dict()
