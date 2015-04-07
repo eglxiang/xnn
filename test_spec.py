@@ -6,27 +6,41 @@ import pprint
 
 
 BATCHSIZE = 128
+MAXEPOCHS = 100
 IMGWIDTH = 48
 IMGHEIGHT = 48
 IMGDIMS = IMGWIDTH*IMGHEIGHT
+AGEBINS = [18, 25, 35, 45, 55, 65, 100] # right bin edges
 DRAWNETS = True # only if pydot is installed and draw_net is present
 
 # -------------------------------------------------------------------- #
 # First setup the data
 # -------------------------------------------------------------------- #
+# TODO: Add something to specify the dataset/loader class/function (e.g. auload, "mnist"...)
+
 input_names = ['patches']
 
-aus = ChannelSet(name="someaus", type="action_units", type_weight=.5)
-aus.add(Channel("AU1", negative_weight=.7, channel_weight=.4))
-aus.add(Channel("AU2", negative_weight=.5, channel_weight=.8))
-aus.add(Channel("AU4", negative_weight=.7, channel_weight=.4))
+aus = ChannelSet(name="someaus", type="action_units", set_weight=.5)
+aus.add(Binary("AU1", channel_weight=.4, negative_weight=.7))
+aus.add(Binary("AU2", channel_weight=.8))
+aus.add(Binary("AU4", negative_weight=.7))
 
-emos = ChannelSet(name="allemotions", type="emotions", type_weight=1.0)
-emos.add(Channel("anger", negative_weight=.1, channel_weight=.7))
-emos.add(Channel("contempt", negative_weight=.1, channel_weight=.9))
+emos = ChannelSet(name="allemotions", type="emotions")
+emos.add(Binary("anger"))
+emos.add(Binary("contempt"))
+
+age = ChannelSet(name="age", type="age")
+age.add(Real("age", bins_to_weight=AGEBINS))
+
+ethn = ChannelSet(name="ethnicities", type="ethnicities")
+ethn.add(Real("asian"))
+ethn.add(Real("black"))
+ethn.add(Real("hispanic"))
+ethn.add(Real("indian"))
+ethn.add(Real("white"))
 
 data_mgr = DataManager(input_names=input_names,
-                       channel_sets=[aus, emos],
+                       channel_sets=[aus, emos, age, ethn],
                        batch_size=128,
                        shuffle_batches=True)
 
@@ -54,8 +68,8 @@ seqmlp.bind_output(
 train_settings = TrainerSettings(learning_rate=ConstantVal(0.01),
                                  momentum=ConstantVal(0.5),
                                  update=NesterovMomentum,
-                                 weightdecay=L2(),
-                                 epochs=100)
+                                 weightdecay=L2(ConstantVal(1e-5)),
+                                 max_epochs=MAXEPOCHS)
 trainer = Trainer(seqmlp, data_manager=data_mgr, default_settings=train_settings)
 
 print '---------------------------------'
@@ -63,6 +77,8 @@ print 'MLP dict representation'
 pprint.pprint(seqmlp.to_dict())
 print 'MLP instantiated representation'
 pprint.pprint(seqmlp.instantiate())
+print 'Trainer dict representation'
+pprint.pprint(trainer.to_dict())
 
 
 
@@ -88,20 +104,16 @@ mlp.bind_output(
     )
 )
 
-# Training spec
-train_settings = TrainerSettings(learning_rate=ConstantVal(0.01),
-                                 momentum=ConstantVal(0.5),
-                                 update=NesterovMomentum,
-                                 weightdecay=L2(),
-                                 epochs=100)
-trainer = Trainer(mlp, data_manager=data_mgr, default_settings=train_settings)
+mlp.bind_param_update_settings(layername=hidden1.name,
+                               settings=ParamUpdateSettings(
+                                   learning_rate=ConstantVal(0.001),
+                                   momentum=ConstantVal(0.5)))
 
 print '---------------------------------'
 print 'MLP dict representation'
 pprint.pprint(mlp.to_dict())
 print 'MLP instantiated representation'
 pprint.pprint(mlp.instantiate())
-
 
 
 # -------------------------------------------------------------------- #
