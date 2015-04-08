@@ -14,35 +14,32 @@ class Settings(object):
 
 class ParamUpdateSettings(Settings):
     def __init__(self,
-                 learning_rate=ConstantVal(0.01),
-                 momentum=ConstantVal(0.5),
-                 weightdecay=L2(),
+                 lr_scale=1.0,
+                 mom_scale=1.0,
+                 wc_scale=1.0,
                  **kwargs):
         super(ParamUpdateSettings, self).__init__(**kwargs)
-        self.learning_rate = learning_rate
-        self.momentum = momentum
-        self.weightdecay = weightdecay
+        self.lr_scale = lr_scale
+        self.mom_scale = mom_scale
+        self.wc_scale = wc_scale
 
     def to_dict(self):
         properties = super(ParamUpdateSettings, self).to_dict()
-        properties['learning_rate'] = properties['learning_rate'].to_dict()
-        properties['momentum'] = properties['momentum'].to_dict()
-        properties['weightdecay'] = properties['weightdecay'].to_dict()
         return properties
 
-class TrainerSettings(ParamUpdateSettings):
+class TrainerSettings(Settings):
     def __init__(self,
-                 learning_rate=ConstantVal(0.01),
-                 momentum=ConstantVal(0.5),
-                 update=NesterovMomentum,
-                 weightdecay=L2(),
+                 update=NesterovMomentum(learning_rate=LR_DEFAULT, momentum=MOM_DEFAULT),
+                 weightcost=L2(),
                  max_epochs=100,
                  **kwargs):
-        super(TrainerSettings, self).__init__(learning_rate, momentum, weightdecay, **kwargs)
+        super(TrainerSettings, self).__init__(**kwargs)
         self.update = update
+        self.weightcost = weightcost
         self.max_epochs = max_epochs
 
     def to_dict(self):
         properties = super(TrainerSettings, self).to_dict()
-        properties['update'] = properties['update'].__name__
+        properties['update'] = properties['update'].to_dict()
+        properties['weightcost'] = properties['weightcost'].to_dict()
         return properties

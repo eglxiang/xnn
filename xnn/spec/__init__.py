@@ -8,6 +8,7 @@ from .adjusters import *
 from .updates import *
 from .regularization import *
 from .settings import *
+from .experiment import *
 from . import data
 from . import train
 from . import layers

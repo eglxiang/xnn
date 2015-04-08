@@ -54,6 +54,10 @@ class NesterovMomentum(Momentum):
         super(NesterovMomentum, self).__init__(
             learning_rate=learning_rate, momentum=momentum, **kwargs)
 
+    def to_dict(self):
+        properties = super(NesterovMomentum, self).to_dict()
+        return properties
+
     def __call__(self, loss, params, epoch, **kwargs):
         masks = None # TODO: Deal with masks!
         activation_params = None # TODO: Deal with activation_params!

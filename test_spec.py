@@ -65,12 +65,14 @@ seqmlp.bind_output(
 )
 
 # Training spec
-train_settings = TrainerSettings(learning_rate=ConstantVal(0.01),
-                                 momentum=ConstantVal(0.5),
-                                 update=NesterovMomentum,
-                                 weightdecay=L2(ConstantVal(1e-5)),
-                                 max_epochs=MAXEPOCHS)
+train_settings = TrainerSettings(
+    update=NesterovMomentum(
+        learning_rate=ConstantVal(0.01), momentum=ConstantVal(0.5)),
+    weightcost=L2(ConstantVal(1e-5)),
+    max_epochs=MAXEPOCHS)
 trainer = Trainer(seqmlp, data_manager=data_mgr, default_settings=train_settings)
+
+
 
 print '---------------------------------'
 print 'MLP dict representation'
@@ -108,6 +110,8 @@ mlp.bind_param_update_settings(layername=hidden1.name,
                                settings=ParamUpdateSettings(
                                    learning_rate=ConstantVal(0.001),
                                    momentum=ConstantVal(0.5)))
+
+trainer = Trainer(mlp, data_manager=data_mgr, default_settings=train_settings)
 
 print '---------------------------------'
 print 'MLP dict representation'
