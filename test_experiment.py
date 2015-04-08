@@ -11,18 +11,18 @@ IMGHEIGHT = 48
 class Condition(ExperimentCondition):
     def __init__(self):
         self.batchsize = 128
-        self.shuffle = True
-        self.maxepoch = 100
-        self.imgdims = IMGWIDTH*IMGHEIGHT
-        self.agebins = [18, 25, 35, 45, 55, 65, 100]
-        self.auweight = .5
+        self.shuffle   = True
+        self.maxepoch  = 100
+        self.imgdims   = IMGWIDTH*IMGHEIGHT
+        self.agebins   = [18, 25, 35, 45, 55, 65, 100]
+        self.auweight  = .5
         self.emoweight = 1.0
-        self.numhid1 = 100
-        self.numhid2 = 50
-        self.nonlin1 = rectify()
-        self.nonlin2 = rectify()
-        self.update = NesterovMomentum(learning_rate=ConstantVal(0.01), momentum=ConstantVal(0.5))
-        self.wc = L2(ConstantVal(1e-5))
+        self.numhid1   = 100
+        self.numhid2   = 50
+        self.nonlin1   = rectify()
+        self.nonlin2   = rectify()
+        self.update    = NesterovMomentum(learning_rate=ConstantVal(0.01), momentum=ConstantVal(0.5))
+        self.wc        = L2(ConstantVal(1e-5))
 
 def create_spec(cond=Condition()):
     # -------------------------------------------------------------------- #
@@ -51,36 +51,36 @@ def create_spec(cond=Condition()):
     ethn.add(Real("indian"))
     ethn.add(Real("white"))
 
-    data_mgr = DataManager(input_names=input_names,
-                           channel_sets=[aus, emos, age, ethn],
-                           batch_size=cond.batchsize,
-                           shuffle_batches=cond.shuffle)
+    data_mgr = DataManager(input_names     = input_names,
+                           channel_sets    = [aus, emos, age, ethn],
+                           batch_size      = cond.batchsize,
+                           shuffle_batches = cond.shuffle)
 
 
     # -------------------------------------------------------------------- #
     # Sequential basic mlp with softmax layers
     # -------------------------------------------------------------------- #
     seqmlp = Sequential()
-    seqmlp.add(InputLayer, shape=(cond.batchsize, cond.imgdims))
-    seqmlp.add(DenseLayer, num_units=cond.numhid1, nonlinearity=cond.nonlin1)
-    seqmlp.add(DenseLayer, num_units=cond.numhid2, nonlinearity=cond.nonlin2)
-    seqmlp.add(DenseLayer, num_units=aus.size(), nonlinearity=softmax(), name="labels")
+    seqmlp.add(InputLayer, shape     = (cond.batchsize, cond.imgdims))
+    seqmlp.add(DenseLayer, num_units = cond.numhid1, nonlinearity = cond.nonlin1)
+    seqmlp.add(DenseLayer, num_units = cond.numhid2, nonlinearity = cond.nonlin2)
+    seqmlp.add(DenseLayer, num_units = aus.size(),   nonlinearity = softmax(), name="labels")
 
     seqmlp.add_channel_set(aus)
 
     seqmlp.bind_output(
-        layername="labels",
-        settings=Output(
-            loss=categorical_crossentropy(),
-            target=ChannelsTarget(channelsets=[aus])
+        layername  = "labels",
+        settings   = Output(
+            loss   = categorical_crossentropy(),
+            target = ChannelsTarget(channelsets=[aus])
         )
     )
 
     # Training spec
-    train_settings = TrainerSettings(update=cond.update,
-                                     weightdecay=cond.wc,
-                                     max_epochs=cond.maxepoch)
-    trainer = Trainer(seqmlp, data_manager=data_mgr, default_settings=train_settings)
+    train_settings = TrainerSettings(update      = cond.update,
+                                     weightdecay = cond.wc,
+                                     max_epochs  = cond.maxepoch)
+    trainer = Trainer(seqmlp, data_manager = data_mgr, default_settings = train_settings)
     return trainer
 
 
@@ -99,5 +99,5 @@ pprint.pprint(expt.get_all_conditions_changes())
 
 print 'condition(2)'
 cond = expt.get_nth_condition(2)
-trainer = create_spec(cond=cond)
+trainer = create_spec(cond = cond)
 pprint.pprint(trainer.to_dict())

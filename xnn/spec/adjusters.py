@@ -37,8 +37,8 @@ class ConstantVal(Adjuster):
 class LinearChange(Adjuster):
     def __init__(self, start=0.9, stop=0.99, interval=500, **kwargs):
         super(LinearChange, self).__init__(**kwargs)
-        self.start = start
-        self.stop = stop
+        self.start    = start
+        self.stop     = stop
         self.interval = interval
 
     def __call__(self, epoch):
@@ -50,8 +50,8 @@ class LinearChange(Adjuster):
 class ExponentialChange(Adjuster):
     def __init__(self, start=0.9, change=0.99, interval=None, **kwargs):
         super(ExponentialChange, self).__init__(**kwargs)
-        self.start = start
-        self.change = change
+        self.start    = start
+        self.change   = change
         self.interval = interval
 
     def __call__(self, epoch):
@@ -63,10 +63,10 @@ class ExponentialChange(Adjuster):
 class StepChange(Adjuster):
     def __init__(self, start=0.9, interval=500, base=10, steps=5, **kwargs):
         super(StepChange, self).__init__(**kwargs)
-        self.start = start
+        self.start    = start
         self.interval = interval
-        self.base = base
-        self.steps = steps
+        self.base     = base
+        self.steps    = steps
 
     def __call__(self, epoch):
         return self.start / self.base ** \
@@ -76,9 +76,9 @@ class StepChange(Adjuster):
 class Anneal(Adjuster):
     def __init__(self, start=0.9, anneal_coef=1, interval=None, **kwargs):
         super(Anneal, self).__init__(**kwargs)
-        self.start = start
+        self.start       = start
         self.anneal_coef = anneal_coef
-        self.interval = interval
+        self.interval    = interval
 
     def __call__(self, epoch):
         if self.interval is None:

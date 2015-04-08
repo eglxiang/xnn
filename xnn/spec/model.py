@@ -9,9 +9,9 @@ class LayerContainer():
     A struct for keeping track of auxiliary information for a layer spec.
     """
     def __init__(self, name, layer, type, output_settings=None, update_settings=None):
-        self.name = name
-        self.layer = layer
-        self.type = type
+        self.name            = name
+        self.layer           = layer
+        self.type            = type
         self.output_settings = output_settings
         self.update_settings = update_settings
 
@@ -22,30 +22,30 @@ class Model(object):
     def __init__(self, **kwargs):
         if kwargs:
             self.additional_args = kwargs
-        self.layers = []
+        self.layers              = []
         self.instantiated_layers = dict()
-        self.channelsets = []
+        self.channelsets         = []
 
     def to_dict(self):
         modeldict = deepcopy(self.__dict__)
         if 'instantiated_layers' in modeldict:
             del(modeldict['instantiated_layers'])
-        modeldict['outputs'] = []
-        modeldict['updates'] = []
+        modeldict['outputs']     = []
+        modeldict['updates']     = []
         modeldict['channelsets'] = [cs.to_dict() for cs in self.channelsets]
         for i in range(len(modeldict['layers'])):
-            layer_name = modeldict['layers'][i].name
-            layer = modeldict['layers'][i].layer
-            output_settings = modeldict['layers'][i].output_settings
-            update_settings = modeldict['layers'][i].update_settings
-            modeldict['layers'][i] = layer.to_dict()
+            layer_name                     = modeldict['layers'][i].name
+            layer                          = modeldict['layers'][i].layer
+            output_settings                = modeldict['layers'][i].output_settings
+            update_settings                = modeldict['layers'][i].update_settings
+            modeldict['layers'][i]         = layer.to_dict()
             modeldict['layers'][i]['name'] = layer_name
             if output_settings:
-                output_settings = output_settings.to_dict()
+                output_settings               = output_settings.to_dict()
                 output_settings['layer_name'] = layer_name
                 modeldict['outputs'].append(output_settings)
             if update_settings:
-                update_settings = update_settings.to_dict()
+                update_settings               = update_settings.to_dict()
                 update_settings['layer_name'] = layer_name
                 modeldict['updates'].append(update_settings)
         return modeldict

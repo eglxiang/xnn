@@ -14,9 +14,9 @@ class Settings(object):
 
 class ParamUpdateSettings(Settings):
     def __init__(self,
-                 lr_scale=1.0,
-                 mom_scale=1.0,
-                 wc_scale=1.0,
+                 lr_scale  = 1.0,
+                 mom_scale = 1.0,
+                 wc_scale  = 1.0,
                  **kwargs):
         super(ParamUpdateSettings, self).__init__(**kwargs)
         self.lr_scale = lr_scale
@@ -29,17 +29,17 @@ class ParamUpdateSettings(Settings):
 
 class TrainerSettings(Settings):
     def __init__(self,
-                 update=NesterovMomentum(learning_rate=LR_DEFAULT, momentum=MOM_DEFAULT),
-                 weightcost=L2(),
-                 max_epochs=100,
+                 update     = NesterovMomentum(learning_rate = LR_DEFAULT, momentum = MOM_DEFAULT),
+                 weightcost = L2(),
+                 max_epochs = 100,
                  **kwargs):
         super(TrainerSettings, self).__init__(**kwargs)
-        self.update = update
+        self.update     = update
         self.weightcost = weightcost
         self.max_epochs = max_epochs
 
     def to_dict(self):
-        properties = super(TrainerSettings, self).to_dict()
-        properties['update'] = properties['update'].to_dict()
+        properties               = super(TrainerSettings, self).to_dict()
+        properties['update']     = properties['update'].to_dict()
         properties['weightcost'] = properties['weightcost'].to_dict()
         return properties

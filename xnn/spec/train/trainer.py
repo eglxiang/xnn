@@ -18,8 +18,8 @@ class Trainer(object):
         self.default_settings = default_settings
 
     def to_dict(self):
-        properties = deepcopy(self.__dict__)
-        properties['model'] = properties['model'].to_dict()
-        properties['data_manager'] = properties['data_manager'].to_dict()
+        properties                     = deepcopy(self.__dict__)
+        properties['model']            = properties['model'].to_dict()
+        properties['data_manager']     = properties['data_manager'].to_dict()
         properties['default_settings'] = properties['default_settings'].to_dict()
         return properties

@@ -19,7 +19,7 @@ class Regularizer(object):
 class L2(Regularizer):
     def __init__(self, scale=ConstantVal(0), include_biases=False, **kwargs):
         super(L2, self).__init__(**kwargs)
-        self.scale = scale
+        self.scale          = scale
         self.include_biases = include_biases
 
     def to_dict(self):

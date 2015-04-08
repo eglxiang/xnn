@@ -1,13 +1,10 @@
 import theano.tensor as T
 
-objective_types={}
 def mse(x, t, **kwargs):
     """Calculates the MSE mean across all dimensions, i.e. feature
      dimension AND minibatch dimension.
     """
     return (x-t) ** 2
-
-objective_types['mse'] = mse
 
 def crossentropy(x, t, **kwargs):
     """Calculates the binary crossentropy mean across all dimentions,
@@ -15,16 +12,8 @@ def crossentropy(x, t, **kwargs):
     """
     return T.nnet.binary_crossentropy(x, t)
 
-objective_types['crossentropy'] = crossentropy
-objective_types['cross entropy'] = crossentropy
-objective_types['ce'] = crossentropy
-
 def categorical_crossentropy(x, t, **kwargs):
     return T.nnet.categorical_crossentropy(x, t)
-
-objective_types['categorical crossentropy'] = categorical_crossentropy
-objective_types['softmax crossentropy'] = categorical_crossentropy
-objective_types['cce'] = categorical_crossentropy
 
 def kl_divergence(x, t, eps=1e-08, **kwargs):
     """Calculates the KL-divergence between a true distribution t and the predictive distribution x
@@ -35,37 +24,21 @@ def kl_divergence(x, t, eps=1e-08, **kwargs):
     lograt = T.log(t+eps) - T.log(x+eps)
     return T.sum(t * lograt, axis=1)
 
-objective_types['kldivergence'] = kl_divergence
-objective_types['kl divergence'] = kl_divergence
-objective_types['kld'] = kl_divergence
-
 def hinge_loss(x, t, **kwargs):
     t_ = T.switch(T.eq(t, 0), -1, 1)
     threshold = kwargs['threshold'] if 'threshold' in kwargs.keys() else 0
     scores = 1 - (t_ * x)
     return T.maximum(0, scores - threshold)
 
-objective_types['hingeloss'] = hinge_loss
-objective_types['hinge loss'] = hinge_loss
-objective_types['hl'] = hinge_loss
-
 def squared_hinge_loss(x, t, **kwargs):
     loss = hinge_loss(x, t, **kwargs)
     gamma = kwargs['gamma'] if 'gamma' in kwargs.keys() else 2.0
     return 1.0/(2.0 * gamma) * loss**2
 
-objective_types['squaredhingeloss'] = squared_hinge_loss
-objective_types['squared hinge loss'] = squared_hinge_loss
-objective_types['shl'] = squared_hinge_loss
-
 
 class Objective(object):
-    def __init__(self, loss_function=objective_types['mse'], **kwargs):
-        try:
-            loss_function=loss_function.lower()
-            self.loss_function = objective_types[loss_function]
-        except:
-            self.loss_function = loss_function
+    def __init__(self, loss_function=mse, **kwargs):
+        self.loss_function = loss_function
         self.target_var = T.matrix("target")
         self.settings = kwargs
 
