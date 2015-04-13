@@ -1,6 +1,7 @@
 from .objectives import *
 from .nonlinearities import *
 from .data.channels import *
+from .layers.base import LayerContainer
 
 # from lasagne.utils import Separator
 
@@ -28,13 +29,14 @@ class ChannelsTarget(Target):
         return outdict
 
 class ReconstructionTarget(Target):
-    def __init__(self, layer):
-        if not isinstance(layer, str):
-            raise TypeError("layer for ReconstructionTarget must be a string.")
-        self.layer = layer
+    def __init__(self, layerctr):
+        if not isinstance(layerctr, LayerContainer):
+            raise TypeError("layer for ReconstructionTarget must be a LayerContainer.")
+        self.layerctr = layerctr
 
     def to_dict(self):
         outdict = super(ReconstructionTarget, self).to_dict()
+        outdict['layerctr'] = outdict['layerctr'].name
         return outdict
 
 class Output(object):
@@ -61,7 +63,7 @@ class Output(object):
         if isinstance(self.target, ChannelsTarget):
             target_obj = self.target.channelsets
         elif isinstance(self.target, ReconstructionTarget):
-            target_obj = instantiated_layers[self.target.layer]
+            target_obj = instantiated_layers[self.target.layerctr]
         output_settings = dict(
             loss=self.loss.instantiate(),
             runtime_nonlinearity=self.runtime_nonlinearity.instantiate(),
