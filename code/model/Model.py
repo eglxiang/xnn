@@ -1,9 +1,14 @@
 import lasagne
+from lasagne.layers import get_output
+import theano.tensor as T
+
 
 class Model():
     def __init__(self,name=None):
         self.name=name
         self.layers = {}
+        self.inputs = {}
+        self.outputs = {}
 
     def addLayer(self,layer,name=None):
         if name is None and layer.name is not None:
@@ -38,27 +43,73 @@ class Model():
             pl = droplayer
         return pl
 
+    def bindInput(self, input_key, input_layer):
+        if not isinstance(input_key, str):
+            raise Exception("input_key must be a string")
+        if not isinstance(input_layer, lasagne.layers.input.InputLayer):
+            raise Exception("input_layer must be an object of type InputLayer")
+        self.inputs.setdefault(input_key, [])
+        self.inputs[input_key].append(input_layer)
+
+    def bindOutput(self, binding_name, output_layer, loss_function, target, target_type='label'):
+        target_types = ['label', 'recon']
+        if target_type not in target_types:
+            raise ValueError("Invalid target type. Expected one of: %s" % target_types)
+        if (target_type == 'label') and (not isinstance(target, str)):
+            raise ValueError("target must be a string if target type is label")
+        if (target_type == 'recon') and (not isinstance(target, lasagne.layers.base.Layer)):
+            raise ValueError("target must be a Layer object if target type is recon")
+        self.outputs[binding_name] = dict(
+            output_layer=output_layer,
+            target=target,
+            target_type=target_type,
+            loss_function=loss_function
+        )
+
     def to_dict(self):
         d = {}
         ls = []
         for lname,l in self.layers.iteritems():
+            ltype = l.__class__.__name__
             if type(l) == lasagne.layers.input.InputLayer:
-                ls.append(dict(name=lname,shape=l.shape,layer_type=type(l)))
+                ls.append(dict(name=lname,
+                               shape=l.shape,
+                               layer_type=ltype))
                 continue
             iln = l.input_layer.name if l.input_layer is not None else None
             ldict = dict(name=lname,
                            input_layer=iln,
                            input_shape=l.input_shape,
                            output_shape=l.output_shape,
-                           layer_type=type(l))
+                           layer_type=ltype)
             if type(l) == lasagne.layers.noise.DropoutLayer:
                 ldict['p'] = l.p
             if type(l) == lasagne.layers.dense.DenseLayer:
                 ldict['nonlinearity'] = l.nonlinearity
             ls.append(ldict)
 
-        d['layers']=ls
-        d['name']=self.name
+        inputs = dict()
+        for iname,layers in self.inputs.iteritems():
+            inputs.setdefault(iname, [])
+            for layer in layers:
+                inputs[iname].append(layer.name)
+
+        outputs = dict()
+        for oname, output in self.outputs.iteritems():
+            target = output['target']
+            if output['target_type'] == 'recon':
+                target = target.name
+            outputs[oname] = dict(
+                loss_function=output['loss_function'].func_name,
+                output_layer=output['output_layer'].__class__.__name__,
+                target_type=output['target_type'],
+                target=target
+            )
+
+        d['layers'] = ls
+        d['inputs'] = inputs
+        d['outputs'] = outputs
+        d['name'] = self.name
         return d
 
 
