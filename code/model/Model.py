@@ -25,11 +25,16 @@ class Model():
         self.layers[name]=layer
         return layer
 
-    def _get_unique_name_from_layer(self,layer):
+    def addFullNetFromOutputLayer(self,outlayer):
+        layers = lasagne.layers.get_all_layers(outlayer)
+        for l in layers:
+            self.addLayer(l)
+
+    def _get_unique_name_from_layer(self,layer,namebase=''):
         if layer.name is not None:
-            name = self._get_unique_name(layer.name)
+            name = self._get_unique_name(namebase+layer.name)
         else:
-            name = self._get_unique_name(layer.__class__.__name__)
+            name = self._get_unique_name(namebase+layer.__class__.__name__)
         return name
 
     def _get_unique_name(self,namebase,counter=0):
@@ -37,13 +42,31 @@ class Model():
             namebase+= '_'+str(counter)
         return namebase
 
+    def makeDropoutLayer(self,parentlayer,p=0.5,name=None):
+        droplayer  = lasagne.layers.noise.DropoutLayer(parentlayer,p=p)
+        if name is None:
+            name = self._get_unique_name_from_layer(droplayer)
+            droplayer.name=name
+        self.addLayer(droplayer,name=name)
+        return droplayer
+
+    def makeDenseLayer(self,parentlayer,num_hidden,nonlinearity=None,name=None):
+        if nonlinearity is None:
+            nonlinearity = lasagne.nonlinearities.rectify
+        denselayer = lasagne.layers.dense.DenseLayer(parentlayer,num_units=num_hidden,nonlinearity=nonlinearity)
+        if name is None:
+            name = self._get_unique_name_from_layer(denselayer)
+            denselayer.name = name
+        self.addLayer(denselayer,name=name)
+        return denselayer
+
     def makeBoundInputLayer(self,shape,inputlabelkey,name=None,input_var=None):
         lin = lasagne.layers.input.InputLayer(shape,input_var=input_var,name=name)
         if name is None:
             name = self._get_unique_name_from_layer(lin)
             lin.name = name
         self.addLayer(lin)
-        self.bindInput(inputlabelkey,lin)
+        self.bindInput(lin,inputlabelkey)
         return lin
 
     def makeDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None):
@@ -67,10 +90,8 @@ class Model():
             nameden = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
             namedro = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
             
-            denselayer = lasagne.layers.dense.DenseLayer(pl,num_units=nhu,nonlinearity=nl)
-            self.addLayer(denselayer,name=nameden)
-            droplayer  = lasagne.layers.noise.DropoutLayer(denselayer,p=p)
-            self.addLayer(droplayer,name=namedro)
+            denselayer = self.makeDenseLayer(pl,nhu,nonlinearity=nl,name=nameden)
+            droplayer  = self.makeDropoutLayer(denselayer,p=p,name=namedro)
             pl = droplayer
         return pl
 
@@ -162,9 +183,17 @@ def model_test():
     m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
     m.bindOutput(l_out, lasagne.objectives.mse, l_in, "recon", "mean")
 
+
+    m2 = Model('test convenience')
+    l_in = m2.makeBoundInputLayer((10,200),'pixels')
+    l_out = m2.makeDenseDropStack(l_in,[60,30,20],[.6,.4,.3])
+    m2.bindOutput(l_out, lasagne.objectives.mse, 'age', 'label', 'mean')
+
     serialized = m.to_dict()
     pprint.pprint(serialized)
 
+    serialized = m2.to_dict()
+    pprint.pprint(serialized)
 
 if __name__ == "__main__":
     model_test()
