@@ -28,8 +28,11 @@ class Model():
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
 
-    def bindOutput(self, binding_name, output_layer, loss_function, target, target_type='label'):
+    def bindOutput(self, binding_name, output_layer, loss_function, target, target_type='label', aggregation_type='mean',):
+        aggregation_types = ['mean', 'sum', 'normalized_sum']
         target_types = ['label', 'recon']
+        if aggregation_type not in aggregation_types:
+            raise ValueError("Invalid aggeegation type. Expected one of: %s" % aggregation_types)
         if target_type not in target_types:
             raise ValueError("Invalid target type. Expected one of: %s" % target_types)
         if (target_type == 'label') and (not isinstance(target, str)):
@@ -40,7 +43,8 @@ class Model():
             output_layer=output_layer,
             target=target,
             target_type=target_type,
-            loss_function=loss_function
+            loss_function=loss_function,
+            aggregation_type=aggregation_type
         )
 
     def to_dict(self):
@@ -76,7 +80,7 @@ class Model():
                 target = target.name
             outputs[oname] = dict(
                 loss_function=output['loss_function'].func_name,
-                output_layer=output['output_layer'].__class__.__name__,
+                output_layer=output['output_layer'].name,
                 target_type=output['target_type'],
                 target=target
             )
@@ -90,4 +94,21 @@ class Model():
 
 
 
+def model_test():
+    import pprint
 
+    m = Model('test model')
+    l_in = m.addLayer(lasagne.layers.InputLayer(shape=(10,200)), name="l_in")
+    l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, 100), name="l_h1")
+    l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, 200), name="l_out")
+
+    m.bindInput("pixels", l_in)
+    m.bindOutput("emotions", l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
+    m.bindOutput("recon", l_out, lasagne.objectives.mse, l_in, "recon", "mean")
+
+    serialized = m.to_dict()
+    pprint.pprint(serialized)
+
+
+if __name__ == "__main__":
+    model_test()
