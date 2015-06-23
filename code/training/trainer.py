@@ -1,14 +1,13 @@
-class Trainer(Object):
-    def __init__(self):
+class TrainerSettings(Object):
+    def __init__(self, num_epochs=1000,batch_size=128,dataInRam=True):
         self.num_epochs = 1000
         self.batch_size = 128
         self.dataInRam  = True
 
-        self.iter_functs = self._create_funcs()
-    def train(self):
-        pass
-
-
+class Trainer(Object):
+    def __init__(self, trainerSettings):
+        self.__dict__.update(trainerSettings.__dict__)
+        self.iter_funcs = self._create_funcs()
 
     def _create_funcs(self):
 

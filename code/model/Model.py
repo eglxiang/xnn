@@ -133,6 +133,10 @@ class Model():
 
 
 
+    def predict(self,X):
+        layers = self.layers.items()
+        outs = dict(zip([layer[0] for layer in layers],lasagne.layers.get_output([layer[1] for layer in layers],inputs=X)))
+
 
 def model_test():
     import pprint
@@ -152,3 +156,4 @@ def model_test():
 
 if __name__ == "__main__":
     model_test()
+
