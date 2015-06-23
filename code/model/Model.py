@@ -113,7 +113,7 @@ class Model():
         self.inputs[input_key].append(input_layer)
 
     def bindOutput(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean',):
-        aggregation_types = ['mean', 'sum', 'normalized_sum']
+        aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
             raise ValueError("Invalid aggeegation type. Expected one of: %s" % aggregation_types)
