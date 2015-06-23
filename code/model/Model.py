@@ -69,6 +69,15 @@ class Model():
         self.bindInput(lin,inputlabelkey)
         return lin
 
+    def makeQuickTrickBrickStack(self):
+        # complements of Fox in Socks
+        # http://ai.eecs.umich.edu/people/dreeves/Fox-In-Socks.txt
+        print "First, I'll make a quick trick brick stack." \
+              "Then I'll make a quick trick block stack." \
+              "You can make a quick trick chick stack." \
+              "You can make a quick trick clock stack."
+        return True
+
     def makeDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None):
         pl = parent_layer
         if namebase is None:
