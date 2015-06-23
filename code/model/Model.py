@@ -58,7 +58,7 @@ class Model():
             pl = droplayer
         return pl
 
-    def bindInput(self, input_key, input_layer):
+    def bindInput(self, input_layer, input_key):
         if not isinstance(input_key, str):
             raise Exception("input_key must be a string")
         if not isinstance(input_layer, lasagne.layers.input.InputLayer):
@@ -66,7 +66,7 @@ class Model():
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
 
-    def bindOutput(self, binding_name, output_layer, loss_function, target, target_type='label', aggregation_type='mean',):
+    def bindOutput(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean',):
         aggregation_types = ['mean', 'sum', 'normalized_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
@@ -77,7 +77,7 @@ class Model():
             raise ValueError("target must be a string if target type is label")
         if (target_type == 'recon') and (not isinstance(target, lasagne.layers.base.Layer)):
             raise ValueError("target must be a Layer object if target type is recon")
-        self.outputs[binding_name] = dict(
+        self.outputs[output_layer.name] = dict(
             output_layer=output_layer,
             target=target,
             target_type=target_type,
@@ -142,9 +142,9 @@ def model_test():
     l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, 100), name="l_h1")
     l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, 200), name="l_out")
 
-    m.bindInput("pixels", l_in)
-    m.bindOutput("emotions", l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bindOutput("recon", l_out, lasagne.objectives.mse, l_in, "recon", "mean")
+    m.bindInput(l_in, "pixels")
+    m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
+    m.bindOutput(l_out, lasagne.objectives.mse, l_in, "recon", "mean")
 
     serialized = m.to_dict()
     pprint.pprint(serialized)
