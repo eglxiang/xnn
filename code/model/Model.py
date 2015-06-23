@@ -12,25 +12,41 @@ class Model():
 
     def addLayer(self,layer,name=None):
         if name is None and layer.name is not None:
-            name = layer.name
+            name = self._get_unique_name_from_layer(layer)
         if layer.name is None and name is not None:
-            layer.name = name
-        if (layer.name is None and name is None) or (name!=layer.name):
-            raise Exception("Layer must have a consistent name")
-        name = self._get_unique_name(name)
-        layer.name=name
+            layer.name = self._get_unique_name(name)
+            name = layer.name
+        if layer.name is None and name is None:
+            layer.name = self._get_unique_name_from_layer(layer)
+            name = layer.name
+        else: 
+            name = self._get_unique_name(name)
+            layer.name=name
         self.layers[name]=layer
         return layer
 
     def _get_unique_name_from_layer(self,layer):
-        return self._get_unique_name(layer.name)
+        if layer.name is not None:
+            name = self._get_unique_name(layer.name)
+        else:
+            name = self._get_unique_name(layer.__class__.__name__)
+        return name
 
     def _get_unique_name(self,namebase,counter=0):
         while namebase in self.layers.keys():
             namebase+= '_'+str(counter)
         return namebase
 
-    def addDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None):
+    def makeBoundInputLayer(self,shape,inputlabelkey,name=None,input_var=None):
+        lin = lasagne.layers.input.InputLayer(shape,input_var=input_var,name=name)
+        if name is None:
+            name = self._get_unique_name_from_layer(lin)
+            lin.name = name
+        self.addLayer(lin)
+        self.bindInput(inputlabelkey,lin)
+        return lin
+
+    def makeDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None):
         pl = parent_layer
         if namebase is None:
             namebase="l_"
@@ -58,7 +74,7 @@ class Model():
             pl = droplayer
         return pl
 
-    def bindInput(self, input_key, input_layer):
+    def bindInput(self, input_layer, input_key):
         if not isinstance(input_key, str):
             raise Exception("input_key must be a string")
         if not isinstance(input_layer, lasagne.layers.input.InputLayer):
@@ -66,7 +82,7 @@ class Model():
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
 
-    def bindOutput(self, binding_name, output_layer, loss_function, target, target_type='label', aggregation_type='mean',):
+    def bindOutput(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean',):
         aggregation_types = ['mean', 'sum', 'normalized_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
@@ -77,7 +93,7 @@ class Model():
             raise ValueError("target must be a string if target type is label")
         if (target_type == 'recon') and (not isinstance(target, lasagne.layers.base.Layer)):
             raise ValueError("target must be a Layer object if target type is recon")
-        self.outputs[binding_name] = dict(
+        self.outputs[output_layer.name] = dict(
             output_layer=output_layer,
             target=target,
             target_type=target_type,
@@ -146,9 +162,9 @@ def model_test():
     l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, 100), name="l_h1")
     l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, 200), name="l_out")
 
-    m.bindInput("pixels", l_in)
-    m.bindOutput("emotions", l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bindOutput("recon", l_out, lasagne.objectives.mse, l_in, "recon", "mean")
+    m.bindInput(l_in, "pixels")
+    m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
+    m.bindOutput(l_out, lasagne.objectives.mse, l_in, "recon", "mean")
 
     serialized = m.to_dict()
     pprint.pprint(serialized)
