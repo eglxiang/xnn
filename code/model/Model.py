@@ -15,6 +15,29 @@ class Model():
         self.layers[name]=layer
         return layer
 
+    def addDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None):
+        pl = parent_layer
+        if namebase is None:
+            namebase="l_"
+        for i in xrange(len(num_hidden_list)):
+            nhu = num_hidden_list[i]
+            if drop_p_list is not None:
+                p = drop_p_list[i]
+            else:
+                # default dropout value
+                p = 0.5
+            if nonlin_list is not None:
+                nl = nonlin_list[i]
+            else:
+                # default nonlinearity
+                nl = lasagne.nonlinearities.rectify
+            denselayer = lasagne.layers.dense.DenseLayer(pl,num_units=nhu,nonlinearity=nl)
+            self.addLayer(denselayer,name=namebase+'_dense_'+str(i))
+            droplayer  = lasagne.layers.noise.DropoutLayer(denselayer,p=p)
+            self.addLayer(droplayer,name=namebase+'_drop_'+str(i))
+            pl = droplayer
+        return pl
+
     def to_dict(self):
         d = {}
         ls = []
@@ -30,6 +53,8 @@ class Model():
                            layer_type=type(l))
             if type(l) == lasagne.layers.noise.DropoutLayer:
                 ldict['p'] = l.p
+            if type(l) == lasagne.layers.dense.DenseLayer:
+                ldict['nonlinearity'] = l.nonlinearity
             ls.append(ldict)
 
         d['layers']=ls
