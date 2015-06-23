@@ -141,7 +141,7 @@ class Model():
             if type(l) == lasagne.layers.noise.DropoutLayer:
                 ldict['p'] = l.p
             if type(l) == lasagne.layers.dense.DenseLayer:
-                ldict['nonlinearity'] = l.nonlinearity.__class__.__name__
+                ldict['nonlinearity'] = l.nonlinearity.__name__
             ls.append(ldict)
 
         inputs = dict()
@@ -167,8 +167,6 @@ class Model():
         d['outputs'] = outputs
         d['name'] = self.name
         return d
-
-
 
     def predict(self,X,layers=None):
         if layers is None:
