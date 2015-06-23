@@ -127,21 +127,31 @@ class Model():
         ls = []
         for lname,l in self.layers.iteritems():
             ltype = l.__class__.__name__
-            if type(l) == lasagne.layers.input.InputLayer:
-                ls.append(dict(name=lname,
-                               shape=l.shape,
-                               layer_type=ltype))
-                continue
-            iln = l.input_layer.name if l.input_layer is not None else None
+            if hasattr(l,'input_layer'):
+                iln = l.input_layer.name if l.input_layer is not None else None
+            else:
+                iln = None
             ldict = dict(name=lname,
                            input_layer=iln,
-                           input_shape=l.input_shape,
-                           output_shape=l.output_shape,
                            layer_type=ltype)
-            if type(l) == lasagne.layers.noise.DropoutLayer:
-                ldict['p'] = l.p
-            if type(l) == lasagne.layers.dense.DenseLayer:
-                ldict['nonlinearity'] = l.nonlinearity.__name__
+
+            directGetList = ['p','num_units','num_filters','stride',
+                             'untie_biases','border_mode','pool_size',
+                             'pad','ignore_border','axis','rescale','sigma',
+                             'outdim','pattern','width','val','batch_ndim',
+                             'indices','input_size','output_size','flip_filters',
+                             'dimshuffle','partial_sum','input_shape','output_shape']
+            nameGetList   = ['nonlinearity','convolution','pool_function','merge_function']
+
+            for dga in directGetList:
+                if hasattr(l,dga):
+                    ldict[dga] = getattr(l,dga)
+            for nga in nameGetList:
+                if hasattr(l,nga):
+                    at = getattr(l,nga)
+                    if at is not None:
+                        ldict[nga]=at.__name__
+            
             ls.append(ldict)
 
         inputs = dict()
