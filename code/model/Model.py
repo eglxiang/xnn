@@ -149,8 +149,11 @@ class Model():
 
 
 
-    def predict(self,X):
-        layers = self.layers.items()
+    def predict(self,X,layers=None):
+        if layers is None:
+            layers = self.layers.items()
+        else:
+            layers = [layer,self.layers[layer] for layer in layers]
         outs = dict(zip([layer[0] for layer in layers],lasagne.layers.get_output([layer[1] for layer in layers],inputs=X)))
 
 
