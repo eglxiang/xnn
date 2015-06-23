@@ -12,25 +12,41 @@ class Model():
 
     def addLayer(self,layer,name=None):
         if name is None and layer.name is not None:
-            name = layer.name
+            name = self._get_unique_name_from_layer(layer)
         if layer.name is None and name is not None:
-            layer.name = name
-        if (layer.name is None and name is None) or (name!=layer.name):
-            raise Exception("Layer must have a consistent name")
-        name = self._get_unique_name(name)
-        layer.name=name
+            layer.name = self._get_unique_name(name)
+            name = layer.name
+        if layer.name is None and name is None:
+            layer.name = self._get_unique_name_from_layer(layer)
+            name = layer.name
+        else: 
+            name = self._get_unique_name(name)
+            layer.name=name
         self.layers[name]=layer
         return layer
 
     def _get_unique_name_from_layer(self,layer):
-        return self._get_unique_name(layer.name)
+        if layer.name is not None:
+            name = self._get_unique_name(layer.name)
+        else:
+            name = self._get_unique_name(layer.__class__.__name__)
+        return name
 
     def _get_unique_name(self,namebase,counter=0):
         while namebase in self.layers.keys():
             namebase+= '_'+str(counter)
         return namebase
 
-    def addDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None):
+    def makeBoundInputLayer(self,shape,inputlabelkey,name=None,input_var=None):
+        lin = lasagne.layers.input.InputLayer(shape,input_var=input_var,name=name)
+        if name is None:
+            name = self._get_unique_name_from_layer(lin)
+            lin.name = name
+        self.addLayer(lin)
+        self.bindInput(inputlabelkey,lin)
+        return lin
+
+    def makeDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None):
         pl = parent_layer
         if namebase is None:
             namebase="l_"
