@@ -3,33 +3,53 @@ import theano
 import theano.tensor as T
 from collections import OrderedDict
 
+class ParamUpdateSettings():
+    def __init__(self,
+                 update=lasagne.updates.nesterov_momentum,
+                 learning_rate=0.01,
+                 momentum=0.9,
+                 wc_function=lasagne.regularization.l2,
+                 wc_strength=0.0001):
+        self.update = update
+        self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.wc_function = wc_function
+        self.wc_strength = wc_strength
+
+    def to_dict(self):
+        properties = self.__dict__.copy()
+        properties['update'] = properties['update'].func_name
+        properties['wc_function'] = properties['wc_function'].func_name
+        return properties
+
 class TrainerSettings(object):
-    def __init__(self, batch_size=128,
-            dataInGpu=False, **kwargs):
+    def __init__(self,
+                 global_update_settings=ParamUpdateSettings(),
+                 batch_size=128,
+                 dataInGpu=False, **kwargs):
+        self.global_update_settings = global_update_settings
         self.batch_size = batch_size
         self.dataInGpu  = dataInGpu
         # self.update_dict = {}
         self.__dict__.update(kwargs)
+
     def to_dict(self):
-        return self.__dict__
+        properties = self.__dict__.copy()
+        properties['global_update_settings'] = properties['global_update_settings'].to_dict()
+        return properties
 
 class Trainer(object):
     def __init__(self, trainerSettings, model):
         self.__dict__.update(trainerSettings.__dict__)
+        self.layer_updates = dict()
         self._set_model(model)
         self.train_func = self._create_train_func()
 
+    def bindUpdate(self, layer, update_settings):
+        self.layer_updates[layer.name] = update_settings
+
     def _set_model(self,model):
         self.model = model
-        # self.update_dict = {}
-        # if model is not None:
-            # for layer in self.model.layers:
-                # self.update_dict[layer]={}
-
-    # def bind_update_settings(self,layerName,settingsDict):
-    #     if self.model is None:
-    #         raise Exception("No model has been set to train!")
-    #     self.update_dict[layerName].update(settingsDict)
 
     def _create_train_func(self):
         if self.model is None:
@@ -83,17 +103,20 @@ class Trainer(object):
         costTotal = T.sum(costs)
         # Get updates
         updates = OrderedDict()
-        for layer in layers:
-            params = layers[layer].get_params()
+        for layername in layers:
+            params = layers[layername].get_params()
             if len(params)>0:
-                lr = T.scalar('lr_%s'%layer)
-                mom = T.scalar('mom_%s'%layer)
+                lr = T.scalar('lr_%s'%layername)
+                mom = T.scalar('mom_%s'%layername)
                 insTrain.append(lr)
-                insKeys.append('learning_rate_%s'%layer)
+                insKeys.append('learning_rate_%s'%layername)
                 insTrain.append(mom)
-                insKeys.append('momentum_%s'%layer)
-                updates.update(lasagne.updates.nesterov_momentum(
-                                costTotal, params, lr, mom))
+                insKeys.append('momentum_%s'%layername)
+                if layername in self.layer_updates:
+                    update_function = self.layer_updates[layername].update
+                else:
+                    update_function = self.global_update_settings.update
+                updates.update(update_function(costTotal, params, lr, mom))
 
         # Create functions
         if self.dataInGpu: # TODO: fix!
@@ -124,21 +147,16 @@ class Trainer(object):
 
     def train_step(self,batch_dict):
         ins = []
+        param_names = ['learning_rate', 'momentum']
         for key in self.insKeys:
-            if 'learning_rate' in key:
-                if not key in batch_dict:
-                    if 'learning_rate_default' not in batch_dict:
-                        raise Exception("Either specify learning_rate_default or learning_rate for each layer!")
-                    inval = batch_dict['learning_rate_default']
-                else:
-                    inval = batch_dict[key]
-            elif 'momentum' in key:
-                if not key in batch_dict:
-                    if 'momentum_default' not in batch_dict:
-                        raise Exception("Either specify momentum_default or momentum for each layer!")
-                    inval = batch_dict['momentum_default']
-                else:
-                    inval = batch_dict[key]
+            for param in param_names:
+                if param in key:
+                    layername = key.split(param+'_')[1]
+                    if layername in self.layer_updates:
+                        inval = getattr(self.layer_updates[layername], param)
+                    else:
+                        inval = getattr(self.global_update_settings, param)
+                    break
             else:
                 inval = batch_dict[key]
             # ins.append(batch_dict[key])
@@ -161,14 +179,16 @@ def train_test():
     m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
     m.bindOutput(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
 
-    trainer_settings = TrainerSettings()
+    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
+
+    trainer_settings = TrainerSettings(update_settings=global_update_settings)
     trainer = Trainer(trainer_settings,m)
 
     batch_dict = dict(
-        learning_rate_default=0.1,
-        momentum_default=0.5,
-        pixels=np.random.rand(10,3),
-        emotions=np.random.rand(10,100)
+        # learning_rate_default=0.1,
+        # momentum_default=0.5,
+        pixels=np.random.rand(10,3).astype(theano.config.floatX),
+        emotions=np.random.rand(10,100).astype(theano.config.floatX)
     )
     outs = trainer.train_step(batch_dict)
     
