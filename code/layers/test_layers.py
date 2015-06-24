@@ -4,6 +4,9 @@ import layers.noise
 import numpy as np
 import theano
 
+# collection of tests for XNN layers to check correctness
+# Run with nosetests
+
 def test_contrast_normalization():
     batchsize = 3
     numchannels = 1
@@ -47,6 +50,7 @@ def test_contrast_normalization():
     # stdevs of image should be close to 0
     assert np.allclose(s_image,1,rtol=1e-05, atol=1e-05)
 
+    return True
 
 def test_gaussian_dropout():
     batch_size = 10000
@@ -71,3 +75,9 @@ def test_gaussian_dropout():
     expected = np.abs(np.round(input_vec/10))
     actual = np.round(outs.std(axis=0)/10)
     assert np.all(expected-actual==0)
+
+    return True
+
+if __name__ == '__main__':
+    print 'test_contrast_normalization:', test_contrast_normalization()
+    print 'test_gaussian_dropout:', test_gaussian_dropout()
