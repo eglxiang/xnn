@@ -1,14 +1,14 @@
 import lasagne
 from lasagne.layers import get_output
 import theano.tensor as T
-
+from collections import OrderedDict
 
 class Model():
     def __init__(self,name=None):
         self.name=name
-        self.layers = {}
-        self.inputs = {}
-        self.outputs = {}
+        self.layers = OrderedDict()
+        self.inputs = OrderedDict()
+        self.outputs = OrderedDict()
 
     def addLayer(self,layer,name=None):
         if name is None and layer.name is not None:
@@ -159,8 +159,6 @@ class Model():
         outputs = dict()
         for oname, output in self.outputs.iteritems():
             target = output['target']
-            if output['target_type'] == 'recon':
-                target = target.name
             outputs[oname] = dict(
                 loss_function=output['loss_function'].func_name,
                 output_layer=output['output_layer'].name,
