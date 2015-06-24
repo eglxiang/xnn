@@ -51,72 +51,90 @@ class Trainer(object):
     def _set_model(self,model):
         self.model = model
 
-    def _create_train_func(self):
-        if self.model is None:
-            raise Exception("No model has been set to train!")
-        inputs = self.model.inputs
-        outputs = self.model.outputs
-        layers = self.model.layers
-        # Get costs
+    def init_ins_variables(self,inputs):
         insTrain = []
         insKeys = []
         for input_key,input_layers in inputs.iteritems():
             for input_layer in input_layers:
                 insTrain.append(input_layer.input_var)
                 insKeys.append(input_key)
-        costs = []
+        return insTrain,insKeys
+
+    def get_outputs(self,layers,outputs):
         all_layers = layers.values()
         all_outs = lasagne.layers.get_output(all_layers, deterministic=False)
         all_outs_dict = dict(zip(layers.keys(),all_outs))
         outsTrain = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
+        return all_layers,all_outs,all_outs_dict,outsTrain
 
+    def get_cost(self,layer_name,layer_dict,all_outs_dict,insTrain,insKeys):
+        preds = all_outs_dict[layer_name]
+        if layer_dict['target_type'] == 'label':
+            targs = T.matrix('targets')
+            insTrain.append(targs)
+            insKeys.append(layer_dict['target'])
+        elif layer_dict['target_type'] == 'recon':
+            targs = all_outs_dict[layer_dict['target']]
+        else:
+            raise Exception('This should have been caught earlier')
+        cost = layer_dict['loss_function'](preds,targs)
+        aggregation_type = layer_dict['aggregation_type']
+        if aggregation_type == 'mean':
+            cost = cost.mean()
+        elif aggregation_type == 'sum':
+            cost = cost.sum()
+        elif aggregation_type == 'weighted_mean':
+            weights = T.matrix('weights')
+            insTrain.append(weights)
+            insKeys.append('weights_%s'%layer)
+            cost = T.sum(cost*weights)/T.sum(weights)
+        elif aggregation_type == 'weighted_sum':
+            weights = T.matrix('weights')
+            insTrain.append(weights)
+            insKeys.append('weights_%s'%layer)
+            cost = T.sum(cost*weights)
+        else:
+            raise Exception('This should have been caught earlier')
+        return cost,insTrain,insKeys
+
+    def get_update(self,layers, layername,insTrain,insKeys,costTotal):
+        params = layers[layername].get_params()
+        if len(params)>0:
+            lr = T.scalar('lr_%s'%layername)
+            mom = T.scalar('mom_%s'%layername)
+            insTrain.append(lr)
+            insKeys.append('learning_rate_%s'%layername)
+            insTrain.append(mom)
+            insKeys.append('momentum_%s'%layername)
+            if layername in self.layer_updates:
+                update_function = self.layer_updates[layername].update
+            else:
+                update_function = self.global_update_settings.update
+            update = update_function(costTotal, params, lr, mom)
+        return update, insTrain,insKeys
+
+    def _create_train_func(self):
+        if self.model is None:
+            raise Exception("No model has been set to train!")
+        inputs = self.model.inputs
+        outputs = self.model.outputs
+        layers = self.model.layers
+
+        # Get costs
+        insTrain,insKeys = self.init_ins_variables(inputs)
+        all_layers,all_outs,all_outs_dict,outsTrain = self.get_outputs(layers,outputs)
+        
+        costs = []
         for layer_name, layer_dict in outputs.iteritems():
             # {layer_name:{output_layer,target,target_type,loss_function,aggregation_type}}
-            preds = all_outs_dict[layer_name]
-            if layer_dict['target_type'] == 'label':
-                targs = T.matrix('targets')
-                insTrain.append(targs)
-                insKeys.append(layer_dict['target'])
-            elif layer_dict['target_type'] == 'recon':
-                targs = all_outs_dict[layer_dict['target']]
-            else:
-                raise Exception('This should have been caught earlier')
-            cost = layer_dict['loss_function'](preds,targs)
-            aggregation_type = layer_dict['aggregation_type']
-            if aggregation_type == 'mean':
-                cost = cost.mean()
-            elif aggregation_type == 'sum':
-                cost = cost.sum()
-            elif aggregation_type == 'weighted_mean':
-                weights = T.matrix('weights')
-                insTrain.append(weights)
-                insKeys.append('weights_%s'%layer)
-                cost = T.sum(cost*weights)/T.sum(weights)
-            elif aggregation_type == 'weighted_sum':
-                weights = T.matrix('weights')
-                insTrain.append(weights)
-                insKeys.append('weights_%s'%layer)
-                cost = T.sum(cost*weights)
-            else:
-                raise Exception('This should have been caught earlier')
+            cost,insTrain,insKeys = self.get_cost(layer_name,layer_dict,all_outs_dict,insTrain,insKeys)
             costs.append(cost)
         costTotal = T.sum(costs)
         # Get updates
         updates = OrderedDict()
         for layername in layers:
-            params = layers[layername].get_params()
-            if len(params)>0:
-                lr = T.scalar('lr_%s'%layername)
-                mom = T.scalar('mom_%s'%layername)
-                insTrain.append(lr)
-                insKeys.append('learning_rate_%s'%layername)
-                insTrain.append(mom)
-                insKeys.append('momentum_%s'%layername)
-                if layername in self.layer_updates:
-                    update_function = self.layer_updates[layername].update
-                else:
-                    update_function = self.global_update_settings.update
-                updates.update(update_function(costTotal, params, lr, mom))
+            update,insTrain,insKeys = self.get_update(layers,layername,insTrain,insKeys,costTotal)
+            updates.update(update)
 
         # Create functions
         if self.dataInGpu: # TODO: fix!
