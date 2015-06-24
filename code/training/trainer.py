@@ -1,8 +1,13 @@
+import lasagne
+import theano
+import theano.tensor as T
+from collections import OrderedDict
+
 class TrainerSettings(object):
     def __init__(self, batch_size=128,
-            dataInGpu=True, **kwargs):
-        self.batch_size = 128
-        self.dataInGpu  = True
+            dataInGpu=False, **kwargs):
+        self.batch_size = batch_size
+        self.dataInGpu  = dataInGpu
         # self.update_dict = {}
         self.__dict__.update(kwargs)
     def to_dict(self):
@@ -40,21 +45,24 @@ class Trainer(object):
                 insTrain.append(input_layer.input_var)
                 insKeys.append(input_key)
         costs = []
-        output_layers = [output['layer'] for output in outputs]
-        outsTrain = lasagne.layers.get_output(output_layers, deterministic=False)
-        out_vars_train_dict = dict(zip(outputs.keys(),outsTrain))
+        all_layers = layers.values()
+        all_outs = lasagne.layers.get_output(all_layers, deterministic=False)
+        all_outs_dict = dict(zip(layers.keys(),all_outs))
+        outsTrain = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
+
         for layer_name, layer_dict in outputs.iteritems():
             # {layer_name:{output_layer,target,target_type,loss_function,aggregation_type}}
-            preds = out_vars_train_dict[layer_name]
+            preds = all_outs_dict[layer_name]
             if layer_dict['target_type'] == 'label':
                 targs = T.matrix('targets')
                 insTrain.append(targs)
                 insKeys.append(layer_dict['target'])
             elif layer_dict['target_type'] == 'recon':
-                targs = out_vars_train_dict[layer_dict['target']]
+                targs = all_outs_dict[layer_dict['target']]
             else:
                 raise Exception('This should have been caught earlier')
             cost = layer_dict['loss_function'](preds,targs)
+            aggregation_type = layer_dict['aggregation_type']
             if aggregation_type == 'mean':
                 cost = cost.mean()
             elif aggregation_type == 'sum':
@@ -74,17 +82,18 @@ class Trainer(object):
             costs.append(cost)
         costTotal = T.sum(costs)
         # Get updates
-        updates = []
+        updates = OrderedDict()
         for layer in layers:
-            lr = T.scalar('lr_%s'%layer)
-            mom = T.scalar('mom_%s'%layer)
-            insTrain.append(lr)
-            insKeys.append('learning_rate_%s'%layer)
-            insTrain.append(mom)
-            insKeys.append('momentum_%s'%layer)
             params = layers[layer].get_params()
-            updates += lasagne.updates.nesterov_momentum(
-                costTotal, params, lr, mom)
+            if len(params)>0:
+                lr = T.scalar('lr_%s'%layer)
+                mom = T.scalar('mom_%s'%layer)
+                insTrain.append(lr)
+                insKeys.append('learning_rate_%s'%layer)
+                insTrain.append(mom)
+                insKeys.append('momentum_%s'%layer)
+                updates.update(lasagne.updates.nesterov_momentum(
+                                costTotal, params, lr, mom))
 
         # Create functions
         if self.dataInGpu: # TODO: fix!
@@ -99,13 +108,15 @@ class Trainer(object):
                     xBatch: data['X'][batch_slice],
                     yBatch: data['y'][batch_slice],
                     wBatch: data['w'][batch_slice]
-                }
+                },
+                on_unused_input='warn'
             )
         else:
             train = theano.function(
                 insTrain, # xBatch,yBatch,wBatch
                 outsTrain,
-                updates=updates
+                updates=updates,
+                on_unused_input='warn'
             )
         self.train_func = train
         self.insKeys = insKeys
@@ -132,8 +143,34 @@ class Trainer(object):
                 inval = batch_dict[key]
             # ins.append(batch_dict[key])
             ins.append(inval)
-        return self.train_func(ins)
+        return self.train_func(*ins)
 
     def to_dict():
         # Set self.model to None in dict
         pass
+
+def train_test():
+    from model.Model import Model
+    import numpy as np
+    m = Model('test model')
+    l_in = m.addLayer(lasagne.layers.InputLayer(shape=(10,3)), name="l_in")
+    l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, 100), name="l_h1")
+    l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, 3), name="l_out")
+
+    m.bindInput(l_in, "pixels")
+    m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
+    m.bindOutput(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
+
+    trainer_settings = TrainerSettings()
+    trainer = Trainer(trainer_settings,m)
+
+    batch_dict = dict(
+        learning_rate_default=0.1,
+        momentum_default=0.5,
+        pixels=np.random.rand(10,3),
+        emotions=np.random.rand(10,100)
+    )
+    outs = trainer.train_step(batch_dict)
+    
+if __name__ == "__main__":
+    train_test()
