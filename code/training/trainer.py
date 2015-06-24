@@ -26,10 +26,10 @@ class TrainerSettings(object):
     def __init__(self,
                  global_update_settings=ParamUpdateSettings(),
                  batch_size=128,
-                 dataInGpu=False, **kwargs):
+                 dataSharedVar=None, **kwargs):
         self.global_update_settings = global_update_settings
         self.batch_size = batch_size
-        self.dataInGpu  = dataInGpu
+        self.dataSharedVar  = dataSharedVar
         # self.update_dict = {}
         self.__dict__.update(kwargs)
 
@@ -43,15 +43,18 @@ class Trainer(object):
         self.__dict__.update(trainerSettings.__dict__)
         self.layer_updates = dict()
         self._set_model(model)
-        self.train_func = self._create_train_func()
+        self.train_func = None
 
     def bindUpdate(self, layer, update_settings):
+        self.train_func = None
         self.layer_updates[layer.name] = update_settings
 
     def _set_model(self,model):
+        self.train_func = None
         self.model = model
 
-    def init_ins_variables(self,inputs):
+    def init_ins_variables(self):
+        inputs = self.model.inputs
         insTrain = []
         insKeys = []
         for input_key,input_layers in inputs.iteritems():
@@ -60,12 +63,14 @@ class Trainer(object):
                 insKeys.append(input_key)
         return insTrain,insKeys
 
-    def get_outputs(self,layers,outputs):
+    def get_outputs(self):
+        layers = self.model.layers
+        outputs = self.model.outputs
         all_layers = layers.values()
         all_outs = lasagne.layers.get_output(all_layers, deterministic=False)
         all_outs_dict = dict(zip(layers.keys(),all_outs))
         outsTrain = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
-        return all_layers,all_outs,all_outs_dict,outsTrain
+        return all_outs_dict,outsTrain
 
     def get_cost(self,layer_name,layer_dict,all_outs_dict,insTrain,insKeys):
         preds = all_outs_dict[layer_name]
@@ -97,18 +102,19 @@ class Trainer(object):
             raise Exception('This should have been caught earlier')
         return cost,insTrain,insKeys
 
-    def get_update(self,layers, layername,insTrain,insKeys,costTotal):
-        params = layers[layername].get_params()
+    def get_update(self,layer_name,insTrain,insKeys,costTotal):
+        layers = self.model.layers
+        params = layers[layer_name].get_params()
         update = OrderedDict()
         if len(params)>0:
-            lr = T.scalar('lr_%s'%layername)
-            mom = T.scalar('mom_%s'%layername)
+            lr = T.scalar('lr_%s'%layer_name)
+            mom = T.scalar('mom_%s'%layer_name)
             insTrain.append(lr)
-            insKeys.append('learning_rate_%s'%layername)
+            insKeys.append('learning_rate_%s'%layer_name)
             insTrain.append(mom)
-            insKeys.append('momentum_%s'%layername)
-            if layername in self.layer_updates:
-                update_function = self.layer_updates[layername].update
+            insKeys.append('momentum_%s'%layer_name)
+            if layer_name in self.layer_updates:
+                update_function = self.layer_updates[layer_name].update
             else:
                 update_function = self.global_update_settings.update
             update = update_function(costTotal, params, lr, mom)
@@ -122,8 +128,8 @@ class Trainer(object):
         layers = self.model.layers
 
         # Get costs
-        insTrain,insKeys = self.init_ins_variables(inputs)
-        all_layers,all_outs,all_outs_dict,outsTrain = self.get_outputs(layers,outputs)
+        insTrain,insKeys = self.init_ins_variables()
+        all_outs_dict,outsTrain = self.get_outputs()
 
         costs = []
         for layer_name, layer_dict in outputs.iteritems():
@@ -133,23 +139,24 @@ class Trainer(object):
         costTotal = T.sum(costs)
         # Get updates
         updates = OrderedDict()
-        for layername in layers:
-            update,insTrain,insKeys = self.get_update(layers,layername,insTrain,insKeys,costTotal)
+        for layer_name in layers:
+            update,insTrain,insKeys = self.get_update(layer_name,insTrain,insKeys,costTotal)
             updates.update(update)
 
         # Create functions
-        if self.dataInGpu: # TODO: fix!
+        if self.dataSharedVar is not None: # TODO: fix!
             batch_index = T.scalar('Batch index')
             batch_slice = slice(batch_index * self.batch_size,(batch_index + 1) * self.batch_size)
-            ins.append(batch_index)
+            insTrain.append(batch_index)
+            insKeys.append('batch_index')
             train = theano.function(
                 insTrain, # batch_index
                 outsTrain,
                 updates=updates,
                 givens={
-                    xBatch: data['X'][batch_slice],
-                    yBatch: data['y'][batch_slice],
-                    wBatch: data['w'][batch_slice]
+                    xBatch: self.dataSharedVar['X'][batch_slice],
+                    yBatch: self.dataSharedVar['y'][batch_slice],
+                    wBatch: self.dataSharedVar['w'][batch_slice]
                 },
                 on_unused_input='warn'
             )
@@ -165,14 +172,16 @@ class Trainer(object):
         return self.train_func
 
     def train_step(self,batch_dict):
+        if self.train_func is None:
+            self.train_func = self._create_train_func()
         ins = []
         param_names = ['learning_rate', 'momentum']
         for key in self.insKeys:
             for param in param_names:
                 if param in key:
-                    layername = key.split(param+'_')[1]
-                    if layername in self.layer_updates:
-                        inval = getattr(self.layer_updates[layername], param)
+                    layer_name = key.split(param+'_')[1]
+                    if layer_name in self.layer_updates:
+                        inval = getattr(self.layer_updates[layer_name], param)
                     else:
                         inval = getattr(self.global_update_settings, param)
                     break
