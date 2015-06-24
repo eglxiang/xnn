@@ -84,21 +84,10 @@ class Model():
             namebase="l_"
         for i in xrange(len(num_hidden_list)):
             nhu = num_hidden_list[i]
-            if drop_p_list is not None:
-                p = drop_p_list[i]
-            else:
-                # default dropout value
-                p = 0.5
-            if nonlin_list is not None:
-                nl = nonlin_list[i]
-            else:
-                # default nonlinearity
-                nl = lasagne.nonlinearities.rectify
-            
-            # make sure name is unique
+            p = drop_p_list[i] if drop_p_list is not None else 0.5
+            nl = nonlin_list[i] if nonlin_list is not None else lasagne.nonlinearities.rectify
             nameden = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
             namedro = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
-            
             denselayer = self.makeDenseLayer(pl,nhu,nonlinearity=nl,name=nameden)
             droplayer  = self.makeDropoutLayer(denselayer,p=p,name=namedro)
             pl = droplayer
