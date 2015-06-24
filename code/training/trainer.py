@@ -182,7 +182,7 @@ class Trainer(object):
             ins.append(inval)
         return self.train_func(*ins)
 
-    def to_dict():
+    def to_dict(self):
         # Set self.model to None in dict
         pass
 
