@@ -102,16 +102,14 @@ class Model():
         self.inputs[input_key].append(input_layer)
 
     def bindOutput(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean',):
-        aggregation_types = ['mean', 'sum', 'normalized_sum']
+        aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
             raise ValueError("Invalid aggeegation type. Expected one of: %s" % aggregation_types)
         if target_type not in target_types:
             raise ValueError("Invalid target type. Expected one of: %s" % target_types)
-        if (target_type == 'label') and (not isinstance(target, str)):
-            raise ValueError("target must be a string if target type is label")
-        if (target_type == 'recon') and (not isinstance(target, lasagne.layers.base.Layer)):
-            raise ValueError("target must be a Layer object if target type is recon")
+        if not isinstance(target, str):
+            raise ValueError("target must be a string")
         self.outputs[output_layer.name] = dict(
             output_layer=output_layer,
             target=target,
@@ -194,13 +192,13 @@ def model_test():
 
     m.bindInput(l_in, "pixels")
     m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bindOutput(l_out, lasagne.objectives.mse, l_in, "recon", "mean")
+    m.bindOutput(l_out, lasagne.objectives.mse, "l_in", "recon", "mean")
 
 
     m2 = Model('test convenience')
     l_in = m2.makeBoundInputLayer((10,200),'pixels')
     l_out = m2.makeDenseDropStack(l_in,[60,30,20],[.6,.4,.3])
-    m2.bindOutput(l_out, lasagne.objectives.mse, 'age', 'label', 'mean')
+    m2.bindOutput(l_out, lasagne.objectives.squared_error, 'age', 'label', 'mean')
 
     serialized = m.to_dict()
     pprint.pprint(serialized)
