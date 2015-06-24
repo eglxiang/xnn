@@ -1,5 +1,6 @@
 import lasagne
 import layers.normalization
+import layers.noise
 import numpy as np
 import theano
 
@@ -45,3 +46,28 @@ def test_contrast_normalization():
 
     # stdevs of image should be close to 0
     assert np.allclose(s_image,1,rtol=1e-05, atol=1e-05)
+
+
+def test_gaussian_dropout():
+    batch_size = 10000
+    input_vec = np.array([-100,-10,0,10,100]).astype(theano.config.floatX)
+    l_in = lasagne.layers.InputLayer(shape=(batch_size, input_vec.shape[0]))
+    l_gd = layers.noise.GaussianDropoutLayer(l_in, sigma=1.0)
+
+    corrupted = l_gd.get_output_for(l_in.input_var)
+    f = theano.function([l_in.input_var], corrupted)
+
+    inputs = input_vec[np.newaxis,:].repeat(batch_size, axis=0)
+    outs = f(inputs)
+
+    # if input vector is corrupted N times, the mean corrupted vector should
+    # approximately equal the input vector
+    expected = np.round(input_vec/10)
+    actual = np.round(outs.mean(axis=0)/10)
+    assert np.all(expected-actual==0)
+
+    # if input vector is corrupted N times, the stdev of the corrupted samples
+    # should approximately equal the magnitude of the input vector
+    expected = np.abs(np.round(input_vec/10))
+    actual = np.round(outs.std(axis=0)/10)
+    assert np.all(expected-actual==0)
