@@ -99,6 +99,7 @@ class Trainer(object):
 
     def get_update(self,layers, layername,insTrain,insKeys,costTotal):
         params = layers[layername].get_params()
+        update = OrderedDict()
         if len(params)>0:
             lr = T.scalar('lr_%s'%layername)
             mom = T.scalar('mom_%s'%layername)
@@ -123,7 +124,7 @@ class Trainer(object):
         # Get costs
         insTrain,insKeys = self.init_ins_variables(inputs)
         all_layers,all_outs,all_outs_dict,outsTrain = self.get_outputs(layers,outputs)
-        
+
         costs = []
         for layer_name, layer_dict in outputs.iteritems():
             # {layer_name:{output_layer,target,target_type,loss_function,aggregation_type}}
