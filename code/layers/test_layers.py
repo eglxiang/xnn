@@ -8,6 +8,7 @@ import theano
 # Run with nosetests
 
 def test_contrast_normalization():
+    np.random.seed(100)
     batchsize = 3
     numchannels = 1
     height = 10
@@ -52,7 +53,30 @@ def test_contrast_normalization():
 
     return True
 
+def test_batch_normalization():
+    np.random.seed(100)
+    batchsize = 100
+    numdims = 10
+    # flat
+    l_in = lasagne.layers.InputLayer(shape=(batchsize, numdims))
+    l_bn = layers.normalization.BatchNormLayer(l_in, learn_transform=True, eta=0)
+
+    normed = l_bn.get_output_for(l_in.input_var)
+    f = theano.function([l_in.input_var], normed)
+
+    inputs = np.random.rand(batchsize, numdims).astype(theano.config.floatX)
+    outs = f(inputs)
+
+    # make sure batch-normalized means are close to 0
+    assert np.allclose(outs.mean(axis=0), 0, rtol=1e-05, atol=1e-05)
+
+    # make sure batch-normalized stdevs are close to 1
+    assert np.allclose(outs.std(axis=0), 1, rtol=1e-05, atol=1e-05)
+
+    return True
+
 def test_gaussian_dropout():
+    np.random.seed(100)
     batch_size = 10000
     input_vec = np.array([-100,-10,0,10,100]).astype(theano.config.floatX)
     l_in = lasagne.layers.InputLayer(shape=(batch_size, input_vec.shape[0]))
@@ -80,4 +104,5 @@ def test_gaussian_dropout():
 
 if __name__ == '__main__':
     print 'test_contrast_normalization:', test_contrast_normalization()
+    print 'test_batch_normalization:', test_batch_normalization()
     print 'test_gaussian_dropout:', test_gaussian_dropout()
