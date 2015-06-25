@@ -1,4 +1,5 @@
 import lasagne
+import numpy as np
 import cPickle
 from lasagne.layers import get_output
 import theano.tensor as T
@@ -252,7 +253,7 @@ class Model():
         all_layers = [self.layers[k] for k in self.layers.keys()]
         lasagne.layers.set_all_param_values(all_layers,d['params'])
 
-    def predict(self,X,layer_names=None):
+    def predict(self,datadict,layer_names=None):
         if layer_names is None:
             layer_names = self.layers.keys()
             layers = self.layers.values()
@@ -263,6 +264,15 @@ class Model():
             for layer_name in layer_names:
                 assert layer_name in self.layers
                 layers.append(self.layers[layer_name])
+
+        if isinstance(datadict,np.ndarray):
+            X = datadict
+        else:
+            X = dict()
+            for labelkey,layerlist in self.inputs.iteritems():
+                for layer in layerlist:
+                    X[layer]=datadict[labelkey]
+
         outs = lasagne.layers.get_output(layers,inputs=X,deterministic=True)
         outs = dict([(layer_name,out.eval()) for layer_name,out in zip(layer_names,outs)])
         return outs
@@ -301,11 +311,23 @@ def model_test():
     m4 = Model('test load')
     m4.loadModel('modelout')
 
-    print "same"
-    print m4.layers['l__dense_2'].W.get_value()
-    print m3.layers['l__dense_2'].W.get_value()
-    print "different"
-    print m2.layers['l__dense_2'].W.get_value()
+    assert np.allclose(m4.layers['l__dense_2'].W.get_value(),m3.layers['l__dense_2'].W.get_value())
+    assert ~np.allclose(m4.layers['l__dense_2'].W.get_value(),m2.layers['l__dense_2'].W.get_value())
+
+    data = dict(
+        pixels=np.random.rand(10,200),
+            )
+
+    out4 = m4.predict(data,['l__drop_2'])
+    out3 = m3.predict(data,['l__drop_2'])
+
+    print out3['l__drop_2']
+    print out4['l__drop_2']
+
+    assert np.allclose(out4['l__drop_2'],out3['l__drop_2'])
+
+    return True
+
 
 if __name__ == "__main__":
     model_test()
