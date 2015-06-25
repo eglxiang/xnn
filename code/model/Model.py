@@ -101,21 +101,26 @@ class Model():
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
 
-    def bindOutput(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean',):
+    def bindOutput(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', weight_key=None):
         aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
-            raise ValueError("Invalid aggeegation type. Expected one of: %s" % aggregation_types)
+            raise ValueError("Invalid aggregation type. Expected one of: %s" % aggregation_types)
         if target_type not in target_types:
             raise ValueError("Invalid target type. Expected one of: %s" % target_types)
         if not isinstance(target, str):
-            raise ValueError("target must be a string")
+            raise ValueError("Target must be a string")
+        if (weight_key is not None) and (type(weight_key)!=str):
+            raise ValueError("weight_key must be either None or a string")
+        if ('weighted' in aggregation_type) and (weight_key is None):
+            raise ValueError("Weighted aggregation types must have a weight key")
         self.outputs[output_layer.name] = dict(
             output_layer=output_layer,
             target=target,
             target_type=target_type,
             loss_function=loss_function,
-            aggregation_type=aggregation_type
+            aggregation_type=aggregation_type,
+            weight_key=weight_key
         )
 
     def to_dict(self):
