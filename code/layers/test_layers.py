@@ -1,5 +1,6 @@
 import lasagne
 import layers.normalization
+import layers.local
 import layers.noise
 import numpy as np
 import theano
@@ -102,7 +103,41 @@ def test_gaussian_dropout():
 
     return True
 
+def test_local():
+    np.random.seed(100)
+    batchsize = 1
+    numchannels = 1
+    height = 100
+    width = 100
+    numdims = numchannels*height*width
+    numunits = 10
+    side = 9
+
+    l_in = lasagne.layers.InputLayer(shape=(batchsize, numdims))
+    l_ll = layers.local.LocalLayer(l_in, num_units=numunits,
+                                   img_shape=(height, width),
+                                   local_filters=[side]*numunits)
+
+    localmask = l_ll.params['localmask'].get_value()
+
+    # TODO: If the flag is set to not go off the edge, this test can be more precise
+    # Make sure that the localmask for a given hidden unit is side * side (use max for now)
+    assert np.max(localmask.sum(axis=0)) == side**2
+
+    acts = l_ll.get_output_for(l_in.input_var)
+    f = theano.function([l_in.input_var], acts)
+
+    inputs = np.random.rand(batchsize, numdims).astype(theano.config.floatX)
+
+    # This just makes sure the forward function computes without error
+    outs = f(inputs)
+
+    return True
+
+
+
 if __name__ == '__main__':
     print 'test_contrast_normalization:', test_contrast_normalization()
     print 'test_batch_normalization:', test_batch_normalization()
     print 'test_gaussian_dropout:', test_gaussian_dropout()
+    print 'test_local:', test_local()

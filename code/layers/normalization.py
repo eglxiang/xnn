@@ -89,13 +89,16 @@ class BatchNormLayer(Layer):
         if self.learn_transform is True:
             output = gamma * output + beta
 
-        activation = output
+        return self.nonlinearity(output)
 
-        if kwargs.has_key('eval') and kwargs['eval'] and hasattr(self,'eval_output_activation') and self.eval_output_activation is not None:# and self.eval_output_activation.lower() == 'linear':
-            self.eval_nonlinearity = self.eval_output_activation
-            return self.eval_nonlinearity(activation)
-        else:
-            return self.nonlinearity(activation)
+        # TODO: Deal with eval_output_activation
+        # activation = output
+        #
+        # if kwargs.has_key('eval') and kwargs['eval'] and hasattr(self,'eval_output_activation') and self.eval_output_activation is not None:# and self.eval_output_activation.lower() == 'linear':
+        #     self.eval_nonlinearity = self.eval_output_activation
+        #     return self.eval_nonlinearity(activation)
+        # else:
+        #     return self.nonlinearity(activation)
 
     def get_params(self):
         if self.learn_transform == True:
