@@ -17,7 +17,7 @@ __all__ = [
 
 class LocalLayer(Layer):
     def __init__(self, input_layer, num_units, img_shape, local_filters,
-                 W=init.Uniform(), b=init.Constant(0.), mode='square',
+                 W=init.GlorotUniform(), b=init.Constant(0.), mode='square',
                  localmask=None, nonlinearity=nonlinearities.rectify,
                  edgeprotect=True,
                  cn=False, prior=None, **kwargs):

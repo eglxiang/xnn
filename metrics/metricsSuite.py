@@ -9,6 +9,42 @@ import numpy as np
 import math
 import sys
 
+__all__=['metric_types','metric_names','Metric',
+            'compute2AFC',
+            'computeBalancedErrorRate',
+            'computeBalancedExponentialCost',
+            'computeBalancedLogisticAndExponentialCosts',
+            'computeBalancedLogisticCost',
+            'computeBinarizedBalancedErrorRate',
+            'computeBinarizedBalancedExponentialCost',
+            'computeBinarizedBalancedLogisticCost',
+            'computeBinarizedF1',
+            'computeBinarizedHitRate',
+            'computeBinarizedJunkRate',
+            'computeBinarizedSpecificity',
+            'computeCondProb',
+            'computeEqualErrorRate',
+            'computeErrorRateDiffSquared',
+            'computeF',
+            'computeF1',
+            'computeHitRate',
+            'computeJCorr',
+            'computeJunkRate',
+            'computeOptimalBalancedErrorRate',
+            'computeOptimalBalancedExponentialCost',
+            'computeOptimalBalancedLogisticCost',
+            'computeOptimalF1',
+            'computePercentCorrect',
+            'computePrecision',
+            'computeSpecificity',
+            'computeThresholdPercentCorrect',
+            'convertLLRtoProb',
+            'optimizeOverBaselinesAndScales',
+            'optimizeOverThresholds',
+            'threshold',
+            ]
+
+
 metric_types={}
 metric_names={}
 

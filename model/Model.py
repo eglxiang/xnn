@@ -1,9 +1,10 @@
-import lasagne
+import xnn
 import numpy as np
 import cPickle
-from lasagne.layers import get_output
 import theano.tensor as T
 from collections import OrderedDict
+
+__all__=['Model']
 
 class Model():
     def __init__(self,name=None):
@@ -28,7 +29,7 @@ class Model():
         return layer
 
     def addFullNetFromOutputLayer(self,outlayer):
-        layers = lasagne.layers.get_all_layers(outlayer)
+        layers = xnn.layers.get_all_layers(outlayer)
         for l in layers:
             self.addLayer(l)
 
@@ -45,7 +46,7 @@ class Model():
         return namebase
 
     def makeDropoutLayer(self,parentlayer,p=0.5,name=None):
-        droplayer  = lasagne.layers.noise.DropoutLayer(parentlayer,p=p)
+        droplayer  = xnn.layers.noise.DropoutLayer(parentlayer,p=p)
         if name is None:
             name = self._get_unique_name_from_layer(droplayer)
             droplayer.name=name
@@ -54,8 +55,8 @@ class Model():
 
     def makeDenseLayer(self,parentlayer,num_hidden,nonlinearity=None,name=None):
         if nonlinearity is None:
-            nonlinearity = lasagne.nonlinearities.rectify
-        denselayer = lasagne.layers.dense.DenseLayer(parentlayer,num_units=num_hidden,nonlinearity=nonlinearity)
+            nonlinearity = xnn.nonlinearities.rectify
+        denselayer = xnn.layers.dense.DenseLayer(parentlayer,num_units=num_hidden,nonlinearity=nonlinearity)
         if name is None:
             name = self._get_unique_name_from_layer(denselayer)
             denselayer.name = name
@@ -63,7 +64,7 @@ class Model():
         return denselayer
 
     def makeBoundInputLayer(self,shape,inputlabelkey,name=None,input_var=None):
-        lin = lasagne.layers.input.InputLayer(shape,input_var=input_var,name=name)
+        lin = xnn.layers.input.InputLayer(shape,input_var=input_var,name=name)
         if name is None:
             name = self._get_unique_name_from_layer(lin)
             lin.name = name
@@ -87,7 +88,7 @@ class Model():
         for i in xrange(len(num_hidden_list)):
             nhu = num_hidden_list[i]
             p = drop_p_list[i] if drop_p_list is not None else 0.5
-            nl = nonlin_list[i] if nonlin_list is not None else lasagne.nonlinearities.rectify
+            nl = nonlin_list[i] if nonlin_list is not None else xnn.nonlinearities.rectify
             nameden = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
             namedro = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
             denselayer = self.makeDenseLayer(pl,nhu,nonlinearity=nl,name=nameden)
@@ -98,7 +99,7 @@ class Model():
     def bindInput(self, input_layer, input_key):
         if not isinstance(input_key, str):
             raise Exception("input_key must be a string")
-        if not isinstance(input_layer, lasagne.layers.input.InputLayer):
+        if not isinstance(input_layer, xnn.layers.input.InputLayer):
             raise Exception("input_layer must be an object of type InputLayer")
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
@@ -201,7 +202,7 @@ class Model():
             for n in linnames:
                 lin.append(self.layers[n] if n is not None else None)
             lin = lin[0] if len(lin)==1 else lin
-            lconst = getattr(lasagne.layers,t)
+            lconst = getattr(xnn.layers,t)
             linit = lconst.__init__
             largs = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
             argdict = dict(name=lspec['name'])
@@ -224,7 +225,7 @@ class Model():
         for layername, outdict in ol.iteritems():
             l = self.layers[layername]
             fname = outdict['loss_function']
-            f = getattr(lasagne.objectives,fname)
+            f = getattr(xnn.objectives,fname)
             targ = outdict['target']
             targ_type = outdict['target_type']
             agg = outdict['aggregation_type']
@@ -234,14 +235,14 @@ class Model():
     def _initialize_arg(self,a,spec):
         #TODO: expand this to take care of other objects that need to be re-initialized
         if a == 'nonlinearity':
-            return getattr(lasagne.nonlinearities,spec)
+            return getattr(xnn.nonlinearities,spec)
         else:
             return None
 
     def saveModel(self,fname):
         d = self.to_dict()
         all_layers = [self.layers[k] for k in self.layers.keys()]
-        p = lasagne.layers.get_all_param_values(all_layers)
+        p = xnn.layers.get_all_param_values(all_layers)
         m = dict(model=d,params=p)
         with open(fname,'wb') as f:
             cPickle.dump(m,f,cPickle.HIGHEST_PROTOCOL)
@@ -251,7 +252,7 @@ class Model():
             d = cPickle.load(f)
         self.from_dict(d['model'])
         all_layers = [self.layers[k] for k in self.layers.keys()]
-        lasagne.layers.set_all_param_values(all_layers,d['params'])
+        xnn.layers.set_all_param_values(all_layers,d['params'])
 
     def predict(self,datadict,layer_names=None):
         if layer_names is None:
@@ -273,7 +274,7 @@ class Model():
                 for layer in layerlist:
                     X[layer]=datadict[labelkey]
 
-        outs = lasagne.layers.get_output(layers,inputs=X,deterministic=True)
+        outs = xnn.layers.get_output(layers,inputs=X,deterministic=True)
         outs = dict([(layer_name,out.eval()) for layer_name,out in zip(layer_names,outs)])
         return outs
 
@@ -281,21 +282,21 @@ def model_test():
     import pprint
 
     m = Model('test model')
-    l_in = m.addLayer(lasagne.layers.InputLayer(shape=(10,200)), name="l_in")
-    l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, 100), name="l_h1")
-    l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, 200), name="l_out")
+    l_in = m.addLayer(xnn.layers.InputLayer(shape=(10,200)), name="l_in")
+    l_h1 = m.addLayer(xnn.layers.DenseLayer(l_in, 100), name="l_h1")
+    l_out = m.addLayer(xnn.layers.DenseLayer(l_h1, 200), name="l_out")
 
     m.bindInput(l_in, "pixels")
-    m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bindOutput(l_out, lasagne.objectives.mse, "l_in", "recon", "mean")
+    m.bindOutput(l_h1, xnn.objectives.categorical_crossentropy, "emotions", "label", "mean")
+    m.bindOutput(l_out, xnn.objectives.mse, "l_in", "recon", "mean")
 
 
     m2 = Model('test convenience')
     l_in = m2.makeBoundInputLayer((10,200),'pixels')
     l_out = m2.makeDenseDropStack(l_in,[60,3,2],[.6,.4,.3])
-    l_mer = lasagne.layers.MergeLayer([l_in, l_out])
+    l_mer = xnn.layers.MergeLayer([l_in, l_out])
     m2.addLayer(l_mer,name='merger')
-    m2.bindOutput(l_out, lasagne.objectives.squared_error, 'age', 'label', 'mean')
+    m2.bindOutput(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean')
 
     serialized = m.to_dict()
     pprint.pprint(serialized)

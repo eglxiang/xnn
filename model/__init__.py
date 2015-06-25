@@ -1,1 +1,1 @@
-from Model import *
+from Model import Model
