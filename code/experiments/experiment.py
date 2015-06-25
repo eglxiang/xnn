@@ -2,6 +2,8 @@ from itertools import product, islice
 from operator import mul
 from copy import deepcopy
 
+# TODO: Add ability to slice into experimental conditions (e.g. get all variants of learning rate for fixed momentum)
+
 class ExperimentCondition(object):
     def to_dict(self):
         properties = deepcopy(self.__dict__)
