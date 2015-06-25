@@ -252,12 +252,19 @@ class Model():
         all_layers = [self.layers[k] for k in self.layers.keys()]
         lasagne.layers.set_all_param_values(all_layers,d['params'])
 
-    def predict(self,X,layers=None):
-        if layers is None:
-            layers = self.layers.items()
+    def predict(self,X,layer_names=None):
+        if layer_names is None:
+            layer_names = self.layers.keys()
+            layers = self.layers.values()
         else:
-            layers = [[layer,self.layers[layer]] for layer in layers]
-        outs = dict(zip([layer[0] for layer in layers],lasagne.layers.get_output([layer[1] for layer in layers],inputs=X)))
+            layers = []
+            if type(layer_names) == str:
+                layer_names = [layer_names]
+            for layer_name in layer_names:
+                assert layer_name in self.layers
+                layers.append(self.layers[layer_name])
+        outs = lasagne.layers.get_output(layers,inputs=X,deterministic=True)
+        outs = dict([(layer_name,out.eval()) for layer_name,out in zip(layer_names,outs)])
         return outs
 
 def model_test():
