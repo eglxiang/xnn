@@ -45,8 +45,13 @@ class Model():
             namebase+= '_'+str(counter)
         return namebase
 
-    def makeDropoutLayer(self,parentlayer,p=0.5,name=None):
-        droplayer  = xnn.layers.noise.DropoutLayer(parentlayer,p=p)
+    def makeDropoutLayer(self,parentlayer,p=0.5,name=None,drop_type='standard'):
+        if drop_type == 'standard':
+            droplayer  = xnn.layers.noise.DropoutLayer(parentlayer,p=p)
+        elif drop_type == 'gauss':
+            droplayer  = xnn.layers.noise.GaussianDropoutLayer(parentlayer,sigma=p)
+        else:
+            raise ValueError("drop_type must be 'standard' or 'gauss'")
         if name is None:
             name = self._get_unique_name_from_layer(droplayer)
             droplayer.name=name
@@ -81,7 +86,7 @@ class Model():
               "You can make a quick trick clock stack."
         return True
 
-    def makeDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None):
+    def makeDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None,drop_type_list=None):
         pl = parent_layer
         if namebase is None:
             namebase="l_"
@@ -89,10 +94,11 @@ class Model():
             nhu = num_hidden_list[i]
             p = drop_p_list[i] if drop_p_list is not None else 0.5
             nl = nonlin_list[i] if nonlin_list is not None else xnn.nonlinearities.rectify
+            dt = drop_type_list[i] if drop_type_list is not None else 'standard'
             nameden = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
             namedro = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
             denselayer = self.makeDenseLayer(pl,nhu,nonlinearity=nl,name=nameden)
-            droplayer  = self.makeDropoutLayer(denselayer,p=p,name=namedro)
+            droplayer  = self.makeDropoutLayer(denselayer,p=p,name=namedro,drop_type=dt)
             pl = droplayer
         return pl
 
