@@ -26,10 +26,10 @@ class TrainerSettings(object):
     def __init__(self,
                  global_update_settings=ParamUpdateSettings(),
                  batch_size=128,
-                 dataSharedVar=None, **kwargs):
+                 dataSharedVarDict=None, **kwargs):
         self.global_update_settings = global_update_settings
         self.batch_size = batch_size
-        self.dataSharedVar  = dataSharedVar
+        self.dataSharedVarDict  = dataSharedVarDict
         # self.update_dict = {}
         self.__dict__.update(kwargs)
 
@@ -55,13 +55,11 @@ class Trainer(object):
 
     def init_ins_variables(self):
         inputs = self.model.inputs
-        insTrain = []
-        insKeys = []
+        ins = OrderedDict()
         for input_key,input_layers in inputs.iteritems():
             for input_layer in input_layers:
-                insTrain.append(input_layer.input_var)
-                insKeys.append(input_key)
-        return insTrain,insKeys
+                ins[input_key] = input_layer.input_var
+        return ins
 
     def get_outputs(self):
         layers = self.model.layers
@@ -72,12 +70,11 @@ class Trainer(object):
         outsTrain = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
         return all_outs_dict,outsTrain
 
-    def get_cost(self,layer_name,layer_dict,all_outs_dict,insTrain,insKeys):
+    def get_cost(self,layer_name,layer_dict,all_outs_dict,ins):
         preds = all_outs_dict[layer_name]
         if layer_dict['target_type'] == 'label':
             targs = T.matrix('targets')
-            insTrain.append(targs)
-            insKeys.append(layer_dict['target'])
+            ins[layer_dict['target']] = targs
         elif layer_dict['target_type'] == 'recon':
             targs = all_outs_dict[layer_dict['target']]
         else:
@@ -90,35 +87,31 @@ class Trainer(object):
             cost = cost.sum()
         elif aggregation_type == 'weighted_mean':
             weights = T.matrix('weights')
-            insTrain.append(weights)
-            insKeys.append('weights_%s'%layer)
+            ins[layer_dict['weight_key']] = weights
             cost = T.sum(cost*weights)/T.sum(weights)
         elif aggregation_type == 'weighted_sum':
             weights = T.matrix('weights')
-            insTrain.append(weights)
-            insKeys.append('weights_%s'%layer)
+            ins[layer_dict['weight_key']] = weights
             cost = T.sum(cost*weights)
         else:
             raise Exception('This should have been caught earlier')
-        return cost,insTrain,insKeys
+        return cost,ins
 
-    def get_update(self,layer_name,insTrain,insKeys,costTotal):
+    def get_update(self,layer_name,ins,costTotal):
         layers = self.model.layers
         params = layers[layer_name].get_params()
         update = OrderedDict()
         if len(params)>0:
             lr = T.scalar('lr_%s'%layer_name)
             mom = T.scalar('mom_%s'%layer_name)
-            insTrain.append(lr)
-            insKeys.append('learning_rate_%s'%layer_name)
-            insTrain.append(mom)
-            insKeys.append('momentum_%s'%layer_name)
+            ins['learning_rate_%s'%layer_name] = lr
+            ins['momentum_%s'%layer_name] = mom
             if layer_name in self.layer_updates:
                 update_function = self.layer_updates[layer_name].update
             else:
                 update_function = self.global_update_settings.update
             update = update_function(costTotal, params, lr, mom)
-        return update, insTrain,insKeys
+        return update, ins
 
     def _create_train_func(self):
         if self.model is None:
@@ -128,47 +121,51 @@ class Trainer(object):
         layers = self.model.layers
 
         # Get costs
-        insTrain,insKeys = self.init_ins_variables()
+        ins = self.init_ins_variables()
         all_outs_dict,outsTrain = self.get_outputs()
 
         costs = []
         for layer_name, layer_dict in outputs.iteritems():
             # {layer_name:{output_layer,target,target_type,loss_function,aggregation_type}}
-            cost,insTrain,insKeys = self.get_cost(layer_name,layer_dict,all_outs_dict,insTrain,insKeys)
+            cost,ins = self.get_cost(layer_name,layer_dict,all_outs_dict,ins)
             costs.append(cost)
         costTotal = T.sum(costs)
         # Get updates
         updates = OrderedDict()
         for layer_name in layers:
-            update,insTrain,insKeys = self.get_update(layer_name,insTrain,insKeys,costTotal)
+            update,ins = self.get_update(layer_name,ins,costTotal)
             updates.update(update)
 
         # Create functions
-        if self.dataSharedVar is not None: # TODO: fix!
+        givens = dict()
+        if self.dataSharedVarDict is not None:
             batch_index = T.scalar('Batch index')
+            ins['batch_index'] = batch_index
             batch_slice = slice(batch_index * self.batch_size,(batch_index + 1) * self.batch_size)
-            insTrain.append(batch_index)
-            insKeys.append('batch_index')
-            train = theano.function(
-                insTrain, # batch_index
-                outsTrain,
-                updates=updates,
-                givens={
-                    xBatch: self.dataSharedVar['X'][batch_slice],
-                    yBatch: self.dataSharedVar['y'][batch_slice],
-                    wBatch: self.dataSharedVar['w'][batch_slice]
-                },
-                on_unused_input='warn'
-            )
-        else:
-            train = theano.function(
-                insTrain, # xBatch,yBatch,wBatch
-                outsTrain,
-                updates=updates,
-                on_unused_input='warn'
-            )
+            for input_key,input_layers in self.model.inputs.iteritems():
+                for input_layer in input_layers:
+                    inVar = ins.pop(input_key)
+                    givens[inVar] = self.dataSharedVarDict[input_key]
+            for output_layer_name,output_layer_dict in self.model.outputs.iteritems():
+                if output_layer_dict['target_type'] == 'label':
+                    targKey = output_layer_dict['target']
+                    targVar = ins.pop(targKey)
+                    givens[targVar]=self.dataSharedVarDict[targKey]
+                weightKey = output_layer_dict['weight_key']
+                if weightKey in insKeys:
+                    weightVar = ins.pop(weightKey)
+                    givens[weightVar]=self.dataSharedVarDict[weightKey]
+
+        train = theano.function(
+            ins.values(),
+            outsTrain,
+            updates=updates,
+            givens=givens,
+            on_unused_input='warn'
+        )
+
         self.train_func = train
-        self.insKeys = insKeys
+        self.insKeys = ins.keys()
         return self.train_func
 
     def train_step(self,batch_dict):
@@ -187,7 +184,6 @@ class Trainer(object):
                     break
             else:
                 inval = batch_dict[key]
-            # ins.append(batch_dict[key])
             ins.append(inval)
         return self.train_func(*ins)
 
