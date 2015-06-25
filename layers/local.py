@@ -46,10 +46,10 @@ class LocalLayer(Layer):
             localmask = self._create_masks(local_filters, prev_centers, centers, input_shape)
 
             self.centers = centers
-            self.params['localmask'] = theano.shared(value=localmask, name='localmask', borrow=True)
-            self.local_mask_counts = T.sum(self.params['localmask'], axis=0).astype(theano.config.floatX)
+            self.localmask = theano.shared(value=localmask, name='localmask', borrow=True)
+            self.local_mask_counts = T.sum(self.localmask, axis=0).astype(theano.config.floatX)
         else:
-            self.params['localmask'] = localmask
+            self.localmask = localmask
 
         self._set_weight_params(W, b, input_shape, num_units, localmask)
         self._set_out_mask(num_units)
@@ -63,13 +63,13 @@ class LocalLayer(Layer):
             # batch of feature vectors.
             input = input.flatten(2)
 
-        W = self.params['W']
-        b = self.params['b']
+        W = self.W
+        b = self.b
 
         if self.cn:
-            activation = self._compute_local_cn_acts(input, W)
+            activation = self._compute_local_cn_acts(input, W*self.localmask)
         else:
-            activation = T.dot(input, W)
+            activation = T.dot(input, W*self.localmask)
 
         if b is not None:
             activation += b.dimshuffle('x', 0)
@@ -136,8 +136,8 @@ class LocalLayer(Layer):
             w_params = self.add_param(W, (self.num_inputs*input_shape[1], num_units))
             w_params = w_params.get_value() * localmask
             W = theano.shared(w_params,'W')
-            self.params['W'] = W
-            self.params['b'] = self.add_param(b, (num_units,)) if b is not None else None
+            self.W = W
+            self.b = self.add_param(b, (num_units,)) if b is not None else None
 
     def _set_out_mask(self, num_units):
         out_mask=np.zeros((num_units,1,num_units))
@@ -203,9 +203,9 @@ class LocalLayer(Layer):
     def _compute_local_cn_acts(self, input, W):
         # Without Scan (Faster than scan, but still way too slow)
         shuffledIn = input.dimshuffle(0,1,'x')
-        shuffledMasks = self.params['localmask'].dimshuffle('x',0,1)
+        shuffledMasks = self.localmask.dimshuffle('x',0,1)
 
-        # cubeIn = T.repeat(shuffledIn,self.params['localmask'].shape[1],2)
+        # cubeIn = T.repeat(shuffledIn,self.localmask.shape[1],2)
         # cubeMasks = T.repeat(shuffledMasks,input.shape[0],0)
 
         maskedIn = shuffledIn * shuffledMasks
@@ -221,17 +221,17 @@ class LocalLayer(Layer):
 
         allOuts = T.dot(shuffledInCN, W)
 
-        diagMask = T.eye(self.params['localmask'].shape[1],self.params['localmask'].shape[1]).dimshuffle(0,'x',1)
+        diagMask = T.eye(self.localmask.shape[1],self.localmask.shape[1]).dimshuffle(0,'x',1)
         diagMaskAll = allOuts * diagMask
 
         activation = T.sum(diagMaskAll,axis=0)
         return activation
         # # With Scan
         # #TODO: Get working quickly, update to work with color channels
-        # masked_input=T.repeat(input.dimshuffle(0,1,'x'),self.params['localmask'].shape[1],2)*T.repeat(self.params['localmask'].dimshuffle('x',0,1),input.shape[0],0)
+        # masked_input=T.repeat(input.dimshuffle(0,1,'x'),self.localmask.shape[1],2)*T.repeat(self.localmask.dimshuffle('x',0,1),input.shape[0],0)
         # m=T.sum(masked_input,axis=1)/self.local_mask_counts
-        # # v=T.sqr(T.sum((masked_input-m.dimshuffle(0,'x',1))*T.repeat(self.params['localmask'].dimshuffle('x',0,1),input.shape[0],0),axis=1))/self.local_mask_counts
-        # v=T.sum(T.sqr((masked_input-m.dimshuffle(0,'x',1))*T.repeat(self.params['localmask'].dimshuffle('x',0,1),input.shape[0],0)),axis=1)/self.local_mask_counts
+        # # v=T.sqr(T.sum((masked_input-m.dimshuffle(0,'x',1))*T.repeat(self.localmask.dimshuffle('x',0,1),input.shape[0],0),axis=1))/self.local_mask_counts
+        # v=T.sum(T.sqr((masked_input-m.dimshuffle(0,'x',1))*T.repeat(self.localmask.dimshuffle('x',0,1),input.shape[0],0)),axis=1)/self.local_mask_counts
         # s=T.sqrt(v)
         # new_input=(input.dimshuffle(0,1,'x')-m.dimshuffle(0,'x',1))/s.dimshuffle(0,'x',1)
         # slices,updates=theano.scan(fn=lambda maskedIn, w:T.dot(maskedIn,w),outputs_info=None,
