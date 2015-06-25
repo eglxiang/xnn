@@ -139,22 +139,22 @@ class Trainer(object):
         # Create functions
         givens = dict()
         if self.dataSharedVarDict is not None:
-            batch_index = T.scalar('Batch index')
+            batch_index = T.iscalar('Batch index')
             ins['batch_index'] = batch_index
             batch_slice = slice(batch_index * self.batch_size,(batch_index + 1) * self.batch_size)
             for input_key,input_layers in self.model.inputs.iteritems():
                 for input_layer in input_layers:
                     inVar = ins.pop(input_key)
-                    givens[inVar] = self.dataSharedVarDict[input_key]
+                    givens[inVar] = self.dataSharedVarDict[input_key][batch_slice]
             for output_layer_name,output_layer_dict in self.model.outputs.iteritems():
                 if output_layer_dict['target_type'] == 'label':
                     targKey = output_layer_dict['target']
                     targVar = ins.pop(targKey)
-                    givens[targVar]=self.dataSharedVarDict[targKey]
+                    givens[targVar]=self.dataSharedVarDict[targKey][batch_slice]
                 weightKey = output_layer_dict['weight_key']
-                if weightKey in insKeys:
+                if weightKey in ins.keys():
                     weightVar = ins.pop(weightKey)
-                    givens[weightVar]=self.dataSharedVarDict[weightKey]
+                    givens[weightVar]=self.dataSharedVarDict[weightKey][batch_slice]
 
         train = theano.function(
             ins.values(),
@@ -194,10 +194,16 @@ class Trainer(object):
 def train_test():
     from model.Model import Model
     import numpy as np
-    m = Model('test model')
-    l_in = m.addLayer(lasagne.layers.InputLayer(shape=(10,3)), name="l_in")
-    l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, 100), name="l_h1")
-    l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, 3), name="l_out")
+
+    batch_size = 128
+    img_size = 10
+    num_hid = 100
+
+
+    m = Model('test model cpu')
+    l_in = m.addLayer(lasagne.layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
+    l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, num_hid), name="l_h1")
+    l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, img_size), name="l_out")
 
     m.bindInput(l_in, "pixels")
     m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
@@ -208,13 +214,35 @@ def train_test():
     trainer_settings = TrainerSettings(update_settings=global_update_settings)
     trainer = Trainer(trainer_settings,m)
 
+    pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
+    emotions = np.random.rand(batch_size,num_hid).astype(theano.config.floatX)
+
     batch_dict = dict(
         # learning_rate_default=0.1,
         # momentum_default=0.5,
-        pixels=np.random.rand(10,3).astype(theano.config.floatX),
-        emotions=np.random.rand(10,100).astype(theano.config.floatX)
+        pixels=pixels,
+        emotions=emotions
     )
     outs = trainer.train_step(batch_dict)
     
+    print "Data on cpu succeeded"
+
+    num_batches = 5
+
+    pixels = np.random.rand(batch_size*num_batches,img_size).astype(theano.config.floatX)
+    emotions = np.random.rand(batch_size*num_batches,num_hid).astype(theano.config.floatX)
+    pixelsT = theano.shared(pixels)
+    emotionsT = theano.shared(emotions)
+    dataDict = dict(
+        pixels=pixelsT,
+        emotions=emotionsT
+    )
+    trainer_settings = TrainerSettings(update_settings=global_update_settings,dataSharedVarDict=dataDict)
+    trainer = Trainer(trainer_settings,m)
+    batch_dict=dict(batch_index=0)
+    outs = trainer.train_step(batch_dict)
+
+    print "Data on gpu succeeded"
+
 if __name__ == "__main__":
     train_test()
