@@ -15,16 +15,22 @@ __all__ = [
 ]
 
 
-# TODO: Add a flag to local layer that would ensure that filters do not fall off the edge
-# TODO: Consider replacing local_filters spec with percentages of each size [(13,.25),(9,.25),(7,.5)]
 class LocalLayer(Layer):
     def __init__(self, input_layer, num_units, img_shape, local_filters,
                  W=init.Uniform(), b=init.Constant(0.), mode='square',
-                 localmask=None, nonlinearity=nonlinearities.rectify, cn=False, prior=None, **kwargs):
+                 localmask=None, nonlinearity=nonlinearities.rectify,
+                 edgeprotect=True,
+                 cn=False, prior=None, **kwargs):
+        """
+        :param local_filters: list of tuples containing (filter size, percentage)
+        """
         super(LocalLayer, self).__init__(input_layer, **kwargs)
 
         self.num_units = num_units
         self.cn = cn
+        self.edgeprotect = edgeprotect
+        self.mode = mode
+        self.local_filters = local_filters
 
         input_shape = self.input_layer.output_shape # batch_size, channels, width * height
         if len(input_shape) == 2:
@@ -35,15 +41,13 @@ class LocalLayer(Layer):
 
         if localmask is None:
             prior = self._make_prior(prior, img_shape)
-            all_points = np.array(range(len(prior)))
-
-            centers, prev_centers = self._compute_centers(input_layer, img_shape, all_points, num_units, prior)
-            localmask = self._create_masks(local_filters, prev_centers, centers, input_shape, mode)
+            local_filters = self._generate_local_filters()
+            centers, prev_centers = self._compute_centers(local_filters, input_layer, img_shape, num_units, prior)
+            localmask = self._create_masks(local_filters, prev_centers, centers, input_shape)
 
             self.centers = centers
             self.params['localmask'] = theano.shared(value=localmask, name='localmask', borrow=True)
             self.local_mask_counts = T.sum(self.params['localmask'], axis=0).astype(theano.config.floatX)
-            # self.local_mask_indices=T.nonzero(self.params['localmask'],return_matrix=True).astype(theano.config.floatX)
         else:
             self.params['localmask'] = localmask
 
@@ -80,7 +84,9 @@ class LocalLayer(Layer):
         # else:
         #     return self.nonlinearity(activation)
 
-    def _compute_centers(self, input_layer, img_shape, all_points, num_units, prior):
+    def _compute_centers(self, local_filters, input_layer, img_shape, num_units, prior):
+        all_points = np.array(range(len(prior)))
+
         centers_layer=input_layer
         while centers_layer.__class__ not in [LocalLayer,InputLayer,Conv2DLayer]:
             centers_layer=centers_layer.input_layer
@@ -91,25 +97,46 @@ class LocalLayer(Layer):
                 for j in xrange(img_shape[1]):
                     prev_centers.append([i,j,i*img_shape[1]+j])
 
-        # vcenters = [np.random.randint(0,img_shape[0],1)[0] for _ in xrange(num_units)]
-        # hcenters = [np.random.randint(0,img_shape[1],1)[0] for _ in xrange(num_units)]
-        centersTemp=np.random.choice(all_points,num_units,p=prior)
-        vcenters=[int(i/img_shape[1]) for i in centersTemp]
-        hcenters=[i%img_shape[1] for i in centersTemp]
-        # print zip(vcenters,hcenters)
+        count = 0
+        vcenters = []
+        hcenters = []
+        while (count < num_units):
+            centersTemp = np.random.choice(all_points, 1, p=prior)
+            vcenter = int(centersTemp / img_shape[1])
+            hcenter = centersTemp % img_shape[1]
+            if self._is_valid(vcenter, hcenter, local_filters[count], img_shape):
+                count += 1
+                vcenters.append(vcenter)
+                hcenters.append(hcenter)
         centers = zip(vcenters,hcenters,xrange(num_units))
         return centers, prev_centers
+
+    def _is_valid(self, vcenter, hcenter, filter_size, img_shape):
+        if not self.edgeprotect:
+            return True
+        if self.mode == 'square':
+            radius = (filter_size - 1)/2
+        elif self.mode == 'radius':
+            radius = filter_size
+        else:
+            return True
+        left = hcenter - radius
+        right = hcenter + radius
+        up = vcenter - radius
+        down = vcenter + radius
+        if left < 0 or up < 0:
+            return False
+        if right >= img_shape[1]:
+            return False
+        if down >= img_shape[0]:
+            return False
+        return True
 
     def _set_weight_params(self, W, b, input_shape, num_units, localmask):
             w_params = self.add_param(W, (self.num_inputs*input_shape[1], num_units))
             w_params = w_params.get_value() * localmask
             W = theano.shared(w_params,'W')
-            # W_class = W.__class__
-            # W_dict = W.__dict__
-
-            # W_dict['localmask']=self.params['localmask']
-            # W = W_class(**W_dict)
-            self.params['W'] = W#self.add_param(W, (num_inputs, num_units)) ###########
+            self.params['W'] = W
             self.params['b'] = self.add_param(b, (num_units,)) if b is not None else None
 
     def _set_out_mask(self, num_units):
@@ -122,25 +149,29 @@ class LocalLayer(Layer):
         prior = np.ones(img_shape).astype(float).flatten() if prior is None else prior.astype(float)
         assert prior.min()>=0
         prior=prior/prior.sum()
-        # if prior.sum() != 1.0:
-        #     prior=T.nnet.softmax(prior).eval()[0]
         prior=prior.flatten()
         return prior.astype(theano.config.floatX)
 
-    def _create_masks(self, local_filters, prev_centers, centers, input_shape, mode='square'):
-        if mode == 'nearest':
+    def _generate_local_filters(self):
+        local_filter_sizes = [l[0] for l in self.local_filters]
+        local_filter_probs = [l[1] for l in self.local_filters]
+        local_filters = np.random.choice(local_filter_sizes, self.num_units, p=local_filter_probs)
+        return local_filters
+
+    def _create_masks(self, local_filters, prev_centers, centers, input_shape):
+        if self.mode == 'nearest':
             dists=[[((prev_cen[0]-cen[0])**2+(prev_cen[1]-cen[1])**2,prev_cen[2])
                     for prev_cen in prev_centers] for cen in centers]
 
             connect_list = [[a[1] for a in sorted(dist)[:n_closest]]
                             for dist, n_closest in zip(dists,local_filters)]
-        elif mode == 'radius':
+        elif self.mode == 'radius':
             dists=[[((prev_cen[0]-cen[0])**2+(prev_cen[1]-cen[1])**2,prev_cen[2])
                     for prev_cen in prev_centers] for cen in centers]
 
             connect_list = [[d[1] for d in dist if d[0]<radius**2]
                             for dist,radius in zip(dists,local_filters)]
-        elif mode == 'square':
+        elif self.mode == 'square':
             local_filters = [(side_len-1)/2 for side_len in local_filters]
             connect_list = [[prev_cen[2] for prev_cen in prev_centers
                              if (prev_cen[0]>=cen[0]-side_len
@@ -162,7 +193,7 @@ class LocalLayer(Layer):
             localmask.append(unitmask)
         localmask=np.array(localmask).T
         localmask=utils.floatX(localmask)
-        # localmask=np.repeat(a=localmask,repeats=input_shape[1],axis=0)
+        # it's important to use tile, not repeat!
         localmask=np.tile(A=localmask,reps=(input_shape[1],1))
 
         return localmask

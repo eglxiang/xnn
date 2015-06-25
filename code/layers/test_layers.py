@@ -104,6 +104,8 @@ def test_gaussian_dropout():
     return True
 
 def test_local():
+    # TODO: Add tests for radius, edgeprotect=False, and multiple local filters with different probs
+    # TODO: Consider tests for stacks of local layers
     np.random.seed(100)
     batchsize = 1
     numchannels = 1
@@ -113,16 +115,18 @@ def test_local():
     numunits = 10
     side = 9
 
+    # First test results for a single side length with edge protection
     l_in = lasagne.layers.InputLayer(shape=(batchsize, numdims))
     l_ll = layers.local.LocalLayer(l_in, num_units=numunits,
                                    img_shape=(height, width),
-                                   local_filters=[side]*numunits)
+                                   local_filters=[(side, 1)],
+                                   edgeprotect=True,
+                                   mode='square')
 
     localmask = l_ll.params['localmask'].get_value()
 
-    # TODO: If the flag is set to not go off the edge, this test can be more precise
     # Make sure that the localmask for a given hidden unit is side * side (use max for now)
-    assert np.max(localmask.sum(axis=0)) == side**2
+    assert np.alltrue(localmask.sum(axis=0) == side**2)
 
     acts = l_ll.get_output_for(l_in.input_var)
     f = theano.function([l_in.input_var], acts)
