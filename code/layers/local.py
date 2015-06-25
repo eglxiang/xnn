@@ -16,6 +16,7 @@ __all__ = [
 
 
 # TODO: Add a flag to local layer that would ensure that filters do not fall off the edge
+# TODO: Consider replacing local_filters spec with percentages of each size [(13,.25),(9,.25),(7,.5)]
 class LocalLayer(Layer):
     def __init__(self, input_layer, num_units, img_shape, local_filters,
                  W=init.Uniform(), b=init.Constant(0.), mode='square',

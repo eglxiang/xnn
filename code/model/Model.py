@@ -1,4 +1,5 @@
 import lasagne
+import cPickle
 from lasagne.layers import get_output
 import theano.tensor as T
 from collections import OrderedDict
@@ -127,22 +128,23 @@ class Model():
         d = {}
         ls = []
         for lname,l in self.layers.iteritems():
-            ltype = l.__class__.__name__
+            ltype = type(l).__name__
+            ldict = dict(name=lname,
+                         layer_type=ltype)
             if hasattr(l,'input_layer'):
                 iln = l.input_layer.name if l.input_layer is not None else None
-            else:
-                iln = None
-            ldict = dict(name=lname,
-                           input_layer=iln,
-                           layer_type=ltype)
+                ldict['incoming']=iln
+            elif hasattr(l,'input_layers'):
+                iln = [ilay.name for ilay in l.input_layers]
+                ldict['incomings']=iln
 
-            directGetList = ['p','num_units','num_filters','stride',
+            directGetList = {'p','num_units','num_filters','stride',
                              'untie_biases','border_mode','pool_size',
                              'pad','ignore_border','axis','rescale','sigma',
                              'outdim','pattern','width','val','batch_ndim',
                              'indices','input_size','output_size','flip_filters',
-                             'dimshuffle','partial_sum','input_shape','output_shape']
-            nameGetList   = ['nonlinearity','convolution','pool_function','merge_function']
+                             'dimshuffle','partial_sum','input_shape','output_shape','shape'}
+            nameGetList   = {'nonlinearity','convolution','pool_function','merge_function'}
 
             for dga in directGetList:
                 if hasattr(l,dga):
@@ -168,7 +170,8 @@ class Model():
                 loss_function=output['loss_function'].func_name,
                 output_layer=output['output_layer'].name,
                 target_type=output['target_type'],
-                target=target
+                target=target,
+                aggregation_type=output['aggregation_type']
             )
 
         d['layers'] = ls
@@ -177,16 +180,89 @@ class Model():
         d['name'] = self.name
         return d
 
+    def from_dict(self,indict): 
+        self._build_layers_from_list(indict['layers'])
+        self._bind_inputs_from_list(indict['inputs'])
+        self._bind_outputs_from_list(indict['outputs'])
+
+    def _build_layers_from_list(self,ll):
+        nameGetList   = {'nonlinearity','convolution','pool_function','merge_function'}
+        for lspec in ll:
+            t = lspec['layer_type']
+
+            linnames = []
+            if 'incoming' in lspec:
+                linnames = [lspec['incoming']]
+            elif 'incomings' in lspec:
+                linnames = lspec['incomings']
+
+            lin = []
+            for n in linnames:
+                lin.append(self.layers[n] if n is not None else None)
+            lin = lin[0] if len(lin)==1 else lin
+            lconst = getattr(lasagne.layers,t)
+            linit = lconst.__init__
+            largs = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
+            argdict = dict(name=lspec['name'])
+            for a in largs:
+                if a == 'incoming' or a == 'incomings':
+                    argdict[a]=lin
+                elif a in nameGetList:
+                    argdict[a] = self._initialize_arg(a,lspec[a])
+                elif a in lspec:
+                    argdict[a]=lspec[a]
+            l = lconst(**argdict)
+            self.addLayer(l)
+
+    def _bind_inputs_from_list(self,il):
+        for labelkey, lnames in il.iteritems():
+            for ln in lnames:
+                self.bindInput(self.layers[ln],labelkey)
+
+    def _bind_outputs_from_list(self,ol):
+        for layername, outdict in ol.iteritems():
+            l = self.layers[layername]
+            fname = outdict['loss_function']
+            f = getattr(lasagne.objectives,fname)
+            targ = outdict['target']
+            targ_type = outdict['target_type']
+            agg = outdict['aggregation_type']
+            self.bindOutput(l,f,targ,targ_type,agg)
+
+
+    def _initialize_arg(self,a,spec):
+        #TODO: expand this to take care of other objects that need to be re-initialized
+        if a == 'nonlinearity':
+            return getattr(lasagne.nonlinearities,spec)
+        else:
+            return None
+
+    def saveModel(self,fname):
+        d = self.to_dict()
+        all_layers = [self.layers[k] for k in self.layers.keys()]
+        p = lasagne.layers.get_all_param_values(all_layers)
+        m = dict(model=d,params=p)
+        with open(fname,'wb') as f:
+            cPickle.dump(m,f,cPickle.HIGHEST_PROTOCOL)
+
+    def loadModel(self,fname):
+        with open(fname,'rb') as f:
+            d = cPickle.load(f)
+        self.from_dict(d['model'])
+        all_layers = [self.layers[k] for k in self.layers.keys()]
+        lasagne.layers.set_all_param_values(all_layers,d['params'])
+
     def predict(self,X,layer_names=None):
         if layer_names is None:
             layer_names = self.layers.keys()
             layers = self.layers.values()
         else:
+            layers = []
             if type(layer_names) == str:
                 layer_names = [layer_names]
             for layer_name in layer_names:
                 assert layer_name in self.layers
-            layers = [self.layers[layer_name] for layer_name in layer_names]
+                layers.append(self.layers[layer_name])
         outs = lasagne.layers.get_output(layers,inputs=X,deterministic=True)
         outs = dict([(layer_name,out.eval()) for layer_name,out in zip(layer_names,outs)])
         return outs
@@ -206,7 +282,9 @@ def model_test():
 
     m2 = Model('test convenience')
     l_in = m2.makeBoundInputLayer((10,200),'pixels')
-    l_out = m2.makeDenseDropStack(l_in,[60,30,20],[.6,.4,.3])
+    l_out = m2.makeDenseDropStack(l_in,[60,3,2],[.6,.4,.3])
+    l_mer = lasagne.layers.MergeLayer([l_in, l_out])
+    m2.addLayer(l_mer,name='merger')
     m2.bindOutput(l_out, lasagne.objectives.squared_error, 'age', 'label', 'mean')
 
     serialized = m.to_dict()
@@ -214,6 +292,20 @@ def model_test():
 
     serialized = m2.to_dict()
     pprint.pprint(serialized)
+
+    m3 = Model('test serialize')
+    m3.from_dict(serialized)
+    pprint.pprint(m3.to_dict())
+    m3.saveModel('modelout')
+
+    m4 = Model('test load')
+    m4.loadModel('modelout')
+
+    print "same"
+    print m4.layers['l__dense_2'].W.get_value()
+    print m3.layers['l__dense_2'].W.get_value()
+    print "different"
+    print m2.layers['l__dense_2'].W.get_value()
 
 if __name__ == "__main__":
     model_test()
