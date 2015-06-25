@@ -1,7 +1,4 @@
-import lasagne
-import layers.normalization
-import layers.local
-import layers.noise
+import xnn
 import numpy as np
 import theano
 
@@ -17,14 +14,14 @@ def test_contrast_normalization():
     numdims = numchannels*height*width
 
     # flat
-    l_in = lasagne.layers.InputLayer(shape=(batchsize, numdims))
-    l_cn = layers.normalization.ContrastNormLayer(l_in, norm_type="mean_var")
+    l_in = xnn.layers.InputLayer(shape=(batchsize, numdims))
+    l_cn = xnn.layers.ContrastNormLayer(l_in, norm_type="mean_var")
     pix_norm_flat = l_cn.get_output_for(l_in.input_var)
     f_flat = theano.function([l_in.input_var], pix_norm_flat)
 
     # image
-    l_in = lasagne.layers.InputLayer(shape=(batchsize, numchannels, height, width))
-    l_cn = layers.normalization.ContrastNormLayer(l_in, norm_type="mean_var")
+    l_in = xnn.layers.InputLayer(shape=(batchsize, numchannels, height, width))
+    l_cn = xnn.layers.ContrastNormLayer(l_in, norm_type="mean_var")
     pix_norm = l_cn.get_output_for(l_in.input_var)
     f_image = theano.function([l_in.input_var], pix_norm)
 
@@ -59,8 +56,8 @@ def test_batch_normalization():
     batchsize = 100
     numdims = 10
     # flat
-    l_in = lasagne.layers.InputLayer(shape=(batchsize, numdims))
-    l_bn = layers.normalization.BatchNormLayer(l_in, learn_transform=True, eta=0)
+    l_in = xnn.layers.InputLayer(shape=(batchsize, numdims))
+    l_bn = xnn.layers.BatchNormLayer(l_in, learn_transform=True, eta=0)
 
     normed = l_bn.get_output_for(l_in.input_var)
     f = theano.function([l_in.input_var], normed)
@@ -80,8 +77,8 @@ def test_gaussian_dropout():
     np.random.seed(100)
     batch_size = 10000
     input_vec = np.array([-100,-10,0,10,100]).astype(theano.config.floatX)
-    l_in = lasagne.layers.InputLayer(shape=(batch_size, input_vec.shape[0]))
-    l_gd = layers.noise.GaussianDropoutLayer(l_in, sigma=1.0)
+    l_in = xnn.layers.InputLayer(shape=(batch_size, input_vec.shape[0]))
+    l_gd = xnn.layers.GaussianDropoutLayer(l_in, sigma=1.0)
 
     corrupted = l_gd.get_output_for(l_in.input_var)
     f = theano.function([l_in.input_var], corrupted)
@@ -116,8 +113,8 @@ def test_local():
     side = 9
 
     # First test results for a single side length with edge protection
-    l_in = lasagne.layers.InputLayer(shape=(batchsize, numdims))
-    l_ll = layers.local.LocalLayer(l_in, num_units=numunits,
+    l_in = xnn.layers.InputLayer(shape=(batchsize, numdims))
+    l_ll = xnn.layers.LocalLayer(l_in, num_units=numunits,
                                    img_shape=(height, width),
                                    local_filters=[(side, 1)],
                                    edgeprotect=True,
