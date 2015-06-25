@@ -54,21 +54,21 @@ class BatchNormLayer(Layer):
         means = init.Constant(val=0)
         stdevs = init.Constant(val=1)
 
-        self.params['beta'] = self.add_param(beta, (incoming.output_shape[1],))
-        self.params['gamma'] = self.add_param(gamma, (incoming.output_shape[1],))
+        self.beta = self.add_param(beta, (incoming.output_shape[1],))
+        self.gamma = self.add_param(gamma, (incoming.output_shape[1],))
 
-        self.params['means'] = self.add_param(means, (incoming.output_shape[1],))
-        self.params['stdevs'] = self.add_param(stdevs, (incoming.output_shape[1],))
+        self.means = self.add_param(means, (incoming.output_shape[1],))
+        self.stdevs = self.add_param(stdevs, (incoming.output_shape[1],))
 
         self.means_updates = []
         self.stdevs_updates = []
         self.batch_size = incoming.output_shape[0]
 
     def get_output_for(self, input, deterministic=False, **kwargs):
-        beta = self.params['beta']
-        gamma = self.params['gamma']
-        means = self.params['means']
-        stdevs = self.params['stdevs']
+        beta = self.beta
+        gamma = self.gamma
+        means = self.means
+        stdevs = self.stdevs
         if deterministic == False:
             m = T.mean(input, axis=0, keepdims=False)
             s = T.sqrt(T.var(input, axis=0, keepdims=False) + self.eta)
@@ -102,13 +102,13 @@ class BatchNormLayer(Layer):
 
     def get_params(self):
         if self.learn_transform == True:
-            return [self.params['gamma']] + self.get_bias_params()
+            return [self.gamma] + self.get_bias_params()
         else:
             return []
 
     def get_bias_params(self):
         if self.learn_transform == True:
-            return [self.params['beta']]
+            return [self.beta]
         else:
             return []
 

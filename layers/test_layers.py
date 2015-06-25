@@ -120,7 +120,7 @@ def test_local():
                                    edgeprotect=True,
                                    mode='square')
 
-    localmask = l_ll.params['localmask'].get_value()
+    localmask = l_ll.localmask.get_value()
 
     # Make sure that the localmask for a given hidden unit is side * side (use max for now)
     assert np.alltrue(localmask.sum(axis=0) == side**2)
