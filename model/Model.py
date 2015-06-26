@@ -208,8 +208,8 @@ class Model():
             for n in linnames:
                 lin.append(self.layers[n] if n is not None else None)
             lin = lin[0] if len(lin)==1 else lin
-            lconst = getattr(xnn.layers,t)
-            linit = lconst.__init__
+            lclass = getattr(xnn.layers,t)
+            linit = lclass.__init__
             largs = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
             argdict = dict(name=lspec['name'])
             for a in largs:
@@ -219,7 +219,7 @@ class Model():
                     argdict[a] = self._initialize_arg(a,lspec[a])
                 elif a in lspec:
                     argdict[a]=lspec[a]
-            l = lconst(**argdict)
+            l = lclass(**argdict)
             self.addLayer(l)
 
     def _bind_inputs_from_list(self,il):
