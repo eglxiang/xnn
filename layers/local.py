@@ -3,9 +3,9 @@ import theano
 import theano.tensor as T
 #
 from lasagne import init
-from xnn import nonlinearities
-from xnn import utils
-from xnn.layers import Layer, InputLayer, Conv2DLayer
+from .. import nonlinearities
+from .. import utils
+from ..layers import Layer, InputLayer, Conv2DLayer
 
 
 __all__ = [
