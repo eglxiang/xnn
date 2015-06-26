@@ -272,13 +272,13 @@ class Model():
                 assert layer_name in self.layers
                 layers.append(self.layers[layer_name])
 
-        if isinstance(datadict,np.ndarray):
-            X = datadict
-        else:
+        if isinstance(datadict,dict):
             X = dict()
             for labelkey,layerlist in self.inputs.iteritems():
                 for layer in layerlist:
                     X[layer]=datadict[labelkey]
+        else:
+            X = datadict
 
         outs = xnn.layers.get_output(layers,inputs=X,deterministic=True)
         outs = dict([(layer_name,out.eval()) for layer_name,out in zip(layer_names,outs)])
