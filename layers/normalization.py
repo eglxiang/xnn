@@ -1,5 +1,5 @@
-from xnn.layers import Layer
-from  xnn import nonlinearities
+from ..layers import Layer
+from  .. import nonlinearities
 from lasagne import init
 import theano.tensor as T
 
