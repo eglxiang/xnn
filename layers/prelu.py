@@ -14,8 +14,8 @@ __all__ = [
 
 # TODO: Consider using a flag to allow tied param for coef/pivot
 class PReLULayer(Layer):
-    def __init__(self, incoming, coef=init.Constant(.25), pivot=init.Constant(0), learn_pivot=False, **kwargs):
-        super(PReLULayer, self).__init__(incoming, **kwargs)
+    def __init__(self, incoming, coef=init.Constant(.25), pivot=init.Constant(0), learn_pivot=False, name=None):
+        super(PReLULayer, self).__init__(incoming, name)
 
         input_shape = self.input_layer.output_shape
 
