@@ -1,6 +1,7 @@
 import lasagne
 import theano
 import theano.tensor as T
+import xnn
 from collections import OrderedDict
 
 class ParamUpdateSettings():
@@ -65,7 +66,7 @@ class Trainer(object):
         layers = self.model.layers
         outputs = self.model.outputs
         all_layers = layers.values()
-        all_outs = lasagne.layers.get_output(all_layers, deterministic=False)
+        all_outs = xnn.layers.get_output(all_layers, deterministic=False)
         all_outs_dict = dict(zip(layers.keys(),all_outs))
         outsTrain = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
         return all_outs_dict,outsTrain
@@ -201,9 +202,9 @@ def train_test():
 
 
     m = Model('test model cpu')
-    l_in = m.addLayer(lasagne.layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
-    l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, num_hid), name="l_h1")
-    l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, img_size), name="l_out")
+    l_in = m.addLayer(xnn.layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
+    l_h1 = m.addLayer(xnn.layers.DenseLayer(l_in, num_hid), name="l_h1")
+    l_out = m.addLayer(xnn.layers.DenseLayer(l_h1, img_size), name="l_out")
 
     m.bindInput(l_in, "pixels")
     m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")

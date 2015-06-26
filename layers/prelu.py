@@ -1,5 +1,5 @@
-from lasagne.layers.base import Layer
-from lasagne import utils
+from xnn.layers import Layer
+from xnn import utils
 from lasagne import init
 
 # import theano
