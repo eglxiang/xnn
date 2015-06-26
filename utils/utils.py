@@ -230,3 +230,14 @@ def probEmbarrasingMistakeForAge(fHuman,pMachine,bins=[18,25,35,45,55,65,100]):
         Gy = (1.-Fy)+pHumanC[:,y]
         probOK = probOK+pMachine[:,y]*Fy*Gy
     return 1.-probOK
+
+
+def typechecker(f):
+    def typecheck(*args,**kwargs):
+        all_args = list(args)+kwargs.values()
+        tmp = T.matrix()
+        for a in all_args:
+            if type(a)==type(tmp):
+                return f(*args,**kwargs)
+        return f(*args,**kwargs).eval()
+    return typecheck
