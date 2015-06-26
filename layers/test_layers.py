@@ -135,6 +135,25 @@ def test_local():
 
     return True
 
+def test_prelu():
+    # TODO: Add more comprehensive tests of different cases with different pivots/coefs
+    np.random.seed(100)
+
+    inputs = np.float32([ [-2, -1, 0], [1, 2, 3] ])
+
+    l_in = xnn.layers.InputLayer(shape=inputs.shape)
+    l_pr = xnn.layers.PReLULayer(l_in)
+
+    acts = l_pr.get_output_for(l_in.input_var)
+
+    f = theano.function([l_in.input_var], acts)
+
+    expected = np.float32([[-.5, -.25, 0], [1, 2, 3]])
+    actual = f(inputs)
+
+    assert np.alltrue(expected==actual)
+
+    return True
 
 
 if __name__ == '__main__':
@@ -142,3 +161,4 @@ if __name__ == '__main__':
     print 'test_batch_normalization:', test_batch_normalization()
     print 'test_gaussian_dropout:', test_gaussian_dropout()
     print 'test_local:', test_local()
+    print 'test_prelu:', test_prelu()
