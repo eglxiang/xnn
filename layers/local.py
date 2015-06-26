@@ -20,11 +20,11 @@ class LocalLayer(Layer):
                  W=init.GlorotUniform(), b=init.Constant(0.), mode='square',
                  localmask=None, nonlinearity=nonlinearities.rectify,
                  edgeprotect=True,
-                 cn=False, prior=None, **kwargs):
+                 cn=False, prior=None, name=None):
         """
         :param local_filters: list of tuples containing (filter size, percentage)
         """
-        super(LocalLayer, self).__init__(input_layer, **kwargs)
+        super(LocalLayer, self).__init__(input_layer, name)
 
         self.num_units = num_units
         self.cn = cn
