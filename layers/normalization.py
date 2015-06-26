@@ -14,8 +14,8 @@ class ContrastNormLayer(Layer):
     """
     Implements per image contrast normalization
     """
-    def __init__(self, incoming, norm_type="mean_var", **kwargs):
-        super(ContrastNormLayer, self).__init__(incoming, **kwargs)
+    def __init__(self, incoming, norm_type="mean_var", name=None):
+        super(ContrastNormLayer, self).__init__(incoming, name)
         if norm_type not in [None, "mean_var"]:
             raise Exception("norm_type %s Not implemented!" % norm_type)
         self.norm_type = norm_type
@@ -38,8 +38,8 @@ class BatchNormLayer(Layer):
     Implements per batch input normalization
     """
     def __init__(self, incoming, eta=1e-2, alpha=.1, learn_transform=True,
-                 nonlinearity=nonlinearities.linear, **kwargs): #window_size=10
-        super(BatchNormLayer, self).__init__(incoming, **kwargs)
+                 nonlinearity=nonlinearities.linear, name=None): #window_size=10
+        super(BatchNormLayer, self).__init__(incoming, name)
         if nonlinearity is None:
             self.nonlinearity = nonlinearities.linear
         else:

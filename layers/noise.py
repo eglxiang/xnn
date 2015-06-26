@@ -15,8 +15,8 @@ class GaussianDropoutLayer(Layer):
     See http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf
     Does not require rescaling at test time.
     """
-    def __init__(self, incoming, sigma=1.0, **kwargs):
-        super(GaussianDropoutLayer, self).__init__(incoming, **kwargs)
+    def __init__(self, incoming, sigma=1.0, name=None):
+        super(GaussianDropoutLayer, self).__init__(incoming, name)
         self._srng = RandomStreams(np.random.randint(1, 2147462579))
         self.sigma = sigma
 

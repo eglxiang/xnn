@@ -4,6 +4,7 @@ import theano.tensor as T
 import time
 import sys
 import pylab as pl
+import signal
 
 def theano_digitize(x, bins):
     """
@@ -134,6 +135,26 @@ class Progbar(object):
 
     def add(self, n, values=[]):
         self.update(self.seen_so_far+n, values)
+
+class GracefulStop(object):
+    def __enter__(self):
+        self.signal_received = False
+        self.old_handler = signal.getsignal(signal.SIGINT)
+        self.count=0
+        signal.signal(signal.SIGINT,self.handler)
+
+    def handler(self,signal,frame):
+        self.count+=1
+        self.signal_received = (signal,frame)
+        if self.count == 1:
+            print "---Cancelling training after this epoch. To cancel immediately, press ctrl-C again---"
+        else:
+            signal.signal(signal.SIGINT,self.old_handler)
+
+    def __exit__(self,type,value,traceback):
+        signal.signal(signal.SIGINT,self.old_handler)
+        if self.signal_received:
+            self.old_handler(*self.signal_received)
 
 class lengthExpection(Exception):
     pass

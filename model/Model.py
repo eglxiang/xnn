@@ -47,9 +47,9 @@ class Model():
 
     def makeDropoutLayer(self,parentlayer,p=0.5,name=None,drop_type='standard'):
         if drop_type == 'standard':
-            droplayer  = xnn.layers.noise.DropoutLayer(parentlayer,p=p)
+            droplayer  = xnn.layers.DropoutLayer(parentlayer,p=p)
         elif drop_type == 'gauss':
-            droplayer  = xnn.layers.noise.GaussianDropoutLayer(parentlayer,sigma=p)
+            droplayer  = xnn.layers.GaussianDropoutLayer(parentlayer,sigma=p)
         else:
             raise ValueError("drop_type must be 'standard' or 'gauss'")
         if name is None:
@@ -61,7 +61,7 @@ class Model():
     def makeDenseLayer(self,parentlayer,num_hidden,nonlinearity=None,name=None):
         if nonlinearity is None:
             nonlinearity = xnn.nonlinearities.rectify
-        denselayer = xnn.layers.dense.DenseLayer(parentlayer,num_units=num_hidden,nonlinearity=nonlinearity)
+        denselayer = xnn.layers.DenseLayer(parentlayer,num_units=num_hidden,nonlinearity=nonlinearity)
         if name is None:
             name = self._get_unique_name_from_layer(denselayer)
             denselayer.name = name
@@ -69,7 +69,7 @@ class Model():
         return denselayer
 
     def makeBoundInputLayer(self,shape,inputlabelkey,name=None,input_var=None):
-        lin = xnn.layers.input.InputLayer(shape,input_var=input_var,name=name)
+        lin = xnn.layers.InputLayer(shape,input_var=input_var,name=name)
         if name is None:
             name = self._get_unique_name_from_layer(lin)
             lin.name = name
@@ -105,7 +105,7 @@ class Model():
     def bindInput(self, input_layer, input_key):
         if not isinstance(input_key, str):
             raise Exception("input_key must be a string")
-        if not isinstance(input_layer, xnn.layers.input.InputLayer):
+        if not isinstance(input_layer, xnn.layers.InputLayer):
             raise Exception("input_layer must be an object of type InputLayer")
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
