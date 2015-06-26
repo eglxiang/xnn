@@ -1,4 +1,4 @@
-from lasagne.layers.base import Layer
+from ..layers import Layer
 import theano
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 import theano.tensor as T

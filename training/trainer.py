@@ -1,6 +1,7 @@
 import lasagne
 import theano
 import theano.tensor as T
+from .. import layers
 from collections import OrderedDict
 
 class ParamUpdateSettings():
@@ -62,11 +63,11 @@ class Trainer(object):
         return ins
 
     def get_outputs(self):
-        layers = self.model.layers
+        all_layers_dict = self.model.layers
         outputs = self.model.outputs
-        all_layers = layers.values()
-        all_outs = lasagne.layers.get_output(all_layers, deterministic=False)
-        all_outs_dict = dict(zip(layers.keys(),all_outs))
+        all_layers = all_layers_dict.values()
+        all_outs = layers.get_output(all_layers, deterministic=False)
+        all_outs_dict = dict(zip(all_layers_dict.keys(),all_outs))
         outsTrain = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
         return all_outs_dict,outsTrain
 
@@ -98,8 +99,8 @@ class Trainer(object):
         return cost,ins
 
     def get_update(self,layer_name,ins,costTotal):
-        layers = self.model.layers
-        params = layers[layer_name].get_params()
+        all_layers = self.model.layers
+        params = all_layers[layer_name].get_params()
         update = OrderedDict()
         if len(params)>0:
             lr = T.scalar('lr_%s'%layer_name)
@@ -118,7 +119,7 @@ class Trainer(object):
             raise Exception("No model has been set to train!")
         inputs = self.model.inputs
         outputs = self.model.outputs
-        layers = self.model.layers
+        all_layers = self.model.layers
 
         # Get costs
         ins = self.init_ins_variables()
@@ -132,7 +133,7 @@ class Trainer(object):
         costTotal = T.sum(costs)
         # Get updates
         updates = OrderedDict()
-        for layer_name in layers:
+        for layer_name in all_layers:
             update,ins = self.get_update(layer_name,ins,costTotal)
             updates.update(update)
 
@@ -191,8 +192,9 @@ class Trainer(object):
         # Set self.model to None in dict
         pass
 
-def train_test():
-    from model.Model import Model
+def test_train():
+    # from model.Model import Model
+    from ..model import Model
     import numpy as np
 
     batch_size = 128
@@ -201,9 +203,9 @@ def train_test():
 
 
     m = Model('test model cpu')
-    l_in = m.addLayer(lasagne.layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
-    l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, num_hid), name="l_h1")
-    l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, img_size), name="l_out")
+    l_in = m.addLayer(layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
+    l_h1 = m.addLayer(layers.DenseLayer(l_in, num_hid), name="l_h1")
+    l_out = m.addLayer(layers.DenseLayer(l_h1, img_size), name="l_out")
 
     m.bindInput(l_in, "pixels")
     m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
@@ -245,4 +247,4 @@ def train_test():
     print "Data on gpu succeeded"
 
 if __name__ == "__main__":
-    train_test()
+    test_train()
