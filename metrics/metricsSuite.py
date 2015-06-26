@@ -10,18 +10,22 @@ import math
 import sys
 
 __all__=['metric_types','metric_names','Metric',
+            'baseline',
+            'confMatAggregate',
             'compute2AFC',
             'computeBalancedErrorRate',
             'computeBalancedExponentialCost',
             'computeBalancedLogisticAndExponentialCosts',
             'computeBalancedLogisticCost',
-            'computeBinarizedBalancedErrorRate',
+            'computeBinarizedBalancedErrorRateBinary',
+            'computeBinarizedBalancedErrorRateCategorical',
             'computeBinarizedBalancedExponentialCost',
             'computeBinarizedBalancedLogisticCost',
             'computeBinarizedF1',
             'computeBinarizedHitRate',
             'computeBinarizedJunkRate',
             'computeBinarizedSpecificity',
+            'computeCategoricalCrossentropy',
             'computeCondProb',
             'computeEqualErrorRate',
             'computeErrorRateDiffSquared',
@@ -30,6 +34,7 @@ __all__=['metric_types','metric_names','Metric',
             'computeHitRate',
             'computeJCorr',
             'computeJunkRate',
+            'computeKLDivergence',
             'computeOptimalBalancedErrorRate',
             'computeOptimalBalancedExponentialCost',
             'computeOptimalBalancedLogisticCost',
@@ -49,7 +54,7 @@ metric_types={}
 metric_names={}
 
 class Metric():
-    def __init__(self,metric,targkeys,**kwargs):
+    def __init__(self,metric,targkeys,weightkey=None,aggregation_type='mean',**kwargs):
         if type(metric) == str:
             self.metric = metric_types[metric.lower()]
         else:
@@ -59,7 +64,10 @@ class Metric():
             self.name=metric_names[self.metric]
         else:
             self.name=self.metric.__name__
+
         self.settings = kwargs
+        self.weightkey = weightkey
+        self.aggregation_type=aggregation_type
 
         if not (isinstance(targkeys,str) or isinstance(targkeys,list)):
             raise TypeError("targetkeys needs to be a string or a list of strings")
@@ -67,23 +75,85 @@ class Metric():
 
     def __call__(self,out,datadict):
 
-        settings_copy=self.settings.copy()
         if isinstance(self.targkeys,str):
             targ = datadict[self.targkeys]
-            output = self.metric(out,targ,**settings_copy)
         else:
             targ = dict()
             for k in self.targkeys:
                 targ[k] = datadict[k]
-            output = self.metric(out,targ,**settings_copy)
+        settings_copy = self.settings.copy()
+        output = self.metric(out,targ,**settings_copy)
+        weights = datadict[self.weightkey] if self.weightkey is not None else None
+        if self.aggregation_type == 'mean':
+            output = np.nanmean(output)
+        elif self.aggregation_type == 'sum':
+            output = np.nansum(output)
+        elif self.aggregation_type == 'weighted_mean':
+            if weights is None:
+                raise Exception('weighted_mean aggregation requires specifying a weightkey')
+            output = np.nansum(output*weights)/np.nansum(weights)
+        elif self.aggregation_type == 'weighted_sum':
+            if weights is None:
+                raise Exception('weighted_sum aggregation requires specifying a weightkey')
+            output = np.nansum(output*weights)
+        elif hasattr(self.aggregation_type,'__call__'):
+            if weights is None:
+                output = self.aggregation_type(output)
+            else:
+                output = self.aggregation_type(output,weights)
+        else:
+            pass
         return output
 
     def to_dict(self):
         d = self.__dict__.copy() 
         d['metric'] = d['metric'].__name__
+        if hasattr(d['aggregation_type'],'__call__'):
+            d['aggregation_type'] = d['aggregation_type'].__name__
         return d
-                 
-        
+
+def computeKLDivergence(x,y):
+    x = np.float32(x)
+    y = np.float32(y)
+    lograt = np.log(y) - np.log(x)
+    lograt[np.isinf(lograt)] = 50
+    return np.nansum(y*lograt,axis=1)
+metric_types['kl']=computeKLDivergence 
+metric_names[computeKLDivergence]='KL Divergence'
+
+def computeSquaredError(x,y):
+    return x**2-y**2
+metric_types['se']=computeSquaredError 
+metric_names[computeSquaredError]='Squared Error'
+
+def computeAbsoluteError(x,y):
+    return np.abs(x-y)
+metric_types['ae']=computeAbsoluteError 
+metric_names[computeSquaredError]='Absolute Error'
+
+def computeCategoricalCrossentropy(x,y):
+    x = np.float32(x)
+    y = np.float32(y)
+    logpred = np.log(x)
+    # deal with predictions that are 0
+    logpred[np.isinf(logpred)]=-50
+    xlp = y*logpred
+    if xlp.ndim == 1:
+        xlp = xlp[:,None]
+    return -np.sum(xlp,axis=1)
+metric_types['categorical_crossentropy']=computeCategoricalCrossentropy
+metric_types['cce']=computeCategoricalCrossentropy
+metric_names[computeCategoricalCrossentropy]='Categorical Crossentropy'
+
+def computeConfusionMatrix(x,y):
+    ym = np.argmax(y,axis=1)
+    xm = np.argmax(x,axis=1)
+    n = y.shape[1]+1
+    ym[np.any(np.isnan(y),axis=1)]=n-1
+    ntp = n*ym + xm
+    bc = np.bincount(ntp,minlength=n*n).reshape((n,n))
+    countsmat = bc[:-1,:-1]
+    return countsmat
 
 def baseline (x, b = 0):
     return np.array(x, float) - b
@@ -91,32 +161,23 @@ def baseline (x, b = 0):
 def threshold (x, t = 0):
     return np.array(np.array(x, float) > t, float)
 
-# If tags is empty, then compute P(A=l | B=l);
-# if tags is not empty, then compute P(A=l | B=l, Tag=1)
-
-
-def computeCondProb (a, b, l, tags=None):
+def computeCondProb (a, b, l):
     a = np.array(a, dtype=float)
     b = np.array(b, dtype=float)
-    # If specified, limit ourselves to data for which tag == 1
-    if tags is not None:
-        tags = np.array(tags, float)
-        a = a[pylab.find(tags == 1)]
-        b = b[pylab.find(tags == 1)]
-    idxs = pylab.find(b == l)
-    b = b[idxs]
-    a = a[idxs]
-    if len(b) == 0:
-        return None
-    return np.sum(np.array(a == b, float)) / len(b)
+    if l == 0:
+        a = 1-a
+        b = 1-b
+    c = a*b
+    d = np.sum(c,axis=0)/np.sum(b,axis=0)
+    return d 
 # metric_types['condprob']=computeCondProb
 # metric_types['cp']=computeCondProb
 # metric_names[computeCondProb]='Conditional probability'
 
 # Compute P(Y=0 | X=1, Tag=1) = 1 - precision
-def computeJunkRate (x, y, tags = None):
-    precision = computePrecision(x, y, tags)
-    if precision == None:
+def computeJunkRate (x, y):
+    precision = computePrecision(x, y)
+    if precision is None:
         return None
     return 1 - precision
 metric_types['junkrate']=computeJunkRate
@@ -124,70 +185,93 @@ metric_types['junk rate']=computeJunkRate
 metric_types['jr']=computeJunkRate
 metric_names[computeJunkRate]='Junk Rate'
 
-def computeBinarizedHitRate (x, y, tags = None, t=0):
+def computeBinarizedHitRate (x, y, t=0):
     x = threshold(x,t)
-    return computeHitRate(x, y, tags)
+    return computeHitRate(x, y)
 metric_types['binarizedhitrate']=computeBinarizedHitRate
 metric_types['bhr']=computeBinarizedHitRate
 metric_names[computeBinarizedHitRate]='Binarized Hit Rate'
 
-def computeBinarizedSpecificity (x, y, tags = None, t=0):
+def computeBinarizedSpecificity (x, y, t=0):
     x = threshold(x,t)
-    return computeSpecificity(x, y, tags)
+    return computeSpecificity(x, y)
 metric_types['binarizedspecificity']=computeBinarizedSpecificity
 metric_types['bs']=computeBinarizedSpecificity
 metric_names[computeBinarizedSpecificity]='Binarized Specificity'
 
-def computeBinarizedJunkRate (x, y, tags = None, t=0):
+def computeBinarizedJunkRate (x, y, t=0):
     x = threshold(x,t)
-    return computeJunkRate(x, y, tags)
+    return computeJunkRate(x, y)
 metric_types['binarizedjunkrate']=computeBinarizedJunkRate
 metric_types['binarizedjr']=computeBinarizedJunkRate
 metric_types['bjr']=computeBinarizedJunkRate
 metric_names[computeBinarizedJunkRate]='Binarized Junk Rate'
 
 # Compute P(Y=1 | X=1, Tag=1)
-def computePrecision (x, y, tags = None):
-    return computeCondProb(y, x, 1, tags)
+def computePrecision (x, y):
+    return computeCondProb(y, x, 1)
 metric_types['precision']=computePrecision
 metric_names[computePrecision]='Precision'
 # Compute P(X=0 | Y=0, Tag=1)
-def computeSpecificity (x, y, tags = None):
-    return computeCondProb(x, y, 0, tags)
+def computeSpecificity (x, y):
+    return computeCondProb(x, y, 0)
 metric_types['specificity']=computeSpecificity
 metric_names[computeSpecificity]='Specificity'
 
 # Compute P(X=1 | Y=1, Tag=1)
-def computeHitRate (x, y, tags = None):
-    return computeCondProb(x, y, 1, tags)
+def computeHitRate (x, y):
+    return computeCondProb(x, y, 1)
 metric_types['hitrate']=computeHitRate
 metric_types['hit rate']=computeHitRate
 metric_types['hr']=computeHitRate
 metric_names[computeHitRate]='Hit Rate'
 
-def computeOptimalBalancedErrorRate (x, y, numThresholds = 100, tags = None):
+def computeOptimalBalancedErrorRate (x, y, numThresholds = 100):
     return optimizeOverThresholds(computeBalancedErrorRate,
                                     False, x, y,
-                                    numThresholds, tags)
+                                    numThresholds)
 metric_types['optimalbalancederrorrate']=computeOptimalBalancedErrorRate
 metric_types['optimalbalancederror']=computeOptimalBalancedErrorRate
 metric_types['ober']=computeOptimalBalancedErrorRate
 metric_types['obe']=computeOptimalBalancedErrorRate
 metric_names[computeOptimalBalancedErrorRate]='Optimal Balanced Error Rate'
 
-def computeBinarizedBalancedErrorRate (x, y, tags = None, t=0.5):
+def computeBinarizedBalancedErrorRateBinary(x, y, t=0.5):
     x = threshold(x,t)
-    return computeBalancedErrorRate(x, y, tags)
-metric_types['binarizedbalancederrorrate']=computeBinarizedBalancedErrorRate
-metric_types['binarizedbalancederror']=computeBinarizedBalancedErrorRate
-metric_types['bber']=computeBinarizedBalancedErrorRate
-metric_types['bbe']=computeBinarizedBalancedErrorRate
-metric_names[computeBinarizedBalancedErrorRate]='Binarized Balanced Error Rate'
+    y = threshold(y,t)
+    return computeBalancedErrorRate(x, y)
+metric_types['binarizedbalancederrorratebinary']=computeBinarizedBalancedErrorRateBinary
+metric_types['binarizedbalancederrorbinary']=computeBinarizedBalancedErrorRateBinary
+metric_types['bberb']=computeBinarizedBalancedErrorRateBinary
+metric_types['bbeb']=computeBinarizedBalancedErrorRateBinary
+metric_names[computeBinarizedBalancedErrorRateBinary]='Binarized Balanced Error Rate Binary'
 
-def computeBalancedErrorRate (x, y, tags = None):
-    r = computeHitRate(x, y, tags)
-    s = computeSpecificity(x, y, tags)
-    if (r == None) or (s == None):
+def _softmax(w, t = 1.0):
+    e = np.exp(np.float32(w) / t)
+    dist = e / np.sum(e,axis=1,keepdims=True)
+    return dist
+
+def _convertToBinaryProb(p):
+    num_other_classes = p.shape[1] - 1
+    q = (1-p)/num_other_classes
+    q[q==0]=1
+    pc = _softmax(np.log(p)-np.log(q))
+    return pc
+
+def computeBinarizedBalancedErrorRateCategorical(x,y,t=0.5):
+    return computeBinarizedBalancedErrorRateBinary(_convertToBinaryProb(x),_convertToBinaryProb(y),t)
+metric_types['binarizedbalancederrorratecategorical']=computeBinarizedBalancedErrorRateCategorical
+metric_types['binarizedbalancederrorcategorical']=computeBinarizedBalancedErrorRateCategorical
+metric_types['bberc']=computeBinarizedBalancedErrorRateCategorical
+metric_types['bbec']=computeBinarizedBalancedErrorRateCategorical
+metric_names[computeBinarizedBalancedErrorRateCategorical]='Binarized Balanced Error Rate Categorical'
+
+def computeBalancedErrorRate (x, y):
+    r = computeHitRate(x, y)
+    s = computeSpecificity(x, y)
+    r[np.isnan(r)]=0
+    s[np.isnan(s)]=0
+    if (r is None) or (s is None):
         return None
     return 0.5 * (1 - r) + 0.5 * (1 - s)
 metric_types['balancederrorrate']=computeBalancedErrorRate
@@ -196,35 +280,35 @@ metric_types['ber']=computeBalancedErrorRate
 metric_types['be']=computeBalancedErrorRate
 metric_names[computeBalancedErrorRate]='Balanced Error Rate'
 
-def computeF (x, y, alpha, beta, tags=None):
-    p = computePrecision(x, y, tags)
-    r = computeHitRate(x, y, tags)
-    if (p == None) or (r == None) or (p == 0) or (r == 0):
+def computeF (x, y, alpha, beta):
+    p = computePrecision(x, y)
+    r = computeHitRate(x, y)
+    if (p is None) or (r is None): #or (p == 0) or (r == 0):
         return - float("inf")
     return (alpha / p + (1 - alpha) / r) ** -1
 metric_types['f']=computeF
 metric_names[computeF]='F'
 
-def computeErrorRateDiffSquared (x, y, tags=None):
-    hitRate = computeHitRate(x, y, tags)
-    if hitRate == None:
+def computeErrorRateDiffSquared (x, y):
+    hitRate = computeHitRate(x, y)
+    if hitRate is None:
         return None
     missRate = 1 - hitRate
-    falseAlarmRate = 1 - computeSpecificity(x, y, tags)
+    falseAlarmRate = 1 - computeSpecificity(x, y)
     diffSquared = (missRate - falseAlarmRate) ** 2
     return diffSquared
 metric_types['errorratediffsquared']=computeErrorRateDiffSquared
 metric_types['erds']=computeErrorRateDiffSquared
 metric_names[computeErrorRateDiffSquared]='Error Rate Difference Squared'
 
-def computePercentCorrect (x, y, tags=None):
+def computePercentCorrect (x, y):
     return np.sum(np.array(x == y, float)) / len(x)
 metric_types['percentcorrect']=computePercentCorrect
 metric_types['percent correct']=computePercentCorrect
 metric_types['pc']=computePercentCorrect
 metric_names[computePercentCorrect]='Percent Correct'
 
-def computeThresholdPercentCorrect (x, y, tags=None, t=0.5):
+def computeThresholdPercentCorrect (x, y, t=0.5):
     x=threshold(x,t)
     return np.sum(np.array(x == y, float)) / len(x)
 metric_types['thresholdpercentcorrect']=computeThresholdPercentCorrect
@@ -232,12 +316,12 @@ metric_types['threshold percent correct']=computeThresholdPercentCorrect
 metric_types['tpc']=computeThresholdPercentCorrect
 metric_names[computeThresholdPercentCorrect]='Threshold Percent Correct'
 
-def computeEqualErrorRate (x, y, tags=None):
+def computeEqualErrorRate (x, y):
     # Find threshold that minimizes squared difference between FP and FN rates
-    (best,bestT) = optimizeOverThresholds(computeErrorRateDiffSquared, False, x, y, tags)
+    (best,bestT) = optimizeOverThresholds(computeErrorRateDiffSquared, False, x, y)
     # For that threshold, return the percent correct
     x = threshold(x, bestT)
-    return computePercentCorrect(x, y, tags)
+    return computePercentCorrect(x, y)
 metric_types['equalerrorrate']=computeEqualErrorRate
 metric_types['equalerror']=computeEqualErrorRate
 metric_types['equal errorrate']=computeEqualErrorRate
@@ -246,7 +330,7 @@ metric_types['eer']=computeEqualErrorRate
 metric_types['ee']=computeEqualErrorRate
 metric_names[computeEqualErrorRate]='Equal Error Rate'
 
-def optimizeOverBaselinesAndScales (metricFn, shouldMaximize, x, y, tags = None):
+def optimizeOverBaselinesAndScales (metricFn, shouldMaximize, x, y):
     # Compute array of all useful thresholds (x - eps for every x, and also max(x) + eps)
     x = np.array(x)
     minBaseline = min(x)
@@ -271,7 +355,7 @@ def optimizeOverBaselinesAndScales (metricFn, shouldMaximize, x, y, tags = None)
         for j in range(numScales):
             scale = minScale * scaleFactor ** j
             x = baseline(origX * scale, b)
-            value = metricFn(x, y, tags)
+            value = metricFn(x, y)
             if shouldMaximize and (value > best):
                 best = value
                 bestB = b
@@ -285,17 +369,17 @@ def optimizeOverBaselinesAndScales (metricFn, shouldMaximize, x, y, tags = None)
         best = None
     return (best, bestB, bestS)
 
-def optimizeOverThresholds (metricFn, shouldMaximize, x, y,numThresholds = None, tags = None):
+def optimizeOverThresholds (metricFn, shouldMaximize, x, y,numThresholds = None):
     # Compute array of all useful thresholds
     # (x - eps for every x, and also max(x) + eps)
     x = np.array(x)
     eps = sys.float_info.epsilon
 
     if numThresholds is not None:
-        thresholds = np.arange(min(x), max(x), (max(x)-min(x))/float(numThresholds))
+        thresholds = np.arange(np.min(x), np.max(x), (np.max(x)-np.min(x))/float(numThresholds))
     else:
         thresholds = x - eps
-        thresholds = np.append(thresholds, max(x) + eps)
+        thresholds = np.append(thresholds, np.max(x) + eps)
 
     if shouldMaximize:
         best = -float("inf")
@@ -306,7 +390,7 @@ def optimizeOverThresholds (metricFn, shouldMaximize, x, y,numThresholds = None,
     origX = x
     for t in thresholds:
         x = threshold(origX, t)
-        value = metricFn(x, y, tags)
+        value = np.nanmean(metricFn(x, y))
         if shouldMaximize and (value > best):
             best = value
             bestT = t
@@ -318,21 +402,21 @@ def optimizeOverThresholds (metricFn, shouldMaximize, x, y,numThresholds = None,
         best = None
     return (best, bestT)
 
-def computeOptimalF1 (x, y, numThresholds = 100, tags=None):
-    return optimizeOverThresholds(computeF1, True, x, y, numThresholds, tags)
+def computeOptimalF1 (x, y, numThresholds = 100):
+    return optimizeOverThresholds(computeF1, True, x, y, numThresholds)
 metric_types['optimalf1']=computeOptimalF1
 metric_types['of1']=computeOptimalF1
 metric_names[computeOptimalF1]='Optimal F1'
 
-def computeBinarizedF1 (x, y, tags = None, t=0):
+def computeBinarizedF1 (x, y, t=0):
     x = threshold(x,t)
-    return computeF1(x, y, tags)
+    return computeF1(x, y)
 metric_types['binarizedf1']=computeBinarizedF1
 metric_types['bf1']=computeBinarizedF1
 metric_names[computeBinarizedF1]='Binarized F1'
 
-def computeF1 (x, y, tags = None):
-    return computeF(x, y, tags, 0.5, 1)
+def computeF1 (x, y):
+    return computeF(x, y, 0.5, 1)
 metric_types['f1']=computeF1
 metric_names[computeF1]='F1'
 
@@ -340,50 +424,45 @@ metric_names[computeF1]='F1'
 def convertLLRtoProb (x, b):
     return 1. / (1. + math.exp(- (x - b)))
 
-def computeOptimalBalancedLogisticCost (x, y, tags = None):
-    return optimizeOverBaselinesAndScales(computeBalancedLogisticCost, False, x, y, tags)
+def computeOptimalBalancedLogisticCost (x, y):
+    return optimizeOverBaselinesAndScales(computeBalancedLogisticCost, False, x, y)
 metric_types['optimalbalancedlogisticcost']=computeOptimalBalancedLogisticCost
 metric_types['oblc']=computeOptimalBalancedLogisticCost
 metric_names[computeOptimalBalancedLogisticCost]='Optimal Balanced Logistic Cost'
 
-def computeOptimalBalancedExponentialCost (x, y, tags = None):
-    return optimizeOverBaselinesAndScales(computeBalancedExponentialCost, False, x, y, tags)
+def computeOptimalBalancedExponentialCost (x, y):
+    return optimizeOverBaselinesAndScales(computeBalancedExponentialCost, False, x, y)
 metric_types['optimalbalancedexponentialcost']=computeOptimalBalancedExponentialCost
 metric_types['obec']=computeOptimalBalancedExponentialCost
 metric_names[computeOptimalBalancedExponentialCost]='Optimal Balanced Exponential Cost'
 
-def computeBinarizedBalancedLogisticCost (x, y, tags = None):
-    return computeBalancedLogisticCost(x, y, tags)
+def computeBinarizedBalancedLogisticCost (x, y):
+    return computeBalancedLogisticCost(x, y)
 metric_types['binarizedbalancedlogisticcost']=computeBinarizedBalancedLogisticCost
 metric_types['bblc']=computeBinarizedBalancedLogisticCost
 metric_names[computeBinarizedBalancedLogisticCost]='Binarized Balanced Logistic Cost'
 
-def computeBinarizedBalancedExponentialCost (x, y, tags = None):
-    return computeBalancedExponentialCost(x, y, tags)
+def computeBinarizedBalancedExponentialCost (x, y):
+    return computeBalancedExponentialCost(x, y)
 metric_types['binarizedbalancedexponentialcost']=computeBinarizedBalancedExponentialCost
-metric_types['bbec']=computeBinarizedBalancedExponentialCost
 metric_names[computeBinarizedBalancedExponentialCost]='Binarized Balanced Exponential Cost'
 
-def computeBalancedLogisticCost (x, y, tags = None):
-    return computeBalancedLogisticAndExponentialCosts(x, y, tags)[0]
+def computeBalancedLogisticCost (x, y):
+    return computeBalancedLogisticAndExponentialCosts(x, y)[0]
 metric_types['balancedlogisticcost']=computeBalancedLogisticCost
 metric_types['blc']=computeBalancedLogisticCost
 metric_names[computeBalancedLogisticCost]='Balanced Logistic Cost'
 
-def computeBalancedExponentialCost (x, y, tags = None):
-    return computeBalancedLogisticAndExponentialCosts(x, y, tags)[1]
+def computeBalancedExponentialCost (x, y):
+    return computeBalancedLogisticAndExponentialCosts(x, y)[1]
 metric_types['balancedexponentialcost']=computeBalancedExponentialCost
 metric_types['bec']=computeBalancedExponentialCost
 metric_names[computeBalancedExponentialCost]='Balanced Exponential Cost'
 
-def computeBalancedLogisticAndExponentialCosts (x, y, tags = None):
+def computeBalancedLogisticAndExponentialCosts (x, y):
     x = np.array(x, float)
     y = np.array(y, float)
     # If specified, limit ourselves to data for which tag == 1
-    if tags is not None:
-        tags = np.array(tags, float)
-        x = x[pylab.find(tags == 1)]
-        y = y[pylab.find(tags == 1)]
     idxs1 = pylab.find(y == 1)
     idxs0 = pylab.find(y == 0)
     n1 = len(idxs1)
@@ -412,14 +491,9 @@ metric_names[computeBalancedLogisticAndExponentialCosts]='Balanced Logistic And 
 # tags is an optional parameter and can be used to filter the
 # set of pairs to make sure that at least one item in each pair
 # has tag == 1.
-def compute2AFC (x, y, tags = None):
+def compute2AFC (x, y):
     x = np.array(x, float)
     y = np.array(y, float)
-    if tags is not None:
-        tags = np.array(tags, float)
-
-        N = y.shape[0]
-        c = np.unique(y)
 
     idxs0 = pylab.find(y == c[0])
     idxs1 = pylab.find(y == c[1])
@@ -435,12 +509,6 @@ def compute2AFC (x, y, tags = None):
         # If user passed an array of tags, only consider pairs in which at least one
         # element has tag == 1.
         valid = np.ones(n1, bool)
-        if (tags is not None) and tags[idxs0[k]] == 0:
-            valid *= np.array(tags[idxs1] == 1)
-        numPairs[k] = np.sum(valid)
-                # if I get item x0[k] to represent category 0 in combination with
-                # any randomly selected x1 item representing category 1 what's the probability that I
-                # classify x0[k] correctly
         c0[k] = len(pylab.find(x1[valid] > x0[k])) + 0.5 * len(pylab.find(x1[valid] == x0[k]))
 
     return np.sum(c0) / np.sum(numPairs)
@@ -459,3 +527,61 @@ def computeJCorr (clipsData):
     varTotal = np.sum((allX - np.mean(allX)) ** 2)
     return np.sqrt(1 - varWithin/varTotal)
 # metric_types['jcorr']=computeJCorr
+
+
+def confMatAggregate(c):
+    cm = c.copy()
+    c = c.astype(np.float32) / np.sum(c,axis=1)
+    c[np.isnan(c)]=0
+    return cm,np.nanmean(np.diag(c))
+
+def metrics_test():
+    import xnn
+    binpred = np.array([[1,0,0],[0,1,0],[0,0,0],[.4,1,0]]) 
+    bintarg = np.array([[1,0,0],[0,1,0],[0,1,0],[1,0,0]])
+    probpred= np.array([[.2,.8,0],[.8,.2,0],[1,0,0],[0,1,0],[0,0,1]])
+    betterprobpred=np.array([[.6,.4,0],[.8,.2,0],[1,0,0],[.5,.5,0],[0,0,1]])
+    probtarg= np.array([[.8,.2,0],[.8,.2,0],[1,0,0],[1,0,0],[np.nan,np.nan,np.nan]])
+    regpred = np.array([[10],[9],[2],[1]])
+    regtarg = np.array([[5],[5],[5],[5]])
+
+    td = dict(bintarg=bintarg,probtarg=probtarg,regtarg=regtarg)
+
+    bbe = xnn.metrics.Metric('bbeb','bintarg',aggregation_type='mean')
+    print "bbeb", bbe(binpred,td)
+    bbec = xnn.metrics.Metric('bbec','probtarg',aggregation_type='none')
+    print "bbec", bbec(probpred,td)
+    print "betterbbec", bbec(betterprobpred,td)
+
+    cce = xnn.metrics.Metric('cce','probtarg',aggregation_type='none')
+    print "cce",cce(probpred,td)
+    print "bettercce",cce(betterprobpred,td)
+    cceMean = xnn.metrics.Metric('cce','probtarg',aggregation_type='mean')
+    print "cceMean",cceMean(probpred,td)
+    kl = xnn.metrics.Metric('kl','probtarg',aggregation_type='none')
+    print "kl",kl(probpred,td)
+    klMean = xnn.metrics.Metric('kl','probtarg',aggregation_type='mean')
+    print "klMean",klMean(probpred,td)
+
+    obeMean = xnn.metrics.Metric('obe','bintarg',aggregation_type='none')
+    print 'optimalBE',obeMean(binpred,td)
+    
+    ofoMean = xnn.metrics.Metric('of1','bintarg',aggregation_type='none')
+    print 'optimalF1',ofoMean(binpred,td)
+
+    mse = xnn.metrics.Metric('se','regtarg',aggregation_type='mean')
+    mae = xnn.metrics.Metric('ae','regtarg',aggregation_type='mean')
+    sse = xnn.metrics.Metric('se','regtarg',aggregation_type='sum')
+    print 'mse',mse(regpred,td)
+    print 'mae',mae(regpred,td)
+    print 'sse',sse(regpred,td)
+   
+    cm = xnn.metrics.Metric(computeConfusionMatrix,'probtarg',aggregation_type='none')
+    print 'cm',cm(probpred,td)
+    cmD = xnn.metrics.Metric(computeConfusionMatrix,'probtarg',aggregation_type=confMatAggregate)
+    print cmD(probpred,td)
+    print cmD.to_dict()
+
+
+if __name__=="__main__":
+    metrics_test()
