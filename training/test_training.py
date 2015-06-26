@@ -1,7 +1,7 @@
 # import xnn
-from ..model import Model
-from .. import layers
-from .trainer import *
+from xnn.model import Model
+from xnn import layers
+from xnn.training.trainer import *
 import numpy as np
 import lasagne
 
@@ -57,3 +57,6 @@ def test_train():
     outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"
+
+if __name__ == '__main__':
+	test_train()
