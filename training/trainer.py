@@ -192,6 +192,3 @@ class Trainer(object):
     def to_dict(self):
         # Set self.model to None in dict
         pass
-
-if __name__ == "__main__":
-    pass
