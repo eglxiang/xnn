@@ -1,6 +1,7 @@
 import xnn
 import numpy as np
 import cPickle
+import theano
 import theano.tensor as T
 from collections import OrderedDict
 
@@ -137,7 +138,7 @@ class Model():
                 iln = [ilay.name for ilay in l.input_layers]
                 ldict['incomings']=iln
 
-            directGetList = {'p','num_units','num_filters','stride',
+            directGetList = {'p','num_units','num_filters','filter_size','stride',
                              'untie_biases','border_mode','pool_size',
                              'pad','ignore_border','axis','rescale','sigma',
                              'outdim','pattern','width','val','batch_ndim',
@@ -233,6 +234,9 @@ class Model():
         #TODO: expand this to take care of other objects that need to be re-initialized
         if a == 'nonlinearity':
             return getattr(xnn.nonlinearities,spec)
+        if a == 'convolution':
+            if spec == 'conv2d':
+                return theano.tensor.nnet.conv2d
         else:
             return None
 
