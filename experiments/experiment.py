@@ -97,13 +97,13 @@ def experiment_test():
 
     def build_trainer(cond=Condition()):
         m = Model('test model')
-        l_in = m.addLayer(lasagne.layers.InputLayer(shape=(cond.batchsize, cond.numpix)), name="l_in")
-        l_h1 = m.addLayer(lasagne.layers.DenseLayer(l_in, cond.numhid), name="l_h1")
-        l_out = m.addLayer(lasagne.layers.DenseLayer(l_h1, cond.numpix), name="l_out")
+        l_in = m.add_layer(lasagne.layers.InputLayer(shape=(cond.batchsize, cond.numpix)), name="l_in")
+        l_h1 = m.add_layer(lasagne.layers.DenseLayer(l_in, cond.numhid), name="l_h1")
+        l_out = m.add_layer(lasagne.layers.DenseLayer(l_h1, cond.numpix), name="l_out")
 
-        m.bindInput(l_in, "pixels")
-        m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
-        m.bindOutput(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
+        m.bind_input(l_in, "pixels")
+        m.bind_output(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
+        m.bind_output(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
 
         global_update_settings = ParamUpdateSettings(learning_rate=cond.lr, momentum=cond.mom)
 

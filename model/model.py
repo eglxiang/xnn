@@ -13,7 +13,7 @@ class Model():
         self.inputs  = OrderedDict()
         self.outputs = OrderedDict()
 
-    def addLayer(self,layer,name=None):
+    def add_layer(self,layer,name=None):
         if name is None and layer.name is not None:
             name = self._get_unique_name_from_layer(layer)
         if layer.name is None and name is not None:
@@ -28,10 +28,10 @@ class Model():
         self.layers[name]=layer
         return layer
 
-    def addFullNetFromOutputLayer(self,outlayer):
+    def add_full_net_from_layer(self,outlayer):
         layers = xnn.layers.get_all_layers(outlayer)
         for l in layers:
-            self.addLayer(l)
+            self.add_layer(l)
 
     def _get_unique_name_from_layer(self,layer,namebase=''):
         if layer.name is not None:
@@ -45,7 +45,7 @@ class Model():
             namebase+= '_'+str(counter)
         return namebase
 
-    def makeDropoutLayer(self,parentlayer,p=0.5,name=None,drop_type='standard'):
+    def make_dropout_layer(self,parentlayer,p=0.5,name=None,drop_type='standard'):
         if drop_type == 'standard':
             droplayer  = xnn.layers.DropoutLayer(parentlayer,p=p)
         elif drop_type == 'gauss':
@@ -55,38 +55,29 @@ class Model():
         if name is None:
             name = self._get_unique_name_from_layer(droplayer)
             droplayer.name=name
-        self.addLayer(droplayer,name=name)
+        self.add_layer(droplayer,name=name)
         return droplayer
 
-    def makeDenseLayer(self,parentlayer,num_hidden,nonlinearity=None,name=None):
+    def make_dense_layer(self,parentlayer,num_hidden,nonlinearity=None,name=None):
         if nonlinearity is None:
             nonlinearity = xnn.nonlinearities.rectify
         denselayer = xnn.layers.DenseLayer(parentlayer,num_units=num_hidden,nonlinearity=nonlinearity)
         if name is None:
             name = self._get_unique_name_from_layer(denselayer)
             denselayer.name = name
-        self.addLayer(denselayer,name=name)
+        self.add_layer(denselayer,name=name)
         return denselayer
 
-    def makeBoundInputLayer(self,shape,inputlabelkey,name=None,input_var=None):
+    def make_bound_input_layer(self,shape,inputlabelkey,name=None,input_var=None):
         lin = xnn.layers.InputLayer(shape,input_var=input_var,name=name)
         if name is None:
             name = self._get_unique_name_from_layer(lin)
             lin.name = name
-        self.addLayer(lin)
-        self.bindInput(lin,inputlabelkey)
+        self.add_layer(lin)
+        self.bind_input(lin,inputlabelkey)
         return lin
 
-    def makeQuickTrickBrickStack(self):
-        # complements of Fox in Socks
-        # http://ai.eecs.umich.edu/people/dreeves/Fox-In-Socks.txt
-        print "First, I'll make a quick trick brick stack." \
-              "Then I'll make a quick trick block stack." \
-              "You can make a quick trick chick stack." \
-              "You can make a quick trick clock stack."
-        return True
-
-    def makeDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None,drop_type_list=None):
+    def make_dense_drop_stack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None,drop_type_list=None):
         pl = parent_layer
         if namebase is None:
             namebase="l_"
@@ -97,12 +88,12 @@ class Model():
             dt         = drop_type_list[i] if drop_type_list is not None else 'standard'
             nameden    = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
             namedro    = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
-            denselayer = self.makeDenseLayer(pl,nhu,nonlinearity=nl,name=nameden)
-            droplayer  = self.makeDropoutLayer(denselayer,p=p,name=namedro,drop_type=dt)
+            denselayer = self.make_dense_layer(pl,nhu,nonlinearity=nl,name=nameden)
+            droplayer  = self.make_dropout_layer(denselayer,p=p,name=namedro,drop_type=dt)
             pl         = droplayer
         return pl
 
-    def bindInput(self, input_layer, input_key):
+    def bind_input(self, input_layer, input_key):
         if not isinstance(input_key, str):
             raise Exception("input_key must be a string")
         if not isinstance(input_layer, xnn.layers.InputLayer):
@@ -110,7 +101,7 @@ class Model():
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
 
-    def bindOutput(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', weight_key=None):
+    def bind_output(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', weight_key=None):
         aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
@@ -220,12 +211,12 @@ class Model():
                 elif a in lspec:
                     argdict[a] = lspec[a]
             l = lclass(**argdict)
-            self.addLayer(l)
+            self.add_layer(l)
 
     def _bind_inputs_from_list(self,il):
         for labelkey, lnames in il.iteritems():
             for ln in lnames:
-                self.bindInput(self.layers[ln],labelkey)
+                self.bind_input(self.layers[ln],labelkey)
 
     def _bind_outputs_from_list(self,ol):
         for layername, outdict in ol.iteritems():
@@ -235,7 +226,7 @@ class Model():
             targ      = outdict['target']
             targ_type = outdict['target_type']
             agg       = outdict['aggregation_type']
-            self.bindOutput(l,f,targ,targ_type,agg)
+            self.bind_output(l,f,targ,targ_type,agg)
 
 
     def _initialize_arg(self,a,spec):
@@ -245,7 +236,7 @@ class Model():
         else:
             return None
 
-    def saveModel(self,fname):
+    def save_model(self,fname):
         d = self.to_dict()
         all_layers = [self.layers[k] for k in self.layers.keys()]
         p = xnn.layers.get_all_param_values(all_layers)
@@ -253,7 +244,7 @@ class Model():
         with open(fname,'wb') as f:
             cPickle.dump(m,f,cPickle.HIGHEST_PROTOCOL)
 
-    def loadModel(self,fname):
+    def load_model(self,fname):
         with open(fname,'rb') as f:
             d = cPickle.load(f)
         self.from_dict(d['model'])
@@ -288,21 +279,21 @@ def model_test():
     import pprint
 
     m = Model('test model')
-    l_in  = m.addLayer(xnn.layers.InputLayer(shape=(10,200)), name="l_in")
-    l_h1  = m.addLayer(xnn.layers.DenseLayer(l_in, 100), name="l_h1")
-    l_out = m.addLayer(xnn.layers.DenseLayer(l_h1, 200), name="l_out")
+    l_in  = m.add_layer(xnn.layers.InputLayer(shape=(10,200)), name="l_in")
+    l_h1  = m.add_layer(xnn.layers.DenseLayer(l_in, 100), name="l_h1")
+    l_out = m.add_layer(xnn.layers.DenseLayer(l_h1, 200), name="l_out")
 
-    m.bindInput(l_in, "pixels")
-    m.bindOutput(l_h1, xnn.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bindOutput(l_out, xnn.objectives.mse, "l_in", "recon", "mean")
+    m.bind_input(l_in, "pixels")
+    m.bind_output(l_h1, xnn.objectives.categorical_crossentropy, "emotions", "label", "mean")
+    m.bind_output(l_out, xnn.objectives.mse, "l_in", "recon", "mean")
 
 
     m2    = Model('test convenience')
-    l_in  = m2.makeBoundInputLayer((10,200),'pixels')
-    l_out = m2.makeDenseDropStack(l_in,[60,3,2],[.6,.4,.3])
+    l_in  = m2.make_bound_input_layer((10,200),'pixels')
+    l_out = m2.make_dense_drop_stack(l_in,[60,3,2],[.6,.4,.3])
     l_mer = xnn.layers.MergeLayer([l_in, l_out])
-    m2.addLayer(l_mer,name='merger')
-    m2.bindOutput(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean')
+    m2.add_layer(l_mer,name='merger')
+    m2.bind_output(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean')
 
     serialized = m.to_dict()
     pprint.pprint(serialized)
@@ -313,10 +304,10 @@ def model_test():
     m3 = Model('test serialize')
     m3.from_dict(serialized)
     pprint.pprint(m3.to_dict())
-    m3.saveModel('modelout')
+    m3.save_model('modelout')
 
     m4 = Model('test load')
-    m4.loadModel('modelout')
+    m4.load_model('modelout')
 
     assert np.allclose(m4.layers['l__dense_2'].W.get_value(),m3.layers['l__dense_2'].W.get_value())
     assert ~np.allclose(m4.layers['l__dense_2'].W.get_value(),m2.layers['l__dense_2'].W.get_value())
