@@ -8,9 +8,9 @@ __all__=['Model']
 
 class Model():
     def __init__(self,name=None):
-        self.name=name
-        self.layers = OrderedDict()
-        self.inputs = OrderedDict()
+        self.name    = name
+        self.layers  = OrderedDict()
+        self.inputs  = OrderedDict()
         self.outputs = OrderedDict()
 
     def addLayer(self,layer,name=None):
@@ -91,15 +91,15 @@ class Model():
         if namebase is None:
             namebase="l_"
         for i in xrange(len(num_hidden_list)):
-            nhu = num_hidden_list[i]
-            p = drop_p_list[i] if drop_p_list is not None else 0.5
-            nl = nonlin_list[i] if nonlin_list is not None else xnn.nonlinearities.rectify
-            dt = drop_type_list[i] if drop_type_list is not None else 'standard'
-            nameden = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
-            namedro = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
+            nhu        = num_hidden_list[i]
+            p          = drop_p_list[i] if drop_p_list is not None else 0.5
+            nl         = nonlin_list[i] if nonlin_list is not None else xnn.nonlinearities.rectify
+            dt         = drop_type_list[i] if drop_type_list is not None else 'standard'
+            nameden    = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
+            namedro    = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
             denselayer = self.makeDenseLayer(pl,nhu,nonlinearity=nl,name=nameden)
             droplayer  = self.makeDropoutLayer(denselayer,p=p,name=namedro,drop_type=dt)
-            pl = droplayer
+            pl         = droplayer
         return pl
 
     def bindInput(self, input_layer, input_key):
@@ -124,12 +124,12 @@ class Model():
         if ('weighted' in aggregation_type) and (weight_key is None):
             raise ValueError("Weighted aggregation types must have a weight key")
         self.outputs[output_layer.name] = dict(
-            output_layer=output_layer,
-            target=target,
-            target_type=target_type,
-            loss_function=loss_function,
-            aggregation_type=aggregation_type,
-            weight_key=weight_key
+            output_layer     = output_layer,
+            target           = target,
+            target_type      = target_type,
+            loss_function    = loss_function,
+            aggregation_type = aggregation_type,
+            weight_key       = weight_key
         )
 
     def to_dict(self):
@@ -175,17 +175,17 @@ class Model():
         for oname, output in self.outputs.iteritems():
             target = output['target']
             outputs[oname] = dict(
-                loss_function=output['loss_function'].func_name,
-                output_layer=output['output_layer'].name,
-                target_type=output['target_type'],
-                target=target,
-                aggregation_type=output['aggregation_type']
+                loss_function    = output['loss_function'].func_name,
+                output_layer     = output['output_layer'].name,
+                target_type      = output['target_type'],
+                target           = target,
+                aggregation_type = output['aggregation_type']
             )
 
-        d['layers'] = ls
-        d['inputs'] = inputs
+        d['layers']  = ls
+        d['inputs']  = inputs
         d['outputs'] = outputs
-        d['name'] = self.name
+        d['name']    = self.name
         return d
 
     def from_dict(self,indict): 
@@ -207,18 +207,18 @@ class Model():
             lin = []
             for n in linnames:
                 lin.append(self.layers[n] if n is not None else None)
-            lin = lin[0] if len(lin)==1 else lin
-            lclass = getattr(xnn.layers,t)
-            linit = lclass.__init__
-            largs = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
+            lin     = lin[0] if len(lin)==1 else lin
+            lclass  = getattr(xnn.layers,t)
+            linit   = lclass.__init__
+            largs   = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
             argdict = dict(name=lspec['name'])
             for a in largs:
                 if a == 'incoming' or a == 'incomings':
-                    argdict[a]=lin
+                    argdict[a] = lin
                 elif a in nameGetList:
                     argdict[a] = self._initialize_arg(a,lspec[a])
                 elif a in lspec:
-                    argdict[a]=lspec[a]
+                    argdict[a] = lspec[a]
             l = lclass(**argdict)
             self.addLayer(l)
 
@@ -229,12 +229,12 @@ class Model():
 
     def _bind_outputs_from_list(self,ol):
         for layername, outdict in ol.iteritems():
-            l = self.layers[layername]
-            fname = outdict['loss_function']
-            f = getattr(xnn.objectives,fname)
-            targ = outdict['target']
+            l         = self.layers[layername]
+            fname     = outdict['loss_function']
+            f         = getattr(xnn.objectives,fname)
+            targ      = outdict['target']
             targ_type = outdict['target_type']
-            agg = outdict['aggregation_type']
+            agg       = outdict['aggregation_type']
             self.bindOutput(l,f,targ,targ_type,agg)
 
 
@@ -288,8 +288,8 @@ def model_test():
     import pprint
 
     m = Model('test model')
-    l_in = m.addLayer(xnn.layers.InputLayer(shape=(10,200)), name="l_in")
-    l_h1 = m.addLayer(xnn.layers.DenseLayer(l_in, 100), name="l_h1")
+    l_in  = m.addLayer(xnn.layers.InputLayer(shape=(10,200)), name="l_in")
+    l_h1  = m.addLayer(xnn.layers.DenseLayer(l_in, 100), name="l_h1")
     l_out = m.addLayer(xnn.layers.DenseLayer(l_h1, 200), name="l_out")
 
     m.bindInput(l_in, "pixels")
@@ -297,8 +297,8 @@ def model_test():
     m.bindOutput(l_out, xnn.objectives.mse, "l_in", "recon", "mean")
 
 
-    m2 = Model('test convenience')
-    l_in = m2.makeBoundInputLayer((10,200),'pixels')
+    m2    = Model('test convenience')
+    l_in  = m2.makeBoundInputLayer((10,200),'pixels')
     l_out = m2.makeDenseDropStack(l_in,[60,3,2],[.6,.4,.3])
     l_mer = xnn.layers.MergeLayer([l_in, l_out])
     m2.addLayer(l_mer,name='merger')

@@ -24,10 +24,10 @@ class LocalLayer(Layer):
         """
         super(LocalLayer, self).__init__(input_layer, name)
 
-        self.num_units = num_units
-        self.cn = cn
-        self.edgeprotect = edgeprotect
-        self.mode = mode
+        self.num_units     = num_units
+        self.cn            = cn
+        self.edgeprotect   = edgeprotect
+        self.mode          = mode
         self.local_filters = local_filters
 
         input_shape = self.input_layer.output_shape # batch_size, channels, width * height
@@ -38,16 +38,15 @@ class LocalLayer(Layer):
         self.nonlinearity = nonlinearity if nonlinearity is not None else nonlinearities.linear
 
         if localmask is None:
-            prior = self._make_prior(prior, img_shape)
-            local_filters = self._generate_local_filters()
-            centers, prev_centers = self._compute_centers(local_filters, input_layer, img_shape, num_units, prior)
-            localmask = self._create_masks(local_filters, prev_centers, centers, input_shape)
-
-            self.centers = centers
-            self.localmask = theano.shared(value=localmask, name='localmask', borrow=True)
+            prior                  = self._make_prior(prior, img_shape)
+            local_filters          = self._generate_local_filters()
+            centers, prev_centers  = self._compute_centers(local_filters, input_layer, img_shape, num_units, prior)
+            localmask              = self._create_masks(local_filters, prev_centers, centers, input_shape)
+            self.centers           = centers
+            self.localmask         = theano.shared(value=localmask, name='localmask', borrow=True)
             self.local_mask_counts = T.sum(self.localmask, axis=0).astype(theano.config.floatX)
         else:
-            self.localmask = localmask
+            self.localmask         = localmask
 
         self._set_weight_params(W, b, input_shape, num_units, localmask)
         self._set_out_mask(num_units)
@@ -85,12 +84,12 @@ class LocalLayer(Layer):
     def _compute_centers(self, local_filters, input_layer, img_shape, num_units, prior):
         all_points = np.array(range(len(prior)))
 
-        centers_layer=input_layer
+        centers_layer = input_layer
         while centers_layer.__class__ not in [LocalLayer,InputLayer,Conv2DLayer]:
-            centers_layer=centers_layer.input_layer
+            centers_layer = centers_layer.input_layer
         prev_centers = centers_layer.centers if hasattr(centers_layer,'centers') else None
         if prev_centers is None:
-            prev_centers=[]
+            prev_centers = []
             for i in xrange(img_shape[0]):
                 for j in xrange(img_shape[1]):
                     prev_centers.append([i,j,i*img_shape[1]+j])
@@ -100,8 +99,8 @@ class LocalLayer(Layer):
         hcenters = []
         while (count < num_units):
             centersTemp = np.random.choice(all_points, 1, p=prior)
-            vcenter = int(centersTemp / img_shape[1])
-            hcenter = centersTemp % img_shape[1]
+            vcenter     = int(centersTemp / img_shape[1])
+            hcenter     = centersTemp % img_shape[1]
             if self._is_valid(vcenter, hcenter, local_filters[count], img_shape):
                 count += 1
                 vcenters.append(vcenter)
@@ -118,10 +117,10 @@ class LocalLayer(Layer):
             radius = filter_size
         else:
             return True
-        left = hcenter - radius
+        left  = hcenter - radius
         right = hcenter + radius
-        up = vcenter - radius
-        down = vcenter + radius
+        up    = vcenter - radius
+        down  = vcenter + radius
         if left < 0 or up < 0:
             return False
         if right >= img_shape[1]:
@@ -133,12 +132,12 @@ class LocalLayer(Layer):
     def _set_weight_params(self, W, b, input_shape, num_units, localmask):
             w_params = self.add_param(W, (self.num_inputs*input_shape[1], num_units))
             w_params = w_params.get_value() * localmask
-            W = theano.shared(w_params,'W')
-            self.W = W
-            self.b = self.add_param(b, (num_units,)) if b is not None else None
+            W        = theano.shared(w_params,'W')
+            self.W   = W
+            self.b   = self.add_param(b, (num_units,)) if b is not None else None
 
     def _set_out_mask(self, num_units):
-        out_mask=np.zeros((num_units,1,num_units))
+        out_mask = np.zeros((num_units,1,num_units))
         for i in range(out_mask.shape[0]):
             out_mask[i, :, i] = 1
         self.out_mask_T = theano.shared(out_mask,name='out_mask_T').astype(theano.config.floatX)
@@ -200,29 +199,29 @@ class LocalLayer(Layer):
 
     def _compute_local_cn_acts(self, input, W):
         # Without Scan (Faster than scan, but still way too slow)
-        shuffledIn = input.dimshuffle(0,1,'x')
+        shuffledIn    = input.dimshuffle(0,1,'x')
         shuffledMasks = self.localmask.dimshuffle('x',0,1)
 
         # cubeIn = T.repeat(shuffledIn,self.localmask.shape[1],2)
         # cubeMasks = T.repeat(shuffledMasks,input.shape[0],0)
 
-        maskedIn = shuffledIn * shuffledMasks
+        maskedIn     = shuffledIn * shuffledMasks
         maskedInMean = T.sum(maskedIn,axis=1,keepdims=True) / T.sum(shuffledMasks,axis=1,keepdims=True)
-        maskedInVar = T.sum(T.sqr((maskedIn-maskedInMean)*shuffledMasks),axis=1,keepdims=True)/T.sum(shuffledMasks,axis=1,keepdims=True)
-        maskedInSTD = T.sqrt(maskedInVar)
+        maskedInVar  = T.sum(T.sqr((maskedIn-maskedInMean)*shuffledMasks),axis=1,keepdims=True)/T.sum(shuffledMasks,axis=1,keepdims=True)
+        maskedInSTD  = T.sqrt(maskedInVar)
 
         maskedInSubMean = maskedIn - maskedInMean
-        maskedCN = maskedInSubMean / maskedInSTD
+        maskedCN        = maskedInSubMean / maskedInSTD
         # maskedCN = maskedInSubMean
 
         shuffledInCN = maskedCN.dimshuffle(2,0,1)
 
-        allOuts = T.dot(shuffledInCN, W)
+        allOuts      = T.dot(shuffledInCN, W)
 
-        diagMask = T.eye(self.localmask.shape[1],self.localmask.shape[1]).dimshuffle(0,'x',1)
-        diagMaskAll = allOuts * diagMask
+        diagMask     = T.eye(self.localmask.shape[1],self.localmask.shape[1]).dimshuffle(0,'x',1)
+        diagMaskAll  = allOuts * diagMask
 
-        activation = T.sum(diagMaskAll,axis=0)
+        activation   = T.sum(diagMaskAll,axis=0)
         return activation
         # # With Scan
         # #TODO: Get working quickly, update to work with color channels

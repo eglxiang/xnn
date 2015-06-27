@@ -48,7 +48,7 @@ def softmax_evidence(x):
     This corresponds to comparing probability for class i to the average probability for not class i.
     """
     num_other_classes = T.cast(x.shape[1] - 1, 'float32')
-    p = lasagne.nonlinearities.softmax(x)
-    q = (1-p)/num_other_classes
-    part = T.log(p) - T.log(q)
+    p                 = lasagne.nonlinearities.softmax(x)
+    q                 = (1-p)/num_other_classes
+    part              = T.log(p) - T.log(q)
     return part * LOG10E

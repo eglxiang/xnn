@@ -26,7 +26,7 @@ def test_train():
     global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
 
     trainer_settings = TrainerSettings(update_settings=global_update_settings)
-    trainer = Trainer(trainer_settings,m)
+    trainer = Trainer(m,trainer_settings)
 
     pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
     emotions = np.random.rand(batch_size,num_hid).astype(theano.config.floatX)
@@ -52,7 +52,7 @@ def test_train():
         emotions=emotionsT
     )
     trainer_settings = TrainerSettings(update_settings=global_update_settings,dataSharedVarDict=dataDict)
-    trainer = Trainer(trainer_settings,m)
+    trainer = Trainer(m,trainer_settings)
     batch_dict=dict(batch_index=0)
     outs = trainer.train_step(batch_dict)
 

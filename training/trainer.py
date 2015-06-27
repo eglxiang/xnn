@@ -9,18 +9,14 @@ class ParamUpdateSettings():
                  update=lasagne.updates.nesterov_momentum,
                  learning_rate=0.01,
                  momentum=0.9,
-                 wc_function=lasagne.regularization.l2,
-                 wc_strength=0.0001):
-        self.update = update
+                 ):
+        self.update        = update
         self.learning_rate = learning_rate
-        self.momentum = momentum
-        self.wc_function = wc_function
-        self.wc_strength = wc_strength
+        self.momentum      = momentum
 
     def to_dict(self):
-        properties = self.__dict__.copy()
+        properties           = self.__dict__.copy()
         properties['update'] = properties['update'].func_name
-        properties['wc_function'] = properties['wc_function'].func_name
         return properties
 
 class TrainerSettings(object):
@@ -29,26 +25,30 @@ class TrainerSettings(object):
                  batch_size=128,
                  dataSharedVarDict=None, **kwargs):
         self.global_update_settings = global_update_settings
-        self.batch_size = batch_size
-        self.dataSharedVarDict  = dataSharedVarDict
+        self.batch_size             = batch_size
+        self.dataSharedVarDict      = dataSharedVarDict
         # self.update_dict = {}
         self.__dict__.update(kwargs)
 
     def to_dict(self):
         properties = self.__dict__.copy()
+        del(properties['dataSharedVarDict'])
         properties['global_update_settings'] = properties['global_update_settings'].to_dict()
         return properties
 
 class Trainer(object):
-    def __init__(self, trainerSettings, model):
+    def __init__(self, model, trainerSettings = TrainerSettings()):
         self.__dict__.update(trainerSettings.__dict__)
         self.layer_updates = dict()
         self._set_model(model)
         self.train_func = None
 
-    def bindUpdate(self, layer, update_settings):
+    def bindUpdate(self, layerlist, update_settings):
         self.train_func = None
-        self.layer_updates[layer.name] = update_settings
+        if type(layerlist) != list:
+            layerlist = [layerlist]
+        for layer in layerlist:
+            self.layer_updates[layer.name] = update_settings
 
     def _set_model(self,model):
         self.train_func = None
@@ -56,7 +56,7 @@ class Trainer(object):
 
     def init_ins_variables(self):
         inputs = self.model.inputs
-        ins = OrderedDict()
+        ins    = OrderedDict()
         for input_key,input_layers in inputs.iteritems():
             for input_layer in input_layers:
                 ins[input_key] = input_layer.input_var
@@ -64,19 +64,20 @@ class Trainer(object):
 
     def get_outputs(self):
         all_layers_dict = self.model.layers
-        outputs = self.model.outputs
-        all_layers = all_layers_dict.values()
-        all_outs = layers.get_output(all_layers, deterministic=False)
-        all_outs_dict = dict(zip(all_layers_dict.keys(),all_outs))
-        outsTrain = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
+        outputs         = self.model.outputs
+        all_layers      = all_layers_dict.values()
+        all_outs        = layers.get_output(all_layers, deterministic=False)
+        all_outs_dict   = dict(zip(all_layers_dict.keys(),all_outs))
+        outsTrain       = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
         return all_outs_dict,outsTrain
 
     def get_cost(self,layer_name,layer_dict,all_outs_dict,ins):
         preds = all_outs_dict[layer_name]
-        if layer_dict['target_type'] == 'label':
+        target_type = layer_dict['target_type']
+        if target_type == 'label':
             targs = T.matrix('targets')
             ins[layer_dict['target']] = targs
-        elif layer_dict['target_type'] == 'recon':
+        elif target_type == 'recon':
             targs = all_outs_dict[layer_dict['target']]
         else:
             raise Exception('This should have been caught earlier')
@@ -117,8 +118,8 @@ class Trainer(object):
     def _create_train_func(self):
         if self.model is None:
             raise Exception("No model has been set to train!")
-        inputs = self.model.inputs
-        outputs = self.model.outputs
+        inputs     = self.model.inputs
+        outputs    = self.model.outputs
         all_layers = self.model.layers
 
         # Get costs

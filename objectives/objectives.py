@@ -67,7 +67,7 @@ class squared_hinge_loss():
 
     def __call__(self, x, t):
         hinge = hinge_loss(threshold=self.threshold)
-        loss = hinge(x, t)
+        loss  = hinge(x, t)
         return 1.0/(2.0 * self.gamma) * loss**2
 # convenience for typical squared hinge loss
 regular_squared_hinge_loss = squared_hinge_loss(threshold=0, gamma=2.0)
