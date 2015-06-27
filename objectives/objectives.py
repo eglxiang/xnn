@@ -47,6 +47,7 @@ def kl_divergence(predictions, targets, eps=1e-08):
 
 
 class hinge_loss():
+    # TODO: Add to_dict and from_dict functionality to hinge_loss
     def __init__(self, threshold=0.0):
         self.threshold = threshold
 
@@ -59,6 +60,7 @@ regular_hinge_loss = hinge_loss(threshold=0)
 
 
 class squared_hinge_loss():
+    # TODO: Add to_dict and from_dict functionality to squared_hinge_loss
     def __init__(self, threshold=0.0, gamma=2.0):
         self.threshold = threshold
         self.gamma = gamma
