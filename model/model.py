@@ -124,12 +124,12 @@ class Model():
         if ('weighted' in aggregation_type) and (weight_key is None):
             raise ValueError("Weighted aggregation types must have a weight key")
         self.outputs[output_layer.name] = dict(
-            output_layer=output_layer,
-            target=target,
-            target_type=target_type,
-            loss_function=loss_function,
-            aggregation_type=aggregation_type,
-            weight_key=weight_key
+            output_layer     = output_layer,
+            target           = target,
+            target_type      = target_type,
+            loss_function    = loss_function,
+            aggregation_type = aggregation_type,
+            weight_key       = weight_key
         )
 
     def to_dict(self):
@@ -175,11 +175,11 @@ class Model():
         for oname, output in self.outputs.iteritems():
             target = output['target']
             outputs[oname] = dict(
-                loss_function=output['loss_function'].func_name,
-                output_layer=output['output_layer'].name,
-                target_type=output['target_type'],
-                target=target,
-                aggregation_type=output['aggregation_type']
+                loss_function    = output['loss_function'].func_name,
+                output_layer     = output['output_layer'].name,
+                target_type      = output['target_type'],
+                target           = target,
+                aggregation_type = output['aggregation_type']
             )
 
         d['layers']  = ls
@@ -207,18 +207,18 @@ class Model():
             lin = []
             for n in linnames:
                 lin.append(self.layers[n] if n is not None else None)
-            lin = lin[0] if len(lin)==1 else lin
-            lclass = getattr(xnn.layers,t)
-            linit = lclass.__init__
-            largs = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
+            lin     = lin[0] if len(lin)==1 else lin
+            lclass  = getattr(xnn.layers,t)
+            linit   = lclass.__init__
+            largs   = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
             argdict = dict(name=lspec['name'])
             for a in largs:
                 if a == 'incoming' or a == 'incomings':
-                    argdict[a]=lin
+                    argdict[a] = lin
                 elif a in nameGetList:
                     argdict[a] = self._initialize_arg(a,lspec[a])
                 elif a in lspec:
-                    argdict[a]=lspec[a]
+                    argdict[a] = lspec[a]
             l = lclass(**argdict)
             self.addLayer(l)
 
@@ -229,12 +229,12 @@ class Model():
 
     def _bind_outputs_from_list(self,ol):
         for layername, outdict in ol.iteritems():
-            l = self.layers[layername]
-            fname = outdict['loss_function']
-            f = getattr(xnn.objectives,fname)
-            targ = outdict['target']
+            l         = self.layers[layername]
+            fname     = outdict['loss_function']
+            f         = getattr(xnn.objectives,fname)
+            targ      = outdict['target']
             targ_type = outdict['target_type']
-            agg = outdict['aggregation_type']
+            agg       = outdict['aggregation_type']
             self.bindOutput(l,f,targ,targ_type,agg)
 
 
