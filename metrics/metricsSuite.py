@@ -65,7 +65,7 @@ class Metric():
         else:
             self.name=self.metric.__name__
 
-        self.settings = kwargs
+        self.settings  = kwargs
         self.weightkey = weightkey
         self.aggregation_type=aggregation_type
 
@@ -82,8 +82,8 @@ class Metric():
             for k in self.targkeys:
                 targ[k] = datadict[k]
         settings_copy = self.settings.copy()
-        output = self.metric(out,targ,**settings_copy)
-        weights = datadict[self.weightkey] if self.weightkey is not None else None
+        output        = self.metric(out,targ,**settings_copy)
+        weights       = datadict[self.weightkey] if self.weightkey is not None else None
         if self.aggregation_type == 'mean':
             output = np.nanmean(output)
         elif self.aggregation_type == 'sum':
@@ -113,8 +113,8 @@ class Metric():
         return d
 
 def computeKLDivergence(x,y):
-    x = np.float32(x)
-    y = np.float32(y)
+    x      = np.float32(x)
+    y      = np.float32(y)
     lograt = np.log(y) - np.log(x)
     lograt[np.isinf(lograt)] = 50
     return np.nansum(y*lograt,axis=1)
@@ -148,10 +148,10 @@ metric_names[computeCategoricalCrossentropy]='Categorical Crossentropy'
 def computeConfusionMatrix(x,y):
     ym = np.argmax(y,axis=1)
     xm = np.argmax(x,axis=1)
-    n = y.shape[1]+1
-    ym[np.any(np.isnan(y),axis=1)]=n-1
-    ntp = n*ym + xm
-    bc = np.bincount(ntp,minlength=n*n).reshape((n,n))
+    n  = y.shape[1]+1
+    ym[np.any(np.isnan(y),axis=1)] = n-1
+    ntp       = n*ym + xm
+    bc        = np.bincount(ntp,minlength=n*n).reshape((n,n))
     countsmat = bc[:-1,:-1]
     return countsmat
 
@@ -269,8 +269,8 @@ metric_names[computeBinarizedBalancedErrorRateCategorical]='Binarized Balanced E
 def computeBalancedErrorRate (x, y):
     r = computeHitRate(x, y)
     s = computeSpecificity(x, y)
-    r[np.isnan(r)]=0
-    s[np.isnan(s)]=0
+    r[np.isnan(r)] = 0
+    s[np.isnan(s)] = 0
     if (r is None) or (s is None):
         return None
     return 0.5 * (1 - r) + 0.5 * (1 - s)

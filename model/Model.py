@@ -8,9 +8,9 @@ __all__=['Model']
 
 class Model():
     def __init__(self,name=None):
-        self.name=name
-        self.layers = OrderedDict()
-        self.inputs = OrderedDict()
+        self.name    = name
+        self.layers  = OrderedDict()
+        self.inputs  = OrderedDict()
         self.outputs = OrderedDict()
 
     def addLayer(self,layer,name=None):
@@ -91,15 +91,15 @@ class Model():
         if namebase is None:
             namebase="l_"
         for i in xrange(len(num_hidden_list)):
-            nhu = num_hidden_list[i]
-            p = drop_p_list[i] if drop_p_list is not None else 0.5
-            nl = nonlin_list[i] if nonlin_list is not None else xnn.nonlinearities.rectify
-            dt = drop_type_list[i] if drop_type_list is not None else 'standard'
-            nameden = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
-            namedro = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
+            nhu        = num_hidden_list[i]
+            p          = drop_p_list[i] if drop_p_list is not None else 0.5
+            nl         = nonlin_list[i] if nonlin_list is not None else xnn.nonlinearities.rectify
+            dt         = drop_type_list[i] if drop_type_list is not None else 'standard'
+            nameden    = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
+            namedro    = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
             denselayer = self.makeDenseLayer(pl,nhu,nonlinearity=nl,name=nameden)
             droplayer  = self.makeDropoutLayer(denselayer,p=p,name=namedro,drop_type=dt)
-            pl = droplayer
+            pl         = droplayer
         return pl
 
     def bindInput(self, input_layer, input_key):
@@ -182,10 +182,10 @@ class Model():
                 aggregation_type=output['aggregation_type']
             )
 
-        d['layers'] = ls
-        d['inputs'] = inputs
+        d['layers']  = ls
+        d['inputs']  = inputs
         d['outputs'] = outputs
-        d['name'] = self.name
+        d['name']    = self.name
         return d
 
     def from_dict(self,indict): 
@@ -288,8 +288,8 @@ def model_test():
     import pprint
 
     m = Model('test model')
-    l_in = m.addLayer(xnn.layers.InputLayer(shape=(10,200)), name="l_in")
-    l_h1 = m.addLayer(xnn.layers.DenseLayer(l_in, 100), name="l_h1")
+    l_in  = m.addLayer(xnn.layers.InputLayer(shape=(10,200)), name="l_in")
+    l_h1  = m.addLayer(xnn.layers.DenseLayer(l_in, 100), name="l_h1")
     l_out = m.addLayer(xnn.layers.DenseLayer(l_h1, 200), name="l_out")
 
     m.bindInput(l_in, "pixels")
@@ -297,8 +297,8 @@ def model_test():
     m.bindOutput(l_out, xnn.objectives.mse, "l_in", "recon", "mean")
 
 
-    m2 = Model('test convenience')
-    l_in = m2.makeBoundInputLayer((10,200),'pixels')
+    m2    = Model('test convenience')
+    l_in  = m2.makeBoundInputLayer((10,200),'pixels')
     l_out = m2.makeDenseDropStack(l_in,[60,3,2],[.6,.4,.3])
     l_mer = xnn.layers.MergeLayer([l_in, l_out])
     m2.addLayer(l_mer,name='merger')

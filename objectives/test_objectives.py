@@ -18,7 +18,7 @@ def test_absolute_error():
     targ = pred[::-1]
 
     expected = np.abs(pred-targ)
-    actual = f(pred, targ)
+    actual   = f(pred, targ)
     assert np.all(actual == expected)
 
     # now check that aggregated mean absolute error works as expected
@@ -26,7 +26,7 @@ def test_absolute_error():
     f = theano.function([x,t], y)
 
     expected = expected.mean()
-    actual = f(pred, targ)
+    actual   = f(pred, targ)
     assert np.allclose(actual, expected)
 
     return True

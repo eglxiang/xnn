@@ -41,33 +41,33 @@ class BatchNormLayer(Layer):
                  nonlinearity=nonlinearities.linear, name=None): #window_size=10
         super(BatchNormLayer, self).__init__(incoming, name)
         if nonlinearity is None:
-            self.nonlinearity = nonlinearities.linear
+            self.nonlinearity  = nonlinearities.linear
         else:
-            self.nonlinearity = nonlinearity
+            self.nonlinearity  = nonlinearity
         self.eval_nonlinearity = self.nonlinearity
-        self.eta = eta
-        self.alpha = alpha
-        self.learn_transform = learn_transform
+        self.eta               = eta
+        self.alpha             = alpha
+        self.learn_transform   = learn_transform
 
-        beta = init.Constant(val=0)
-        gamma = init.Constant(val=1)
-        means = init.Constant(val=0)
+        beta   = init.Constant(val=0)
+        gamma  = init.Constant(val=1)
+        means  = init.Constant(val=0)
         stdevs = init.Constant(val=1)
 
-        self.beta = self.add_param(beta, (incoming.output_shape[1],))
+        self.beta  = self.add_param(beta, (incoming.output_shape[1],))
         self.gamma = self.add_param(gamma, (incoming.output_shape[1],))
 
-        self.means = self.add_param(means, (incoming.output_shape[1],))
+        self.means  = self.add_param(means, (incoming.output_shape[1],))
         self.stdevs = self.add_param(stdevs, (incoming.output_shape[1],))
 
-        self.means_updates = []
+        self.means_updates  = []
         self.stdevs_updates = []
         self.batch_size = incoming.output_shape[0]
 
     def get_output_for(self, input, deterministic=False, **kwargs):
-        beta = self.beta
-        gamma = self.gamma
-        means = self.means
+        beta   = self.beta
+        gamma  = self.gamma
+        means  = self.means
         stdevs = self.stdevs
         if deterministic == False:
             m = T.mean(input, axis=0, keepdims=False)
@@ -75,7 +75,7 @@ class BatchNormLayer(Layer):
 
             self.means_updates = [means, self.alpha * means + (1-self.alpha) * m]
             Es = self.alpha * stdevs + (1-self.alpha) * s
-            u = self.batch_size / (self.batch_size - 1)
+            u  = self.batch_size / (self.batch_size - 1)
             self.stdevs_updates = [stdevs, u * Es]
 
         else:
