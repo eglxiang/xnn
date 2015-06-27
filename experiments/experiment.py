@@ -3,6 +3,9 @@ from operator import mul
 from copy import deepcopy
 
 # TODO: Add ability to slice into experimental conditions (e.g. get all variants of learning rate for fixed momentum)
+# TODO: Decide on what should be private methods (with underscore)
+# TODO: If you don't add factors, make one condition equal to the default
+# TODO: Move test into a test_experiment.py file
 
 class ExperimentCondition(object):
     def to_dict(self):
@@ -15,12 +18,17 @@ class ExperimentCondition(object):
     def get_property_names(self):
         return self.__dict__.keys()
 
+
 class Experiment(object):
     def __init__(self, id, defaultcondition):
         self.id = id
         self.factors = dict()
         self.defaultcondition = defaultcondition
         self.conditions = None
+
+    def to_dict(self):
+        # TODO: Need to serialize the factors and the default condition
+        pass
 
     def add_factor(self, name, levels):
         if name not in self.defaultcondition.__dict__:
@@ -30,6 +38,7 @@ class Experiment(object):
         self.factors[name] = zip([name]*len(levels), levels)
 
     def generate_conditions(self):
+        # TODO: warn if no factors
         self.conditions = product(*self.factors.itervalues())
 
     def get_num_conditions(self):
@@ -40,17 +49,20 @@ class Experiment(object):
             self.generate_conditions()
         condition = next(islice(self.conditions, n, None), default)
         condition = dict(condition)
+        # TODO: allow maintaining position in generator rather than resetting
         self.generate_conditions()
         return condition
 
     def get_nth_condition(self, n, default=None):
         condition_changes = self.get_nth_condition_changes(n, default)
+        # apply patch to default condition object (tricky since its not a dict)
         condition = deepcopy(self.defaultcondition)
         for key in condition_changes:
             condition.__setattr__(key, condition_changes[key])
         return condition
 
     def get_all_conditions(self):
+        # Dangerous if there are a lot of conditions
         conditions = [self.get_nth_condition(i) for i in range(self.get_num_conditions())]
         return conditions
 
@@ -64,10 +76,11 @@ class Experiment(object):
             conditions[i] = condition.to_dict()
         return conditions
 
+
 def experiment_test():
     import lasagne
     import theano
-    from model.Model import Model
+    from model.model import Model
     from training.trainer import ParamUpdateSettings
     from training.trainer import TrainerSettings
     from training.trainer import Trainer
@@ -121,6 +134,7 @@ def experiment_test():
     pprint.pprint(trainer.to_dict())
 
     outs = trainer.train_step(batch_dict)
+
 
 if __name__ == "__main__":
     experiment_test()
