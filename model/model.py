@@ -128,32 +128,10 @@ class Model():
         d = {}
         ls = []
         for lname,l in self.layers.iteritems():
-            ltype = type(l).__name__
-            ldict = dict(name=lname,
-                         layer_type=ltype)
-            if hasattr(l,'input_layer'):
-                iln = l.input_layer.name if l.input_layer is not None else None
-                ldict['incoming']=iln
-            elif hasattr(l,'input_layers'):
-                iln = [ilay.name for ilay in l.input_layers]
-                ldict['incomings']=iln
-
-            directGetList = {'p','num_units','num_filters','filter_size','stride',
-                             'untie_biases','border_mode','pool_size',
-                             'pad','ignore_border','axis','rescale','sigma',
-                             'outdim','pattern','width','val','batch_ndim',
-                             'indices','input_size','output_size','flip_filters',
-                             'dimshuffle','partial_sum','input_shape','output_shape','shape'}
-            nameGetList   = {'nonlinearity','convolution','pool_function','merge_function'}
-
-            for dga in directGetList:
-                if hasattr(l,dga):
-                    ldict[dga] = getattr(l,dga)
-            for nga in nameGetList:
-                if hasattr(l,nga):
-                    at = getattr(l,nga)
-                    if at is not None:
-                        ldict[nga]=at.__name__
+            if hasattr(l,'to_dict'):
+                ldict = l.to_dict()
+            else:
+                ldict = self._layer_to_dict(lname,l)
             
             ls.append(ldict)
 
@@ -180,38 +158,78 @@ class Model():
         d['name']    = self.name
         return d
 
-    def from_dict(self,indict): 
+    def from_dict(self,indict):
         self._build_layers_from_list(indict['layers'])
         self._bind_inputs_from_list(indict['inputs'])
         self._bind_outputs_from_list(indict['outputs'])
+
+    def from_dict_static(indict): 
+        m = Model(indict['name'])
+        m._build_layers_from_list(indict['layers'])
+        m._bind_inputs_from_list(indict['inputs'])
+        m._bind_outputs_from_list(indict['outputs'])
+        return m
+    from_dict_static = staticmethod(from_dict_static)
+                
+    def _layer_to_dict(self,lname,l): 
+        ltype = type(l).__name__
+        ldict = dict(name=lname,
+                     layer_type=ltype)
+        if hasattr(l,'input_layer'):
+            iln = l.input_layer.name if l.input_layer is not None else None
+            ldict['incoming']=iln
+        elif hasattr(l,'input_layers'):
+            iln = [ilay.name for ilay in l.input_layers]
+            ldict['incomings']=iln
+
+        directGetList = {'p','num_units','num_filters','filter_size','stride',
+                         'untie_biases','border_mode','pool_size','img_shape',
+                         'pad','ignore_border','axis','rescale','sigma',
+                         'outdim','pattern','width','val','batch_ndim',
+                         'indices','input_size','output_size','flip_filters',
+                         'edgeprotect','mode','seed','prior','local_filters',
+                         'dimshuffle','partial_sum','input_shape','output_shape','shape'}
+        nameGetList   = {'nonlinearity','convolution','pool_function','merge_function'}
+
+        for dga in directGetList:
+            if hasattr(l,dga):
+                ldict[dga] = getattr(l,dga)
+        for nga in nameGetList:
+            if hasattr(l,nga):
+                at = getattr(l,nga)
+                if at is not None:
+                    ldict[nga]=at.__name__
+        return ldict
 
     def _build_layers_from_list(self,ll):
         nameGetList   = {'nonlinearity','convolution','pool_function','merge_function'}
         for lspec in ll:
             t = lspec['layer_type']
-
-            linnames = []
-            if 'incoming' in lspec:
-                linnames = [lspec['incoming']]
-            elif 'incomings' in lspec:
-                linnames = lspec['incomings']
-
-            lin = []
-            for n in linnames:
-                lin.append(self.layers[n] if n is not None else None)
-            lin     = lin[0] if len(lin)==1 else lin
             lclass  = getattr(xnn.layers,t)
-            linit   = lclass.__init__
-            largs   = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
-            argdict = dict(name=lspec['name'])
-            for a in largs:
-                if a == 'incoming' or a == 'incomings':
-                    argdict[a] = lin
-                elif a in nameGetList:
-                    argdict[a] = self._initialize_arg(a,lspec[a])
-                elif a in lspec:
-                    argdict[a] = lspec[a]
-            l = lclass(**argdict)
+            if hasattr(lclass,'from_dict'):
+                l = lclass.from_dict(lspec)
+            else:
+                linnames = []
+                if 'incoming' in lspec:
+                    linnames = [lspec['incoming']]
+                elif 'incomings' in lspec:
+                    linnames = lspec['incomings']
+
+                lin = []
+                for n in linnames:
+                    lin.append(self.layers[n] if n is not None else None)
+                lin     = lin[0] if len(lin)==1 else lin
+                linit   = lclass.__init__
+                largs   = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
+                argdict = dict(name=lspec['name'])
+                for a in largs:
+                    if a == 'incoming' or a == 'incomings':
+                        argdict[a] = lin
+                    elif a in nameGetList:
+                        argdict[a] = self._initialize_arg(a,lspec[a])
+                    elif a in lspec:
+                        argdict[a] = lspec[a]
+                l = lclass(**argdict)
             self.add_layer(l)
 
     def _bind_inputs_from_list(self,il):
