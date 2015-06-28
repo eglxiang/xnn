@@ -2,6 +2,7 @@ import xnn
 from xnn.model import Model
 import numpy as np
 import pprint
+import time
 
 
 def test_build_model():
@@ -24,7 +25,12 @@ def _build_model():
     l_den = m2.make_dense_drop_stack(l_in,[60,3,2],[.6,.4,.3],drop_type_list=['gauss','gauss','standard'])
     l_mer = xnn.layers.ConcatLayer([l_in2, l_den])
     m2.add_layer(l_mer,name='merger')
-    l_out= m2.add_layer(xnn.layers.DenseLayer(l_mer,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out')
+    l_bn = xnn.layers.BatchNormLayer(l_in2,nonlinearity=xnn.nonlinearities.softmax)
+    m2.add_layer(l_bn)
+    l_loc = xnn.layers.LocalLayer(l_bn,num_units=32,img_shape=(10,20),local_filters=[(2,1)],seed=121212)
+    np.random.seed(int(time.time()*10000%10000))
+    m2.add_layer(l_loc)
+    l_out= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out')
     m2.bind_output(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean')
     return m2
 
