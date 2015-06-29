@@ -10,12 +10,6 @@ import theano
 import numpy as np
 import pprint
 
-##############################
-import warnings
-warnings.filterwarnings('ignore', '.*topo.*')
-warnings.filterwarnings('ignore', '.*Glorot.*')
-##############################
-
 
 def test_experiment():
 

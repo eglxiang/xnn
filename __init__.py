@@ -8,3 +8,10 @@ import training
 import nonlinearities
 import utils
 import objectives
+
+
+######## HACK THAT MAY NOT BE NECESSARY IN THE FUTURE ########
+import warnings
+warnings.filterwarnings('ignore', '.*topo.*')
+warnings.filterwarnings('ignore', '.*Glorot.*')
+##############################################################
