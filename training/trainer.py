@@ -3,7 +3,7 @@ import theano
 import theano.tensor as T
 from xnn import layers
 from collections import OrderedDict
-from utils import Tnanmean, Tnansum
+from xnn.utils import Tnanmean, Tnansum
 
 class ParamUpdateSettings():
     def __init__(self,
