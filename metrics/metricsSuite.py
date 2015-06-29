@@ -55,7 +55,7 @@ metric_types={}
 metric_names={}
 
 class Metric():
-    def __init__(self,metric,targkeys,weightkey=None,aggregation_type='mean',**kwargs):
+    def __init__(self,metric,targkeys,outkeys=None,weightkey=None,aggregation_type='mean',**kwargs):
         if type(metric) == str:
             self.metric = metric_types[metric.lower()]
         else:
@@ -73,9 +73,20 @@ class Metric():
         if not (isinstance(targkeys,str) or isinstance(targkeys,list)):
             raise TypeError("targetkeys needs to be a string or a list of strings")
         self.targkeys = targkeys
+        if outkeys is not None and not isinstance(outkeys,list):
+            outkeys = [outkeys]
+        self.outkeys  = outkeys
 
     def __call__(self,out,datadict):
 
+        # if outkeys is a list, pass the value of that list extracted from the output
+        if self.outkeys is not None and isinstance(out,dict):
+            olist = [out[ok] for ok in self.outkeys]
+            if len(olist==1):
+                out = olist[0]
+            else:
+                out = olist 
+            
         if isinstance(self.targkeys,str):
             targ = datadict[self.targkeys]
         else:
