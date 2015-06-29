@@ -143,7 +143,6 @@ class Model():
                 ldict = l.to_dict()
             else:
                 ldict = self._layer_to_dict(lname,l)
-            
             ls.append(ldict)
 
         inputs = dict()
@@ -154,8 +153,12 @@ class Model():
 
         outputs = dict()
         for oname, output in self.outputs.iteritems():
+            if hasattr(output['loss_function'],'to_dict'):
+                lfval = output['loss_function'].to_dict()
+            else:
+                lfval = output['loss_function'].func_name
             outputs[oname] = dict(
-                loss_function    = output['loss_function'].func_name,
+                loss_function    = lfval,
                 output_layer     = output['output_layer'].name,
                 target_type      = output['target_type'],
                 target           = output['target'],
@@ -260,8 +263,11 @@ class Model():
     def _bind_outputs_from_list(self,ol):
         for layername, outdict in ol.iteritems():
             l         = self.layers[layername]
-            fname     = outdict['loss_function']
-            f         = getattr(xnn.objectives,fname)
+            if isinstance(outdict['loss_function'],dict):
+                f = xnn.objectives.from_dict(outdict['loss_function'])
+            else:
+                fname     = outdict['loss_function']
+                f         = getattr(xnn.objectives,fname)
             targ      = outdict['target']
             targ_type = outdict['target_type']
             agg       = outdict['aggregation_type']
