@@ -1,5 +1,7 @@
 *.idea
 *.pyc
 *.ipynb_checkpoints
+.coverage
+*modelout
 *.swp
 *.swo

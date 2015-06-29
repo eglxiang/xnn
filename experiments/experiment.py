@@ -2,10 +2,11 @@ from itertools import product, islice
 from operator import mul
 from copy import deepcopy
 
-# TODO: Add ability to slice into experimental conditions (e.g. get all variants of learning rate for fixed momentum)
-# TODO: Decide on what should be private methods (with underscore)
-# TODO: If you don't add factors, make one condition equal to the default
-# TODO: Move test into a test_experiment.py file
+
+# Don't allow user to return more than this number of conditions
+# in a single call to get_all_conditions_changes()
+MAXCONDITIONSINMEMORY = 10000
+
 
 class ExperimentCondition(object):
     def to_dict(self):
@@ -15,58 +16,67 @@ class ExperimentCondition(object):
                 properties[key] = properties[key].to_dict()
         return properties
 
-    def get_property_names(self):
-        return self.__dict__.keys()
-
 
 class Experiment(object):
-    def __init__(self, id, defaultcondition):
+    def __init__(self, id, default_condition):
         self.id = id
         self.factors = dict()
-        self.defaultcondition = defaultcondition
+        self.default_condition = default_condition
         self.conditions = None
 
     def to_dict(self):
-        # TODO: Need to serialize the factors and the default condition
-        pass
+        return dict(
+            factors=self.factors,
+            default_condition=self.default_condition.to_dict()
+        )
 
     def add_factor(self, name, levels):
-        if name not in self.defaultcondition.__dict__:
+        if name not in self.default_condition.__dict__:
             errstr = "name %s is not a valid property. Must be one of these:\n\t%s" \
-                % (name, '\n\t'.join(self.defaultcondition.to_dict().keys()))
+                % (name, '\n\t'.join(self.default_condition.to_dict().keys()))
             raise RuntimeError(errstr)
-        self.factors[name] = zip([name]*len(levels), levels)
-
-    def generate_conditions(self):
-        # TODO: warn if no factors
-        self.conditions = product(*self.factors.itervalues())
+        self.factors[name] = levels
+        self._generate_conditions()
 
     def get_num_conditions(self):
-        return reduce(mul, [len(self.factors[factor]) for factor in self.factors], 1)
+        if self.factors:
+            return reduce(mul, [len(self.factors[factor]) for factor in self.factors], 1)
+        else:
+            return 0
 
-    def get_nth_condition_changes(self, n, default=None):
-        if not self.conditions:
-            self.generate_conditions()
-        condition = next(islice(self.conditions, n, None), default)
+    def get_nth_condition_changes(self, n, default=None, conditions=None):
+        conditions_ = self.conditions if conditions is None else conditions
+        condition = next(islice(conditions_, n, None), default)
+        # print n
         condition = dict(condition)
         # TODO: allow maintaining position in generator rather than resetting
-        self.generate_conditions()
+        self._generate_conditions()
         return condition
 
-    def get_nth_condition(self, n, default=None):
-        condition_changes = self.get_nth_condition_changes(n, default)
-        # apply patch to default condition object (tricky since its not a dict)
-        condition = deepcopy(self.defaultcondition)
-        for key in condition_changes:
-            condition.__setattr__(key, condition_changes[key])
-        return condition
+    def get_nth_condition(self, n, default=None, conditions=None):
+        conditions_ = self.conditions if conditions is None else conditions
+        cond = next(islice(conditions_, n, None), default)
+        return self._patch_condition(cond)
 
-    def get_all_conditions(self):
-        # Dangerous if there are a lot of conditions
-        conditions = [self.get_nth_condition(i) for i in range(self.get_num_conditions())]
-        return conditions
+    def get_conditions_iterator(self, start=0, stop=None):
+        stop = self.get_num_conditions() if stop is None else stop
+        for i in range(start, stop):
+            yield self.get_nth_condition(i)
+
+    def get_conditions_slice_iterator(self, variable_keys, fixed_dict):
+        factors = dict()
+        for variable_key in variable_keys:
+            factors[variable_key] = self.factors[variable_key]
+        for fixed_key in fixed_dict:
+            factors[fixed_key] = [(fixed_key, fixed_dict[fixed_key])]
+        conditions = self._expand_factors(factors)
+        n = sum([len(factors[variable_key]) for variable_key in variable_keys])
+        for i in range(n):
+            cond = conditions.next()
+            yield self._patch_condition(cond)
 
     def get_all_conditions_changes(self):
+        self._check_max_to_return()
         conditions = dict()
         for i in range(self.get_num_conditions()):
             condition_changes = self.get_nth_condition_changes(i)
@@ -76,65 +86,29 @@ class Experiment(object):
             conditions[i] = condition.to_dict()
         return conditions
 
+    def _generate_conditions(self):
+        if not self.factors:
+            raise Exception("You must add at least one factor to the experiment!")
+        self.conditions = self._expand_factors(self.factors)
 
-def experiment_test():
-    import lasagne
-    import theano
-    from model.model import Model
-    from training.trainer import ParamUpdateSettings
-    from training.trainer import TrainerSettings
-    from training.trainer import Trainer
-    import numpy as np
-    import pprint
+    def _check_max_to_return(self):
+        n = self.get_num_conditions()
+        if n > MAXCONDITIONSINMEMORY:
+            raise Exception("You cannot get all conditions because"
+                            " the number requested %d is greater than max=%d"
+                            % (n, MAXCONDITIONSINMEMORY))
 
-    class Condition(ExperimentCondition):
-        def __init__(self):
-            self.batchsize = 10
-            self.numpix = 3
-            self.numhid = 100
-            self.lr = 0.1
-            self.mom = 0.5
+    def _patch_condition(self, cond):
+        condition = deepcopy(self.default_condition)
+        for item in cond:
+            key = item[0]
+            val = item[1]
+            condition.__setattr__(key, val)
+        return condition
 
-    def build_trainer(cond=Condition()):
-        m = Model('test model')
-        l_in = m.add_layer(lasagne.layers.InputLayer(shape=(cond.batchsize, cond.numpix)), name="l_in")
-        l_h1 = m.add_layer(lasagne.layers.DenseLayer(l_in, cond.numhid), name="l_h1")
-        l_out = m.add_layer(lasagne.layers.DenseLayer(l_h1, cond.numpix), name="l_out")
-
-        m.bind_input(l_in, "pixels")
-        m.bind_output(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
-        m.bind_output(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
-
-        global_update_settings = ParamUpdateSettings(learning_rate=cond.lr, momentum=cond.mom)
-
-        trainer_settings = TrainerSettings(update_settings=global_update_settings)
-        trainer = Trainer(m,trainer_settings)
-
-        return trainer
-
-    batch_dict = dict(
-        # learning_rate_default=0.1,
-        # momentum_default=0.5,
-        pixels=np.random.rand(10,3).astype(theano.config.floatX),
-        emotions=np.random.rand(10,100).astype(theano.config.floatX)
-    )
-
-    expt = Experiment("test experiment", Condition())
-    expt.add_factor("numhid", [100])
-    expt.add_factor("lr", [0.01, 0.05, 0.1])
-    expt.add_factor("mom", [0.01, 0.5, 0.9])
-
-    print 'num conditions:', expt.get_num_conditions()
-    print 'conditions:'
-    pprint.pprint(expt.get_all_conditions_changes())
-
-    print 'condition(2)'
-    cond = expt.get_nth_condition(2)
-    trainer = build_trainer(cond=cond)
-    pprint.pprint(trainer.to_dict())
-
-    outs = trainer.train_step(batch_dict)
-
-
-if __name__ == "__main__":
-    experiment_test()
+    def _expand_factors(self, factors):
+        factors_ = deepcopy(factors)
+        for name in factors_:
+            levels = factors_[name]
+            factors_[name] = zip([name]*len(levels), levels)
+        return product(*factors_.itervalues())

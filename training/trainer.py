@@ -1,7 +1,7 @@
 import lasagne
 import theano
 import theano.tensor as T
-from .. import layers
+from xnn import layers
 from collections import OrderedDict
 
 class ParamUpdateSettings():
