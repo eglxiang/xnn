@@ -19,7 +19,10 @@ def test_absolute_error():
 
     expected = np.abs(pred-targ)
     actual   = f(pred, targ)
+    decorated = absolute_error(pred,targ)
+
     assert np.all(actual == expected)
+    assert np.all(actual == decorated)
 
     # now check that aggregated mean absolute error works as expected
     y = aggregate(y,mode='mean')
@@ -27,6 +30,7 @@ def test_absolute_error():
 
     expected = expected.mean()
     actual   = f(pred, targ)
+
     assert np.allclose(actual, expected)
 
     return True
@@ -46,8 +50,10 @@ def test_kl_divergence():
     expected = np.sum(
         np.where(targ != 0,(targ) * np.log(targ / pred), 0), axis=1)
     actual = f(pred, targ)
+    decorated = kl_divergence(pred,targ)
 
     assert np.allclose(actual, expected, rtol=1.e-4, atol=1.e-4)
+    assert np.allclose(actual, decorated, rtol=1.e-4, atol=1.e-4)
     return True
 
 
@@ -65,7 +71,9 @@ def test_hinge_loss():
 
     # expected =
     actual = f(pred, targ)
+    decorated = hinge_loss()(pred,targ)
 
+    assert np.allclose(actual, decorated, rtol=1.e-4, atol=1.e-4)
     # print pred
     # print targ
     # print pred-targ
@@ -87,6 +95,9 @@ def test_squared_hinge_loss():
     targ = (pred[::-1] > 0).astype(theano.config.floatX)
 
     actual = f(pred, targ)
+    decorated = squared_hinge_loss()(pred,targ)
+
+    assert np.allclose(actual, decorated, rtol=1.e-4, atol=1.e-4)
 
     return True
 
