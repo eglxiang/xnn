@@ -1,4 +1,5 @@
 import theano.tensor as T
+import xnn
 from ..utils import typechecker
 from lasagne.objectives import binary_crossentropy,categorical_crossentropy
 
@@ -63,6 +64,12 @@ class hinge_loss():
         t_ = T.switch(T.eq(t, 0), -1, 1)
         scores = 1 - (t_ * x)
         return T.maximum(0, scores - self.threshold)
+    def to_dict(self):
+        outdict = self.__dict__.copy()
+        outdict['name'] = 'hinge_loss'
+        return outdict
+    def from_dict(self,d):
+        self.threshold = d['threshold']
 # convenience for typical hinge loss
 regular_hinge_loss = hinge_loss(threshold=0)
 
@@ -77,11 +84,22 @@ class squared_hinge_loss():
         hinge = hinge_loss(threshold=self.threshold)
         loss  = hinge(x, t)
         return 1.0/(2.0 * self.gamma) * loss**2
+    
+    def to_dict(self):
+        outdict = self.__dict__.copy()
+        outdict['name'] = 'squared_hinge_loss'
+    
+    def from_dict(self,d):
+        self.threshold = d['threshold']
+        self.gamma = d['gamma']
 # convenience for typical squared hinge loss
 regular_squared_hinge_loss = squared_hinge_loss(threshold=0, gamma=2.0)
 
 
 #TODO:  fill in from_dict so that model can load objective objects from their serialized representation
 def from_dict(objdict):
-    pass
+    name = objdict['name']
+    o = getattr(xnn.objectives,name)()
+    o.from_dict(objdict)
+    return o
 
