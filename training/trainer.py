@@ -50,7 +50,7 @@ class Trainer(object):
         for layer in layerlist:
             layer = layer if type(layer) == str else layer.name
             prev_settings = self.layer_updates[layer] if layer in self.layer_updates else self.global_update_settings
-            if self.update_settings.update !=  prev_settings.update:
+            if update_settings.update !=  prev_settings.update:
                 self.train_func = None
             self.layer_updates[layer] = update_settings
 
