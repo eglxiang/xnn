@@ -3,6 +3,7 @@ import theano
 import theano.tensor as T
 from xnn import layers
 from collections import OrderedDict
+from utils import Tnanmean, Tnansum
 
 class ParamUpdateSettings():
     def __init__(self,
@@ -56,10 +57,10 @@ class Trainer(object):
 
     def init_ins_variables(self):
         inputs = self.model.inputs
-        ins    = OrderedDict()
+        ins    = []#OrderedDict()
         for input_key,input_layers in inputs.iteritems():
             for input_layer in input_layers:
-                ins[input_key] = input_layer.input_var
+                ins.append((input_key, input_layer.input_var))
         return ins
 
     def get_outputs(self):
@@ -76,28 +77,42 @@ class Trainer(object):
         target_type = layer_dict['target_type']
         if target_type == 'label':
             targs = T.matrix('targets')
-            ins[layer_dict['target']] = targs
+            ins.append((layer_dict['target'], targs))
         elif target_type == 'recon':
             targs = all_outs_dict[layer_dict['target']]
         else:
             raise Exception('This should have been caught earlier')
         cost = layer_dict['loss_function'](preds,targs)
         aggregation_type = layer_dict['aggregation_type']
+        # regular aggregations
         if aggregation_type == 'mean':
             cost = cost.mean()
         elif aggregation_type == 'sum':
             cost = cost.sum()
         elif aggregation_type == 'weighted_mean':
             weights = T.matrix('weights')
-            ins[layer_dict['weight_key']] = weights
+            ins.append((layer_dict['weight_key'], weights))
             cost = T.sum(cost*weights)/T.sum(weights)
         elif aggregation_type == 'weighted_sum':
             weights = T.matrix('weights')
-            ins[layer_dict['weight_key']] = weights
+            ins.append((layer_dict['weight_key'], weights))
             cost = T.sum(cost*weights)
+        # nan-protected aggregations
+        elif aggregation_type == 'nanmean':
+            cost = Tnanmean(cost)
+        elif aggregation_type == 'nansum':
+            cost = Tnansum(cost)
+        elif aggregation_type == 'nanweighted_mean':
+            weights = T.matrix('weights')
+            ins.append((layer_dict['weight_key'], weights))
+            cost = Tnansum(cost*weights)/Tnansum(weights)
+        elif aggregation_type == 'nanweighted_sum':
+            weights = T.matrix('weights')
+            ins.append((layer_dict['weight_key'], weights))
+            cost = Tnansum(cost*weights)
         else:
             raise Exception('This should have been caught earlier')
-        return cost,ins
+        return cost, ins
 
     def get_update(self,layer_name,ins,costTotal):
         all_layers = self.model.layers
@@ -106,8 +121,8 @@ class Trainer(object):
         if len(params)>0:
             lr = T.scalar('lr_%s'%layer_name)
             mom = T.scalar('mom_%s'%layer_name)
-            ins['learning_rate_%s'%layer_name] = lr
-            ins['momentum_%s'%layer_name] = mom
+            ins.append(('learning_rate_%s'%layer_name, lr))
+            ins.append(('momentum_%s'%layer_name, mom))
             if layer_name in self.layer_updates:
                 update_function = self.layer_updates[layer_name].update
             else:
@@ -142,24 +157,29 @@ class Trainer(object):
         givens = dict()
         if self.dataSharedVarDict is not None:
             batch_index = T.iscalar('Batch index')
-            ins['batch_index'] = batch_index
+            ins.append(('batch_index', batch_index))
             batch_slice = slice(batch_index * self.batch_size,(batch_index + 1) * self.batch_size)
             for input_key,input_layers in self.model.inputs.iteritems():
                 for input_layer in input_layers:
-                    inVar = ins.pop(input_key)
+                    ind = [item[0] for item in ins].index(input_key)
+                    _, inVar = ins.pop(ind)
                     givens[inVar] = self.dataSharedVarDict[input_key][batch_slice]
             for output_layer_name,output_layer_dict in self.model.outputs.iteritems():
                 if output_layer_dict['target_type'] == 'label':
                     targKey = output_layer_dict['target']
-                    targVar = ins.pop(targKey)
+                    ind = [item[0] for item in ins].index(targKey)
+                    _, targVar = ins.pop(ind)
                     givens[targVar]=self.dataSharedVarDict[targKey][batch_slice]
                 weightKey = output_layer_dict['weight_key']
-                if weightKey in ins.keys():
-                    weightVar = ins.pop(weightKey)
+                if weightKey in [item[0] for item in ins]:
+                    ind = [item[0] for item in ins].index(weightKey)
+                    _, weightVar = ins.pop(ind)
                     givens[weightVar]=self.dataSharedVarDict[weightKey][batch_slice]
 
+        inkeys = [items[0] for items in ins]
+        invals = [items[1] for items in ins]
         train = theano.function(
-            ins.values(),
+            invals,
             outsTrain,
             updates=updates,
             givens=givens,
@@ -167,7 +187,7 @@ class Trainer(object):
         )
 
         self.train_func = train
-        self.insKeys = ins.keys()
+        self.insKeys = inkeys
         return self.train_func
 
     def train_step(self,batch_dict):
