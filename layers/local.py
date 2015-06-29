@@ -99,7 +99,9 @@ class LocalLayer(Layer):
         vcenters = []
         hcenters = []
         while (count < num_units):
-            centersTemp = np.random.choice(all_points, 1, p=prior)
+            p = np.array(prior, dtype=float)
+            p = p/p.sum()
+            centersTemp = np.random.choice(all_points, 1, p=p)
             vcenter     = int(centersTemp / self.img_shape[1])
             hcenter     = centersTemp % self.img_shape[1]
             if self._is_valid(vcenter, hcenter, local_filters[count]):
@@ -153,7 +155,9 @@ class LocalLayer(Layer):
     def _generate_local_filters(self):
         local_filter_sizes = [l[0] for l in self.local_filters]
         local_filter_probs = [l[1] for l in self.local_filters]
-        local_filters = np.random.choice(local_filter_sizes, self.num_units, p=local_filter_probs)
+        p = np.array(local_filter_sizes, dtype=float)
+        p = p/p.sum()
+        local_filters = np.random.choice(local_filter_sizes, self.num_units, p=p)
         return local_filters
 
     def _create_masks(self, local_filters, prev_centers, centers, input_shape):

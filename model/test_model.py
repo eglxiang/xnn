@@ -3,6 +3,7 @@ from xnn.model import Model
 import numpy as np
 import pprint
 import time
+import theano
 
 
 def test_build_model():
@@ -51,7 +52,7 @@ def test_serialization():
     print "model loaded from dict"
     pprint.pprint(m3.to_dict())
     data = dict(
-        pixels=np.random.rand(10,200),
+        pixels=np.random.rand(10,200).astype(theano.config.floatX),
             )
     m3.save_model('testmodelout')
     out3 = m3.predict(data,['out','out2'])
