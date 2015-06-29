@@ -1,2 +1,2 @@
-from .utils import *
 from lasagne.utils import *
+from .utils import *

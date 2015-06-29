@@ -23,7 +23,7 @@ def test_train():
 
     global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
 
-    trainer_settings = TrainerSettings(update_settings=global_update_settings)
+    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
     trainer = Trainer(m,trainer_settings)
 
     pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
@@ -35,6 +35,10 @@ def test_train():
         pixels=pixels,
         emotions=emotions
     )
+    outs = trainer.train_step(batch_dict)
+    trainer.bindUpdate(l_h1,ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    outs = trainer.train_step(batch_dict)
+    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
     outs = trainer.train_step(batch_dict)
     
     print "Data on cpu succeeded"
@@ -49,9 +53,13 @@ def test_train():
         pixels=pixelsT,
         emotions=emotionsT
     )
-    trainer_settings = TrainerSettings(update_settings=global_update_settings,dataSharedVarDict=dataDict)
+    trainer_settings = TrainerSettings(global_update_settings=global_update_settings,dataSharedVarDict=dataDict)
     trainer = Trainer(m,trainer_settings)
     batch_dict=dict(batch_index=0)
+    outs = trainer.train_step(batch_dict)
+    trainer.bindUpdate(l_h1,ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    outs = trainer.train_step(batch_dict)
+    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
     outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"
@@ -75,7 +83,7 @@ def test_aggregation():
     pprint(m.to_dict())
     global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
 
-    trainer_settings = TrainerSettings(update_settings=global_update_settings)
+    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
     trainer = Trainer(m, trainer_settings)
 
     pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)

@@ -1,7 +1,7 @@
 import lasagne
 import theano
 import theano.tensor as T
-from xnn import layers
+from .. import layers
 from collections import OrderedDict
 from xnn.utils import Tnanmean, Tnansum
 
@@ -24,12 +24,10 @@ class TrainerSettings(object):
     def __init__(self,
                  global_update_settings=ParamUpdateSettings(),
                  batch_size=128,
-                 dataSharedVarDict=None, **kwargs):
+                 dataSharedVarDict=None):
         self.global_update_settings = global_update_settings
         self.batch_size             = batch_size
         self.dataSharedVarDict      = dataSharedVarDict
-        # self.update_dict = {}
-        self.__dict__.update(kwargs)
 
     def to_dict(self):
         properties = self.__dict__.copy()
@@ -45,11 +43,14 @@ class Trainer(object):
         self.train_func = None
 
     def bindUpdate(self, layerlist, update_settings):
-        self.train_func = None
         if type(layerlist) != list:
             layerlist = [layerlist]
         for layer in layerlist:
-            self.layer_updates[layer.name] = update_settings
+            layer = layer if type(layer) == str else layer.name
+            prev_settings = self.layer_updates[layer] if layer in self.layer_updates else self.global_update_settings
+            if update_settings.update !=  prev_settings.update:
+                self.train_func = None
+            self.layer_updates[layer] = update_settings
 
     def _set_model(self,model):
         self.train_func = None

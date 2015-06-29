@@ -26,6 +26,7 @@ __all__=['metric_types','metric_names','Metric',
             'computeBinarizedJunkRate',
             'computeBinarizedSpecificity',
             'computeCategoricalCrossentropy',
+            'computeConfusionMatrix',
             'computeCondProb',
             'computeEqualErrorRate',
             'computeErrorRateDiffSquared',
@@ -54,7 +55,7 @@ metric_types={}
 metric_names={}
 
 class Metric():
-    def __init__(self,metric,targkeys,weightkey=None,aggregation_type='mean',**kwargs):
+    def __init__(self,metric,targkeys,outkeys=None,weightkey=None,aggregation_type='mean',**kwargs):
         if type(metric) == str:
             self.metric = metric_types[metric.lower()]
         else:
@@ -72,9 +73,20 @@ class Metric():
         if not (isinstance(targkeys,str) or isinstance(targkeys,list)):
             raise TypeError("targetkeys needs to be a string or a list of strings")
         self.targkeys = targkeys
+        if outkeys is not None and not isinstance(outkeys,list):
+            outkeys = [outkeys]
+        self.outkeys  = outkeys
 
     def __call__(self,out,datadict):
 
+        # if outkeys is a list, pass the value of that list extracted from the output
+        if self.outkeys is not None and isinstance(out,dict):
+            olist = [out[ok] for ok in self.outkeys]
+            if len(olist==1):
+                out = olist[0]
+            else:
+                out = olist 
+            
         if isinstance(self.targkeys,str):
             targ = datadict[self.targkeys]
         else:
@@ -535,53 +547,3 @@ def confMatAggregate(c):
     c[np.isnan(c)]=0
     return cm,np.nanmean(np.diag(c))
 
-def metrics_test():
-    import xnn
-    binpred = np.array([[1,0,0],[0,1,0],[0,0,0],[.4,1,0]]) 
-    bintarg = np.array([[1,0,0],[0,1,0],[0,1,0],[1,0,0]])
-    probpred= np.array([[.2,.8,0],[.8,.2,0],[1,0,0],[0,1,0],[0,0,1]])
-    betterprobpred=np.array([[.6,.4,0],[.8,.2,0],[1,0,0],[.5,.5,0],[0,0,1]])
-    probtarg= np.array([[.8,.2,0],[.8,.2,0],[1,0,0],[1,0,0],[np.nan,np.nan,np.nan]])
-    regpred = np.array([[10],[9],[2],[1]])
-    regtarg = np.array([[5],[5],[5],[5]])
-
-    td = dict(bintarg=bintarg,probtarg=probtarg,regtarg=regtarg)
-
-    bbe = xnn.metrics.Metric('bbeb','bintarg',aggregation_type='mean')
-    print "bbeb", bbe(binpred,td)
-    bbec = xnn.metrics.Metric('bbec','probtarg',aggregation_type='none')
-    print "bbec", bbec(probpred,td)
-    print "betterbbec", bbec(betterprobpred,td)
-
-    cce = xnn.metrics.Metric('cce','probtarg',aggregation_type='none')
-    print "cce",cce(probpred,td)
-    print "bettercce",cce(betterprobpred,td)
-    cceMean = xnn.metrics.Metric('cce','probtarg',aggregation_type='mean')
-    print "cceMean",cceMean(probpred,td)
-    kl = xnn.metrics.Metric('kl','probtarg',aggregation_type='none')
-    print "kl",kl(probpred,td)
-    klMean = xnn.metrics.Metric('kl','probtarg',aggregation_type='mean')
-    print "klMean",klMean(probpred,td)
-
-    obeMean = xnn.metrics.Metric('obe','bintarg',aggregation_type='none')
-    print 'optimalBE',obeMean(binpred,td)
-    
-    ofoMean = xnn.metrics.Metric('of1','bintarg',aggregation_type='none')
-    print 'optimalF1',ofoMean(binpred,td)
-
-    mse = xnn.metrics.Metric('se','regtarg',aggregation_type='mean')
-    mae = xnn.metrics.Metric('ae','regtarg',aggregation_type='mean')
-    sse = xnn.metrics.Metric('se','regtarg',aggregation_type='sum')
-    print 'mse',mse(regpred,td)
-    print 'mae',mae(regpred,td)
-    print 'sse',sse(regpred,td)
-   
-    cm = xnn.metrics.Metric(computeConfusionMatrix,'probtarg',aggregation_type='none')
-    print 'cm',cm(probpred,td)
-    cmD = xnn.metrics.Metric(computeConfusionMatrix,'probtarg',aggregation_type=confMatAggregate)
-    print cmD(probpred,td)
-    print cmD.to_dict()
-
-
-if __name__=="__main__":
-    metrics_test()
