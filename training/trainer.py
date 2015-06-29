@@ -24,12 +24,10 @@ class TrainerSettings(object):
     def __init__(self,
                  global_update_settings=ParamUpdateSettings(),
                  batch_size=128,
-                 dataSharedVarDict=None, **kwargs):
+                 dataSharedVarDict=None):
         self.global_update_settings = global_update_settings
         self.batch_size             = batch_size
         self.dataSharedVarDict      = dataSharedVarDict
-        # self.update_dict = {}
-        self.__dict__.update(kwargs)
 
     def to_dict(self):
         properties = self.__dict__.copy()
