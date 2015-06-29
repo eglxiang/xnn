@@ -7,6 +7,7 @@ __all__ = [
     "absolute_error",
     "kl_divergence",
     "hinge_loss",
+    "from_dict",
     "squared_hinge_loss",
     "binary_crossentropy",
     "categorical_crossentropy"
@@ -78,4 +79,9 @@ class squared_hinge_loss():
         return 1.0/(2.0 * self.gamma) * loss**2
 # convenience for typical squared hinge loss
 regular_squared_hinge_loss = squared_hinge_loss(threshold=0, gamma=2.0)
+
+
+#TODO:  fill in from_dict so that model can load objective objects from their serialized representation
+def from_dict(objdict):
+    pass
 
