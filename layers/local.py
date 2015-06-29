@@ -16,7 +16,7 @@ __all__ = [
 class LocalLayer(Layer):
     def __init__(self, incoming, num_units, img_shape, local_filters,
                  W=init.GlorotUniform(), b=init.Constant(0.), mode='square',
-                 localmask=None, nonlinearity=nonlinearities.rectify,
+                 nonlinearity=nonlinearities.rectify,
                  edgeprotect=True,
                  cn=False, prior=None, seed=123778, name=None):
         """
@@ -41,16 +41,13 @@ class LocalLayer(Layer):
         self.seed = seed
         np.random.seed(self.seed)
 
-        if localmask is None:
-            prior                  = self._make_prior(prior)
-            local_filters          = self._generate_local_filters()
-            centers, prev_centers  = self._compute_centers(local_filters, num_units, prior)
-            localmask              = self._create_masks(local_filters, prev_centers, centers, input_shape)
-            self.centers           = centers
-            self.localmask         = theano.shared(value=localmask, name='localmask', borrow=True)
-            self.local_mask_counts = T.sum(self.localmask, axis=0).astype(theano.config.floatX)
-        else:
-            self.localmask         = localmask
+        prior                  = self._make_prior(prior)
+        local_filters          = self._generate_local_filters()
+        centers, prev_centers  = self._compute_centers(local_filters, num_units, prior)
+        localmask              = self._create_masks(local_filters, prev_centers, centers, input_shape)
+        self.centers           = centers
+        self.localmask         = theano.shared(value=localmask, name='localmask', borrow=True)
+        self.local_mask_counts = T.sum(self.localmask, axis=0).astype(theano.config.floatX)
 
         self._set_weight_params(W, b, input_shape, num_units, localmask)
         self._set_out_mask(num_units)
