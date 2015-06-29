@@ -1,13 +1,20 @@
 import theano.tensor as T
+from ..utils import typechecker
+from lasagne.objectives import binary_crossentropy,categorical_crossentropy
 
 
 __all__ = [
     "absolute_error",
     "kl_divergence",
     "hinge_loss",
-    "squared_hinge_loss"
+    "squared_hinge_loss",
+    "binary_crossentropy",
+    "categorical_crossentropy"
 ]
 
+
+binary_crossentropy = typechecker(binary_crossentropy)
+categorical_crossentropy = typechecker(categorical_crossentropy)
 
 def absolute_error(a, b):
     """Computes the element-wise absolute difference between two tensors.
@@ -21,9 +28,9 @@ def absolute_error(a, b):
     Theano tensor
         An expression for the item-wise absolute difference.
     """
-    return T.abs_(a - b)
+    return abs(a - b)
 
-
+@typechecker
 def kl_divergence(predictions, targets, eps=1e-08):
     """Computes the kl-divergence between predictions and targets
     (for categorical variables).
@@ -50,7 +57,7 @@ class hinge_loss():
     # TODO: Add to_dict and from_dict functionality to hinge_loss
     def __init__(self, threshold=0.0):
         self.threshold = threshold
-
+    @typechecker
     def __call__(self, x, t):
         t_ = T.switch(T.eq(t, 0), -1, 1)
         scores = 1 - (t_ * x)

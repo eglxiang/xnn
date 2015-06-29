@@ -31,7 +31,7 @@ def _build_model():
     np.random.seed(int(time.time()*10000%10000))
     m2.add_layer(l_loc)
     l_out= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out')
-    m2.bind_output(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean')
+    m2.bind_output(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean',is_eval_output=True)
     return m2
 
 def test_convenience_build():

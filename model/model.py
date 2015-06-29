@@ -13,6 +13,7 @@ class Model():
         self.layers  = OrderedDict()
         self.inputs  = OrderedDict()
         self.outputs = OrderedDict()
+        self.eval_outputs = OrderedDict()
 
     def add_layer(self,layer,name=None):
         if name is None and layer.name is not None:
@@ -102,7 +103,7 @@ class Model():
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
 
-    def bind_output(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', weight_key=None):
+    def bind_output(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', is_eval_output=False, weight_key=None):
         aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
@@ -122,6 +123,16 @@ class Model():
             loss_function    = loss_function,
             aggregation_type = aggregation_type,
             weight_key       = weight_key
+        )
+        if is_eval_output:
+            self.bind_eval_output(output_layer,target)
+
+    def bind_eval_output(self, output_layer, target):
+        if output_layer.name not in self.layers:
+            raise Exception("Can only bind eval outputs to layers that exist in the model.")
+        self.eval_outputs[output_layer.name]=dict(
+            output_layer   = output_layer,
+            target         = target
         )
 
     def to_dict(self):
@@ -143,18 +154,25 @@ class Model():
 
         outputs = dict()
         for oname, output in self.outputs.iteritems():
-            target = output['target']
             outputs[oname] = dict(
                 loss_function    = output['loss_function'].func_name,
                 output_layer     = output['output_layer'].name,
                 target_type      = output['target_type'],
-                target           = target,
+                target           = output['target'],
                 aggregation_type = output['aggregation_type']
+            )
+
+        eval_outputs=dict()
+        for oname, output in self.eval_outputs.iteritems():
+            eval_outputs[oname]= dict(
+                output_layer   = output['output_layer'].name,
+                target         = output['target']
             )
 
         d['layers']  = ls
         d['inputs']  = inputs
         d['outputs'] = outputs
+        d['eval_outputs'] = eval_outputs
         d['name']    = self.name
         return d
 
@@ -162,12 +180,14 @@ class Model():
         self._build_layers_from_list(indict['layers'])
         self._bind_inputs_from_list(indict['inputs'])
         self._bind_outputs_from_list(indict['outputs'])
+        self._bind_eval_outputs_from_list(indict['eval_outputs'])
 
     def from_dict_static(indict): 
         m = Model(indict['name'])
         m._build_layers_from_list(indict['layers'])
         m._bind_inputs_from_list(indict['inputs'])
         m._bind_outputs_from_list(indict['outputs'])
+        m._bind_eval_outputs_from_list(indict['eval_outputs'])
         return m
     from_dict_static = staticmethod(from_dict_static)
                 
@@ -247,6 +267,11 @@ class Model():
             agg       = outdict['aggregation_type']
             self.bind_output(l,f,targ,targ_type,agg)
 
+    def _bind_eval_outputs_from_list(self,el):
+        for layername, edict in el.iteritems():
+            l = self.layers[layername]
+            targ = edict['target']
+            self.bind_eval_output(l,targ)
 
     def _initialize_arg(self,a,spec):
         #TODO: expand this to take care of other objects that need to be re-initialized
