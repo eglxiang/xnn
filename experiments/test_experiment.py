@@ -1,4 +1,4 @@
-from model.model import Model
+from xnn.model.model import Model
 from training.trainer import ParamUpdateSettings
 from training.trainer import TrainerSettings
 from training.trainer import Trainer
@@ -29,13 +29,13 @@ def test_experiment():
 
     def build_trainer(cond=Condition()):
         m = Model('test model')
-        l_in = m.addLayer(InputLayer(shape=(cond.batchsize, cond.numpix)), name="l_in")
-        l_h1 = m.addLayer(DenseLayer(l_in, cond.numhid), name="l_h1")
-        l_out = m.addLayer(DenseLayer(l_h1, cond.numpix), name="l_out")
+        l_in = m.add_layer(InputLayer(shape=(cond.batchsize, cond.numpix)), name="l_in")
+        l_h1 = m.add_layer(DenseLayer(l_in, cond.numhid), name="l_h1")
+        l_out = m.add_layer(DenseLayer(l_h1, cond.numpix), name="l_out")
 
-        m.bindInput(l_in, "pixels")
-        m.bindOutput(l_h1, categorical_crossentropy, "emotions", "label", "mean")
-        m.bindOutput(l_out, squared_error, "l_in", "recon", "mean")
+        m.bind_input(l_in, "pixels")
+        m.bind_output(l_h1, categorical_crossentropy, "emotions", "label", "mean")
+        m.bind_output(l_out, squared_error, "l_in", "recon", "mean")
 
         global_update_settings = ParamUpdateSettings(learning_rate=cond.lr, momentum=cond.mom)
 

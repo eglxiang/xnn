@@ -2,4 +2,6 @@
 *.pyc
 *.ipynb_checkpoints
 .coverage
-modelout
+*modelout
+*.swp
+*.swo

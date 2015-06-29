@@ -1,6 +1,7 @@
 import xnn
 import numpy as np
 import cPickle
+import theano
 import theano.tensor as T
 from collections import OrderedDict
 
@@ -13,7 +14,7 @@ class Model():
         self.inputs  = OrderedDict()
         self.outputs = OrderedDict()
 
-    def addLayer(self,layer,name=None):
+    def add_layer(self,layer,name=None):
         if name is None and layer.name is not None:
             name = self._get_unique_name_from_layer(layer)
         if layer.name is None and name is not None:
@@ -28,10 +29,10 @@ class Model():
         self.layers[name]=layer
         return layer
 
-    def addFullNetFromOutputLayer(self,outlayer):
+    def add_full_net_from_layer(self,outlayer):
         layers = xnn.layers.get_all_layers(outlayer)
         for l in layers:
-            self.addLayer(l)
+            self.add_layer(l)
 
     def _get_unique_name_from_layer(self,layer,namebase=''):
         if layer.name is not None:
@@ -45,7 +46,7 @@ class Model():
             namebase+= '_'+str(counter)
         return namebase
 
-    def makeDropoutLayer(self,parentlayer,p=0.5,name=None,drop_type='standard'):
+    def make_dropout_layer(self,parentlayer,p=0.5,name=None,drop_type='standard'):
         if drop_type == 'standard':
             droplayer  = xnn.layers.DropoutLayer(parentlayer,p=p)
         elif drop_type == 'gauss':
@@ -55,38 +56,29 @@ class Model():
         if name is None:
             name = self._get_unique_name_from_layer(droplayer)
             droplayer.name=name
-        self.addLayer(droplayer,name=name)
+        self.add_layer(droplayer,name=name)
         return droplayer
 
-    def makeDenseLayer(self,parentlayer,num_hidden,nonlinearity=None,name=None):
+    def make_dense_layer(self,parentlayer,num_hidden,nonlinearity=None,name=None):
         if nonlinearity is None:
             nonlinearity = xnn.nonlinearities.rectify
         denselayer = xnn.layers.DenseLayer(parentlayer,num_units=num_hidden,nonlinearity=nonlinearity)
         if name is None:
             name = self._get_unique_name_from_layer(denselayer)
             denselayer.name = name
-        self.addLayer(denselayer,name=name)
+        self.add_layer(denselayer,name=name)
         return denselayer
 
-    def makeBoundInputLayer(self,shape,inputlabelkey,name=None,input_var=None):
+    def make_bound_input_layer(self,shape,inputlabelkey,name=None,input_var=None):
         lin = xnn.layers.InputLayer(shape,input_var=input_var,name=name)
         if name is None:
             name = self._get_unique_name_from_layer(lin)
             lin.name = name
-        self.addLayer(lin)
-        self.bindInput(lin,inputlabelkey)
+        self.add_layer(lin)
+        self.bind_input(lin,inputlabelkey)
         return lin
 
-    def makeQuickTrickBrickStack(self):
-        # complements of Fox in Socks
-        # http://ai.eecs.umich.edu/people/dreeves/Fox-In-Socks.txt
-        print "First, I'll make a quick trick brick stack." \
-              "Then I'll make a quick trick block stack." \
-              "You can make a quick trick chick stack." \
-              "You can make a quick trick clock stack."
-        return True
-
-    def makeDenseDropStack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None,drop_type_list=None):
+    def make_dense_drop_stack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None,drop_type_list=None):
         pl = parent_layer
         if namebase is None:
             namebase="l_"
@@ -97,12 +89,12 @@ class Model():
             dt         = drop_type_list[i] if drop_type_list is not None else 'standard'
             nameden    = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
             namedro    = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
-            denselayer = self.makeDenseLayer(pl,nhu,nonlinearity=nl,name=nameden)
-            droplayer  = self.makeDropoutLayer(denselayer,p=p,name=namedro,drop_type=dt)
+            denselayer = self.make_dense_layer(pl,nhu,nonlinearity=nl,name=nameden)
+            droplayer  = self.make_dropout_layer(denselayer,p=p,name=namedro,drop_type=dt)
             pl         = droplayer
         return pl
 
-    def bindInput(self, input_layer, input_key):
+    def bind_input(self, input_layer, input_key):
         if not isinstance(input_key, str):
             raise Exception("input_key must be a string")
         if not isinstance(input_layer, xnn.layers.InputLayer):
@@ -110,7 +102,7 @@ class Model():
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
 
-    def bindOutput(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', weight_key=None):
+    def bind_output(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', weight_key=None):
         aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
@@ -136,32 +128,10 @@ class Model():
         d = {}
         ls = []
         for lname,l in self.layers.iteritems():
-            ltype = type(l).__name__
-            ldict = dict(name=lname,
-                         layer_type=ltype)
-            if hasattr(l,'input_layer'):
-                iln = l.input_layer.name if l.input_layer is not None else None
-                ldict['incoming']=iln
-            elif hasattr(l,'input_layers'):
-                iln = [ilay.name for ilay in l.input_layers]
-                ldict['incomings']=iln
-
-            directGetList = {'p','num_units','num_filters','stride',
-                             'untie_biases','border_mode','pool_size',
-                             'pad','ignore_border','axis','rescale','sigma',
-                             'outdim','pattern','width','val','batch_ndim',
-                             'indices','input_size','output_size','flip_filters',
-                             'dimshuffle','partial_sum','input_shape','output_shape','shape'}
-            nameGetList   = {'nonlinearity','convolution','pool_function','merge_function'}
-
-            for dga in directGetList:
-                if hasattr(l,dga):
-                    ldict[dga] = getattr(l,dga)
-            for nga in nameGetList:
-                if hasattr(l,nga):
-                    at = getattr(l,nga)
-                    if at is not None:
-                        ldict[nga]=at.__name__
+            if hasattr(l,'to_dict'):
+                ldict = l.to_dict()
+            else:
+                ldict = self._layer_to_dict(lname,l)
             
             ls.append(ldict)
 
@@ -188,44 +158,84 @@ class Model():
         d['name']    = self.name
         return d
 
-    def from_dict(self,indict): 
+    def from_dict(self,indict):
         self._build_layers_from_list(indict['layers'])
         self._bind_inputs_from_list(indict['inputs'])
         self._bind_outputs_from_list(indict['outputs'])
+
+    def from_dict_static(indict): 
+        m = Model(indict['name'])
+        m._build_layers_from_list(indict['layers'])
+        m._bind_inputs_from_list(indict['inputs'])
+        m._bind_outputs_from_list(indict['outputs'])
+        return m
+    from_dict_static = staticmethod(from_dict_static)
+                
+    def _layer_to_dict(self,lname,l): 
+        ltype = type(l).__name__
+        ldict = dict(name=lname,
+                     layer_type=ltype)
+        if hasattr(l,'input_layer'):
+            iln = l.input_layer.name if l.input_layer is not None else None
+            ldict['incoming']=iln
+        elif hasattr(l,'input_layers'):
+            iln = [ilay.name for ilay in l.input_layers]
+            ldict['incomings']=iln
+
+        directGetList = {'p','num_units','num_filters','filter_size','stride',
+                         'untie_biases','border_mode','pool_size','img_shape',
+                         'pad','ignore_border','axis','rescale','sigma',
+                         'outdim','pattern','width','val','batch_ndim',
+                         'indices','input_size','output_size','flip_filters',
+                         'edgeprotect','mode','seed','prior','local_filters',
+                         'dimshuffle','partial_sum','input_shape','output_shape','shape'}
+        nameGetList   = {'nonlinearity','convolution','pool_function','merge_function'}
+
+        for dga in directGetList:
+            if hasattr(l,dga):
+                ldict[dga] = getattr(l,dga)
+        for nga in nameGetList:
+            if hasattr(l,nga):
+                at = getattr(l,nga)
+                if at is not None:
+                    ldict[nga]=at.__name__
+        return ldict
 
     def _build_layers_from_list(self,ll):
         nameGetList   = {'nonlinearity','convolution','pool_function','merge_function'}
         for lspec in ll:
             t = lspec['layer_type']
-
-            linnames = []
-            if 'incoming' in lspec:
-                linnames = [lspec['incoming']]
-            elif 'incomings' in lspec:
-                linnames = lspec['incomings']
-
-            lin = []
-            for n in linnames:
-                lin.append(self.layers[n] if n is not None else None)
-            lin     = lin[0] if len(lin)==1 else lin
             lclass  = getattr(xnn.layers,t)
-            linit   = lclass.__init__
-            largs   = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
-            argdict = dict(name=lspec['name'])
-            for a in largs:
-                if a == 'incoming' or a == 'incomings':
-                    argdict[a] = lin
-                elif a in nameGetList:
-                    argdict[a] = self._initialize_arg(a,lspec[a])
-                elif a in lspec:
-                    argdict[a] = lspec[a]
-            l = lclass(**argdict)
-            self.addLayer(l)
+            if hasattr(lclass,'from_dict'):
+                l = lclass.from_dict(lspec)
+            else:
+                linnames = []
+                if 'incoming' in lspec:
+                    linnames = [lspec['incoming']]
+                elif 'incomings' in lspec:
+                    linnames = lspec['incomings']
+
+                lin = []
+                for n in linnames:
+                    lin.append(self.layers[n] if n is not None else None)
+                lin     = lin[0] if len(lin)==1 else lin
+                linit   = lclass.__init__
+                largs   = linit.func_code.co_varnames[1:linit.func_code.co_argcount]
+                argdict = dict(name=lspec['name'])
+                for a in largs:
+                    if a == 'incoming' or a == 'incomings':
+                        argdict[a] = lin
+                    elif a in nameGetList:
+                        argdict[a] = self._initialize_arg(a,lspec[a])
+                    elif a in lspec:
+                        argdict[a] = lspec[a]
+                l = lclass(**argdict)
+            self.add_layer(l)
 
     def _bind_inputs_from_list(self,il):
         for labelkey, lnames in il.iteritems():
             for ln in lnames:
-                self.bindInput(self.layers[ln],labelkey)
+                self.bind_input(self.layers[ln],labelkey)
 
     def _bind_outputs_from_list(self,ol):
         for layername, outdict in ol.iteritems():
@@ -235,17 +245,20 @@ class Model():
             targ      = outdict['target']
             targ_type = outdict['target_type']
             agg       = outdict['aggregation_type']
-            self.bindOutput(l,f,targ,targ_type,agg)
+            self.bind_output(l,f,targ,targ_type,agg)
 
 
     def _initialize_arg(self,a,spec):
         #TODO: expand this to take care of other objects that need to be re-initialized
         if a == 'nonlinearity':
             return getattr(xnn.nonlinearities,spec)
+        if a == 'convolution':
+            if spec == 'conv2d':
+                return theano.tensor.nnet.conv2d
         else:
             return None
 
-    def saveModel(self,fname):
+    def save_model(self,fname):
         d = self.to_dict()
         all_layers = [self.layers[k] for k in self.layers.keys()]
         p = xnn.layers.get_all_param_values(all_layers)
@@ -253,7 +266,7 @@ class Model():
         with open(fname,'wb') as f:
             cPickle.dump(m,f,cPickle.HIGHEST_PROTOCOL)
 
-    def loadModel(self,fname):
+    def load_model(self,fname):
         with open(fname,'rb') as f:
             d = cPickle.load(f)
         self.from_dict(d['model'])
@@ -283,59 +296,4 @@ class Model():
         outs = xnn.layers.get_output(layers,inputs=X,deterministic=True)
         outs = dict([(layer_name,out.eval()) for layer_name,out in zip(layer_names,outs)])
         return outs
-
-def model_test():
-    import pprint
-
-    m = Model('test model')
-    l_in  = m.addLayer(xnn.layers.InputLayer(shape=(10,200)), name="l_in")
-    l_h1  = m.addLayer(xnn.layers.DenseLayer(l_in, 100), name="l_h1")
-    l_out = m.addLayer(xnn.layers.DenseLayer(l_h1, 200), name="l_out")
-
-    m.bindInput(l_in, "pixels")
-    m.bindOutput(l_h1, xnn.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bindOutput(l_out, xnn.objectives.mse, "l_in", "recon", "mean")
-
-
-    m2    = Model('test convenience')
-    l_in  = m2.makeBoundInputLayer((10,200),'pixels')
-    l_out = m2.makeDenseDropStack(l_in,[60,3,2],[.6,.4,.3])
-    l_mer = xnn.layers.MergeLayer([l_in, l_out])
-    m2.addLayer(l_mer,name='merger')
-    m2.bindOutput(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean')
-
-    serialized = m.to_dict()
-    pprint.pprint(serialized)
-
-    serialized = m2.to_dict()
-    pprint.pprint(serialized)
-
-    m3 = Model('test serialize')
-    m3.from_dict(serialized)
-    pprint.pprint(m3.to_dict())
-    m3.saveModel('modelout')
-
-    m4 = Model('test load')
-    m4.loadModel('modelout')
-
-    assert np.allclose(m4.layers['l__dense_2'].W.get_value(),m3.layers['l__dense_2'].W.get_value())
-    assert ~np.allclose(m4.layers['l__dense_2'].W.get_value(),m2.layers['l__dense_2'].W.get_value())
-
-    data = dict(
-        pixels=np.random.rand(10,200),
-            )
-
-    out4 = m4.predict(data,['l__drop_2'])
-    out3 = m3.predict(data,['l__drop_2'])
-
-    print out3['l__drop_2']
-    print out4['l__drop_2']
-
-    assert np.allclose(out4['l__drop_2'],out3['l__drop_2'])
-
-    return True
-
-
-if __name__ == "__main__":
-    model_test()
 

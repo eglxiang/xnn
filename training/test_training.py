@@ -15,13 +15,13 @@ def test_train():
 
 
     m = Model('test model cpu')
-    l_in = m.addLayer(layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
-    l_h1 = m.addLayer(layers.DenseLayer(l_in, num_hid), name="l_h1")
-    l_out = m.addLayer(layers.DenseLayer(l_h1, img_size), name="l_out")
+    l_in = m.add_layer(layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
+    l_h1 = m.add_layer(layers.DenseLayer(l_in, num_hid), name="l_h1")
+    l_out = m.add_layer(layers.DenseLayer(l_h1, img_size), name="l_out")
 
-    m.bindInput(l_in, "pixels")
-    m.bindOutput(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bindOutput(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
+    m.bind_input(l_in, "pixels")
+    m.bind_output(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
+    m.bind_output(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
 
     global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
 
