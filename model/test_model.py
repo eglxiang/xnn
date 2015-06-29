@@ -32,6 +32,8 @@ def _build_model():
     m2.add_layer(l_loc)
     l_out= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out')
     m2.bind_output(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean',is_eval_output=True)
+    l_out2= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out2')
+    m2.bind_output(l_out2, xnn.objectives.hinge_loss(threshold=2), 'age','label','mean',is_eval_output=False)
     return m2
 
 def test_convenience_build():
@@ -40,35 +42,42 @@ def test_convenience_build():
 
 def test_serialization():
     m2 = _build_model()
-    serialized = m2.to_dict()
+    serialized_old = m2.to_dict()
     print "original model"
-    pprint.pprint(serialized)
+    pprint.pprint(serialized_old)
 
     m3 = Model('test serialize')
-    m3.from_dict(serialized)
+    m3.from_dict(serialized_old)
     print "model loaded from dict"
     pprint.pprint(m3.to_dict())
     data = dict(
         pixels=np.random.rand(10,200),
             )
     m3.save_model('testmodelout')
-    out3 = m3.predict(data,['out'])
+    out3 = m3.predict(data,['out','out2'])
 
-    m4 = Model('test load')
+    m4 = Model('test convenience')
     m4.load_model('testmodelout')
+
+    assert serialized_old == m4.to_dict()
 
     assert np.allclose(m4.layers['l__dense_2'].W.get_value(),m3.layers['l__dense_2'].W.get_value())
     assert ~np.allclose(m4.layers['l__dense_2'].W.get_value(),m2.layers['l__dense_2'].W.get_value())
 
 
-    out4 = m4.predict(data,['out'])
+    out4 = m4.predict(data,['out','out2'])
 
     print 'out pre serialization'
     print out3['out']
     print 'out post serialization'
     print out4['out']
 
+    print 'out2 pre serialization'
+    print out3['out2']
+    print 'out2 post serialization'
+    print out4['out2']
     assert np.allclose(out4['out'],out3['out'])
+    assert np.allclose(out4['out2'],out3['out2'])
 
     return True
 
