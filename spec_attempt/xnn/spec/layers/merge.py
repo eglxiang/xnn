@@ -23,12 +23,12 @@ class ConcatLayer(MultipleParentsLayer):
         super(ConcatLayer, self).__init__(parents, **kwargs)
         self.axis = axis
 
-    def instantiate(self, instantiated_layers, layer_name):
+    def instantiate(self, instantiated_layers, layer_ctr):
         layer_obj = lasagne.layers.merge.ConcatLayer(
             incomings=[instantiated_layers[parent] for parent in self.parents],
             axis=self.axis
         )
-        instantiated_layers[layer_name] = layer_obj
+        instantiated_layers[layer_ctr] = layer_obj
         return layer_obj
 
 class ElemwiseSumLayer(MultipleParentsLayer):
@@ -38,11 +38,11 @@ class ElemwiseSumLayer(MultipleParentsLayer):
         super(ElemwiseSumLayer, self).__init__(parents, **kwargs)
         self.coeffs = coeffs
 
-    def instantiate(self, instantiated_layers, layer_name):
+    def instantiate(self, instantiated_layers, layer_ctr):
         layer_obj = lasagne.layers.merge.ElemwiseSumLayer(
             incomings=[instantiated_layers[parent] for parent in self.parents],
             nonlinearity=self.nonlinearity.instantiate(),
             coeffs=self.coeffs
         )
-        instantiated_layers[layer_name] = layer_obj
+        instantiated_layers[layer_ctr] = layer_obj
         return layer_obj

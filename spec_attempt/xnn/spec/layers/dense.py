@@ -39,7 +39,7 @@ class DenseLayer(SingleParentLayer):
         outdict['nonlinearity'] = self.nonlinearity.to_dict()
         return outdict
 
-    def instantiate(self, instantiated_layers, layer_name):
+    def instantiate(self, instantiated_layers, layer_ctr):
         layer_obj = lasagne.layers.dense.DenseLayer(
             incoming=instantiated_layers[self.parent],
             num_units=self.num_units,
@@ -47,5 +47,5 @@ class DenseLayer(SingleParentLayer):
             b=self.binit.instantiate(),
             nonlinearity=self.nonlinearity.instantiate()
         )
-        instantiated_layers[layer_name] = layer_obj
+        instantiated_layers[layer_ctr] = layer_obj
         return layer_obj

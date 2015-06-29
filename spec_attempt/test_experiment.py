@@ -69,10 +69,10 @@ def create_spec(cond=Condition()):
     seqmlp.add_channel_set(aus)
 
     seqmlp.bind_output(
-        layername  = "labels",
-        settings   = Output(
-            loss   = categorical_crossentropy(),
-            target = ChannelsTarget(channelsets=[aus])
+        layerctr=seqmlp.get_layer("labels"),
+        settings=Output(
+            loss=categorical_crossentropy(),
+            target=ChannelsTarget(channelsets=[aus])
         )
     )
 

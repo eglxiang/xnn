@@ -26,10 +26,11 @@ class DropoutLayer(SingleParentLayer):
         self.p=p
         self.rescale=rescale
 
-    def instantiate(self,instantiated_layers, layer_name):
+    def instantiate(self,instantiated_layers, layer_ctr):
         layer_obj = lasagne.layers.noise.DropoutLayer(
             incoming=self.parent,
             p=self.p,
             rescale=self.rescale
         )
+        instantiated_layers[layer_ctr] = layer_obj
         return layer_obj

@@ -5,6 +5,17 @@ from numbers import Number
 import lasagne.layers.base
 # from spec.layers.conv import *
 
+class LayerContainer():
+    """
+    A struct for keeping track of auxiliary information for a layer spec.
+    """
+    def __init__(self, name, layer, type, output_settings=None, update_settings=None):
+        self.name = name
+        self.layer = layer
+        self.type = type
+        self.output_settings = output_settings
+        self.update_settings = update_settings
+
 class Layer(object):
     """Base class for layer specification."""
     def __init__(self, **kwargs):
@@ -41,14 +52,14 @@ class InputLayer(Layer):
         super(InputLayer, self).__init__(**kwargs)
         self.shape = shape
 
-    def instantiate(self, instantiated_layers, layer_name):
+    def instantiate(self, instantiated_layers, layer_ctr):
         """Instantiates a Lasagne InputLayer object with specified properties.
         :param instantiated_layers: A dictionary of <layer name>:<instantiated layer> objects.
-        :param layer_name: A string representing the layer's name.
+        :param layer_ctr: A LayerContainer object.
         :return: Returns a Lasagne InputLayer object.
         """
         layer_obj = lasagne.layers.input.InputLayer(shape=self.shape)
-        instantiated_layers[layer_name] = layer_obj
+        instantiated_layers[layer_ctr] = layer_obj
         return layer_obj
 
 class SingleParentLayer(Layer):
@@ -56,24 +67,34 @@ class SingleParentLayer(Layer):
     who take one and only one parent as input, such as a DenseLayer.
     """
     def __init__(self, parent, **kwargs):
-        """Throws an error if the parent is not a string.
-        :param parent: string referring to this layer's parent.
+        """Throws an error if the parent is not a LayerContainer object.
+        :param parent: LayerContainer object referring to this layer's parent.
         """
-        if not isinstance(parent, str):
-            raise TypeError("parent must be a string.")
+        if not isinstance(parent, LayerContainer):
+            raise TypeError("parent must be a LayerContainer.")
         super(SingleParentLayer, self).__init__(**kwargs)
         self.parent = parent
+
+    def to_dict(self):
+        properties = super(SingleParentLayer, self).to_dict()
+        properties['parent'] = self.parent.name
+        return properties
 
 class MultipleParentsLayer(Layer):
     """The MultipleParentsLayer class is an interface for layer spec types
     who take a list of parents as inputs, such as a ConcatLayer.
     """
     def __init__(self, parents, **kwargs):
-        """Throws an error if the parents variable is not a list of strings.
-        :param parents: list of strings referring to this layer's parents.
+        """Throws an error if the parents variable is not a list of LayerContainer objects.
+        :param parents: list of LayerContainer objects referring to this layer's parents.
         """
         if not isinstance(parents, list) \
-                or any(not isinstance(x, str) for x in parents):
-            raise TypeError("parents must be a list of strings.")
+                or any(not isinstance(x, LayerContainer) for x in parents):
+            raise TypeError("parents must be a list of LayerContainer objects.")
         super(MultipleParentsLayer, self).__init__(**kwargs)
         self.parents = parents
+
+    def to_dict(self):
+        properties = super(MultipleParentsLayer, self).to_dict()
+        properties['parents'] = [parent.name for parent in self.parents]
+        return properties

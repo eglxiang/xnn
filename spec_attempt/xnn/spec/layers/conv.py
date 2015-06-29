@@ -136,7 +136,7 @@ class Conv1DLayer(ConvLayer):
                  binit, nonlinearity,
                  convolution, **kwargs)
 
-    def instantiate(self, instantiated_layers, layer_name):
+    def instantiate(self, instantiated_layers, layer_ctr):
         layer_obj = lasagne.layers.conv.Conv1DLayer(
             incoming=instantiated_layers[self.parent],
             num_filters=self.num_filters,
@@ -149,7 +149,7 @@ class Conv1DLayer(ConvLayer):
             nonlinearity=self.nonlinearity.instantiate(),
             convolution=self.convolution.instantiate()
         )
-        instantiated_layers[layer_name] = layer_obj
+        instantiated_layers[layer_ctr] = layer_obj
         return layer_obj
 
 class Conv2DLayer(ConvLayer):
@@ -165,7 +165,7 @@ class Conv2DLayer(ConvLayer):
                  binit, nonlinearity,
                  convolution, **kwargs)
 
-    def instantiate(self, instantiated_layers, layer_name):
+    def instantiate(self, instantiated_layers, layer_ctr):
         layer_obj = lasagne.layers.conv.Conv2DLayer(
             incoming=instantiated_layers[self.parent],
             num_filters=self.num_filters,
@@ -178,6 +178,6 @@ class Conv2DLayer(ConvLayer):
             nonlinearity=self.nonlinearity.instantiate(),
             convolution=self.convolution.instantiate()
         )
-        instantiated_layers[layer_name] = layer_obj
+        instantiated_layers[layer_ctr] = layer_obj
         return layer_obj
 

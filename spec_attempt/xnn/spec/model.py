@@ -1,19 +1,9 @@
 from .output import *
 from .layers import base
+from .layers.base import LayerContainer
 from .settings import *
 from copy import deepcopy
 import sys
-
-class LayerContainer():
-    """
-    A struct for keeping track of auxiliary information for a layer spec.
-    """
-    def __init__(self, name, layer, type, output_settings=None, update_settings=None):
-        self.name            = name
-        self.layer           = layer
-        self.type            = type
-        self.output_settings = output_settings
-        self.update_settings = update_settings
 
 class Model(object):
     """
@@ -50,16 +40,14 @@ class Model(object):
                 modeldict['updates'].append(update_settings)
         return modeldict
 
-    def bind_output(self, layername, settings=Output()):
+    def bind_output(self, layerctr, settings=Output()):
         if not isinstance(settings, Output):
             raise TypeError("settings must be an object of type Output.")
-        layerctr = self.get_layer(layername)
         layerctr.output_settings = settings
 
-    def bind_param_update_settings(self, layername, settings=ParamUpdateSettings()):
+    def bind_param_update_settings(self, layerctr, settings=ParamUpdateSettings()):
         if not isinstance(settings, ParamUpdateSettings):
             raise TypeError("settings must be an object of type ParamUpdateSettings")
-        layerctr = self.get_layer(layername)
         if layerctr.layer.has_learned_params:
             layerctr.update_settings = settings
         else:
@@ -121,7 +109,7 @@ class Model(object):
         layers = []
         for layerctr in self.layers:
             layername = layerctr.name
-            layerobj = layerctr.layer.instantiate(self.instantiated_layers, layername)
+            layerobj = layerctr.layer.instantiate(self.instantiated_layers, layerctr)
             layerdata = dict(
                 layer=layerobj,
                 name=layername
@@ -149,5 +137,5 @@ class Sequential(Model):
         if len(self.layers) == 0:
             layer_spec = layer_type(**kwargs)
         else:
-            layer_spec = layer_type(parent=self.last().name, **kwargs)
+            layer_spec = layer_type(parent=self.last(), **kwargs)
         super(Sequential, self).add(layer_spec, name=name)
