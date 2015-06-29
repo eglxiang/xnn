@@ -57,6 +57,10 @@ def test_train():
     trainer = Trainer(m,trainer_settings)
     batch_dict=dict(batch_index=0)
     outs = trainer.train_step(batch_dict)
+    trainer.bindUpdate(l_h1,ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    outs = trainer.train_step(batch_dict)
+    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
+    outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"
     return True
