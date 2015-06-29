@@ -60,10 +60,10 @@ class Model():
         self.add_layer(droplayer,name=name)
         return droplayer
 
-    def make_dense_layer(self,parentlayer,num_hidden,nonlinearity=None,name=None):
+    def make_dense_layer(self,parentlayer,num_units,nonlinearity=None,name=None):
         if nonlinearity is None:
             nonlinearity = xnn.nonlinearities.rectify
-        denselayer = xnn.layers.DenseLayer(parentlayer,num_units=num_hidden,nonlinearity=nonlinearity)
+        denselayer = xnn.layers.DenseLayer(parentlayer,num_units=num_units,nonlinearity=nonlinearity)
         if name is None:
             name = self._get_unique_name_from_layer(denselayer)
             denselayer.name = name
@@ -79,12 +79,12 @@ class Model():
         self.bind_input(lin,inputlabelkey)
         return lin
 
-    def make_dense_drop_stack(self,parent_layer,num_hidden_list=None,drop_p_list=None,nonlin_list=None,namebase=None,drop_type_list=None):
+    def make_dense_drop_stack(self,parent_layer,num_units_list=None,drop_p_list=None,nonlin_list=None,namebase=None,drop_type_list=None):
         pl = parent_layer
         if namebase is None:
             namebase="l_"
-        for i in xrange(len(num_hidden_list)):
-            nhu        = num_hidden_list[i]
+        for i in xrange(len(num_units_list)):
+            nhu        = num_units_list[i]
             p          = drop_p_list[i] if drop_p_list is not None else 0.5
             nl         = nonlin_list[i] if nonlin_list is not None else xnn.nonlinearities.rectify
             dt         = drop_type_list[i] if drop_type_list is not None else 'standard'
@@ -104,7 +104,7 @@ class Model():
         self.inputs[input_key].append(input_layer)
 
     def bind_output(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', is_eval_output=False, weight_key=None):
-        aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum']
+        aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum','nanmean','nansum','nanweighted_mean','nanweighted_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
             raise ValueError("Invalid aggregation type. Expected one of: %s" % aggregation_types)
