@@ -1,6 +1,7 @@
 import xnn
 import numpy as np
 import theano
+import theano.tensor as T
 
 # collection of tests for XNN layers to check correctness
 # Run with nosetests
@@ -126,12 +127,18 @@ def test_local():
     assert np.alltrue(localmask.sum(axis=0) == side**2)
 
     acts = l_ll.get_output_for(l_in.input_var)
-    f    = theano.function([l_in.input_var], acts)
+    targs = T.matrix()
+    cost = T.abs_(targs-acts).mean()
+
+    updates=[[l_ll.W,l_ll.W+0.001*T.grad(cost,l_ll.W)]]
+
+    f    = theano.function([l_in.input_var,targs], acts,updates=updates)
 
     inputs = np.random.rand(batchsize, numdims).astype(theano.config.floatX)
+    targets = np.random.rand(batchsize,numunits).astype(theano.config.floatX)
 
     # This just makes sure the forward function computes without error
-    outs = f(inputs)
+    outs = f(inputs,targets)
 
     return True
 
