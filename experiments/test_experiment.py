@@ -33,7 +33,7 @@ def test_experiment():
 
         global_update_settings = ParamUpdateSettings(learning_rate=cond.lr, momentum=cond.mom)
 
-        trainer_settings = TrainerSettings(update_settings=global_update_settings)
+        trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
         trainer = Trainer(m,trainer_settings)
 
         return trainer
