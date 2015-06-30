@@ -2,7 +2,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 #
-from lasagne import init
+from .. import init
 from .. import nonlinearities
 from .. import utils
 from ..layers import Layer, InputLayer, Conv2DLayer
@@ -11,7 +11,6 @@ from ..layers import Layer, InputLayer, Conv2DLayer
 __all__ = [
     "LocalLayer"
 ]
-
 
 class LocalLayer(Layer):
     def __init__(self, incoming, num_units, img_shape, local_filters,
@@ -133,9 +132,8 @@ class LocalLayer(Layer):
         return True
 
     def _set_weight_params(self, W, b, input_shape, num_units, localmask):
-            w_params = self.add_param(W, (self.num_inputs*input_shape[1], num_units))
-            w_params = w_params.get_value() * localmask
-            W        = theano.shared(w_params,'W')
+            W = self.add_param(init.MaskedInit(W,localmask), (self.num_inputs*input_shape[1], num_units))
+            print W.eval()
             self.W   = W
             self.b   = self.add_param(b, (num_units,)) if b is not None else None
 

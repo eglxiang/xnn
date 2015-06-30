@@ -1,4 +1,4 @@
-from lasagne import init,regularization,theano_extensions,updates
+from lasagne import regularization,theano_extensions,updates
 import model
 import layers
 import experiments
@@ -8,7 +8,7 @@ import training
 import nonlinearities
 import utils
 import objectives
-
+import init
 
 ######## HACK THAT MAY NOT BE NECESSARY IN THE FUTURE ########
 import warnings
