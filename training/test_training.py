@@ -14,7 +14,8 @@ def test_train():
 
     m = Model('test model cpu')
     l_in = m.add_layer(layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
-    l_h1 = m.add_layer(layers.DenseLayer(l_in, num_hid), name="l_h1")
+    l_loc = m.add_layer(layers.LocalLayer(l_in,num_units=3,img_shape=(2,5),local_filters=[(2,1)]))
+    l_h1 = m.add_layer(layers.DenseLayer(l_loc, num_hid), name="l_h1")
     l_out = m.add_layer(layers.DenseLayer(l_h1, img_size), name="l_out")
 
     m.bind_input(l_in, "pixels")
