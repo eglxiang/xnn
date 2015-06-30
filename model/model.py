@@ -14,6 +14,7 @@ class Model():
         self.inputs  = OrderedDict()
         self.outputs = OrderedDict()
         self.eval_outputs = OrderedDict()
+        self._predict_func = None
 
     def add_layer(self,layer,name=None):
         if name is None and layer.name is not None:
@@ -304,27 +305,46 @@ class Model():
         all_layers = [self.layers[k] for k in self.layers.keys()]
         xnn.layers.set_all_param_values(all_layers,d['params'])
 
+    def _get_tensor(self,layer):
+        variable_type_dict = {
+            2:T.matrix,
+            3:T.tensor3,
+            4:T.tensor4
+        }
+        ldim = len(layer.shape)
+        assert ldim in variable_type_dict
+        var_type = variable_type_dict[ldim]
+        return var_type(layer.name)
+
+    def _get_predict(self):
+        dataDict = dict()
+        ins = []
+        for k in self.inputs:
+            for l in self.inputs[k]:
+                i = self._get_tensor(l)
+                ins.append(i)
+                dataDict[l]=i
+        outs = xnn.layers.get_output(self.layers.values(),inputs=dataDict,deterministic=True)
+        f = theano.function(ins,outs)
+        self._predict_func = f
+
     def predict(self,datadict,layer_names=None):
+        f = self._predict_func
+        if f is None:
+            self._get_predict()
+            f = self._predict_func
+        ins = []
+        if isinstance(datadict,dict):
+            for k in self.inputs:
+                for l in self.inputs[k]:
+                    ins.append(datadict[k])
+        else:
+            ins = [datadict] * len(self.inputs)
+        outs = f(*ins)
         if layer_names is None:
             layer_names = self.layers.keys()
-            layers = self.layers.values()
-        else:
-            layers = []
-            if type(layer_names) == str:
-                layer_names = [layer_names]
-            for layer_name in layer_names:
-                assert layer_name in self.layers
-                layers.append(self.layers[layer_name])
-
-        if isinstance(datadict,dict):
-            X = dict()
-            for labelkey,layerlist in self.inputs.iteritems():
-                for layer in layerlist:
-                    X[layer]=datadict[labelkey]
-        else:
-            X = datadict
-
-        outs = xnn.layers.get_output(layers,inputs=X,deterministic=True)
-        outs = dict([(layer_name,out.eval()) for layer_name,out in zip(layer_names,outs)])
-        return outs
-
+        outDict=dict()
+        for i,ln in enumerate(self.layers.keys()):
+            if ln in layer_names:
+                outDict[ln]=outs[i]
+        return outDict
