@@ -54,11 +54,15 @@ class BatchNormLayer(Layer):
         means  = init.Constant(val=0)
         stdevs = init.Constant(val=1)
 
-        self.beta  = self.add_param(beta, (incoming.output_shape[1],))
-        self.gamma = self.add_param(gamma, (incoming.output_shape[1],))
+        input_shape = incoming.output_shape # batch_size, channels, width * height
+        if len(input_shape) > 2:
+            input_shape = [input_shape[0],np.prod(input_shape[1:])]
 
-        self.means  = self.add_param(means, (incoming.output_shape[1],))
-        self.stdevs = self.add_param(stdevs, (incoming.output_shape[1],))
+        self.beta  = self.add_param(beta, (input_shape[1],))
+        self.gamma = self.add_param(gamma, (input_shape[1],))
+
+        self.means  = self.add_param(means, (input_shape[1],))
+        self.stdevs = self.add_param(stdevs, (input_shape[1],))
 
         self.means_updates  = []
         self.stdevs_updates = []
@@ -69,6 +73,14 @@ class BatchNormLayer(Layer):
         gamma  = self.gamma
         means  = self.means
         stdevs = self.stdevs
+
+        output_shape = input.shape
+
+        if input.ndim > 2:
+            # if the input has more than two dimensions, flatten it into a
+            # batch of feature vectors.
+            input = input.flatten(2)
+
         if deterministic == False:
             m = T.mean(input, axis=0, keepdims=False)
             s = T.sqrt(T.var(input, axis=0, keepdims=False) + self.eta)
@@ -88,7 +100,7 @@ class BatchNormLayer(Layer):
         # transform normalized outputs based on learned shift and scale
         if self.learn_transform is True:
             output = gamma * output + beta
-
+        output = output.reshape(output_shape)
         return self.nonlinearity(output)
 
         # TODO: Deal with eval_output_activation
