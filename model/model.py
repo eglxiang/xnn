@@ -319,7 +319,9 @@ class Model():
     def _get_predict(self,data_dict,data_in_gpu):
         ins = []
         givens = dict()
-        if not data_in_gpu:
+        if data_in_gpu:
+            data_dict = dict([(self.layers[ln],data_dict[ln]) for ln in data_dict)])
+        else:
             data_dict = dict()
             for k in self.inputs:
                 for l in self.inputs[k]:
