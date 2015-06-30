@@ -240,4 +240,6 @@ def typechecker(f):
             if type(a)==type(tmp):
                 return f(*args,**kwargs)
         return f(*args,**kwargs).eval()
-    return typecheck
+    tc = typecheck
+    tc.__name__ = f.__name__
+    return tc
