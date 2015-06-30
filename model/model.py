@@ -320,7 +320,7 @@ class Model():
         ins = []
         givens = dict()
         if data_in_gpu:
-            data_dict = dict([(self.layers[ln],data_dict[ln]) for ln in data_dict)])
+            data_dict = dict([(self.layers[ln],data_dict[ln]) for ln in data_dict])
         else:
             data_dict = dict()
             for k in self.inputs:
