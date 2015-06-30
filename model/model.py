@@ -316,30 +316,33 @@ class Model():
         var_type = variable_type_dict[ldim]
         return var_type(layer.name)
 
-    def _get_predict(self):
-        dataDict = dict()
+    def _get_predict(self,data_dict,data_in_gpu):
         ins = []
-        for k in self.inputs:
-            for l in self.inputs[k]:
-                i = self._get_tensor(l)
-                ins.append(i)
-                dataDict[l]=i
-        outs = xnn.layers.get_output(self.layers.values(),inputs=dataDict,deterministic=True)
+        givens = dict()
+        if not data_in_gpu:
+            data_dict = dict()
+            for k in self.inputs:
+                for l in self.inputs[k]:
+                    i = self._get_tensor(l)
+                    ins.append(i)
+                    data_dict[l]=i
+        outs = xnn.layers.get_output(self.layers.values(),inputs=data_dict,deterministic=True)
         f = theano.function(ins,outs)
         self._predict_func = f
 
-    def predict(self,datadict,layer_names=None):
+    def predict(self,data_dict,layer_names=None,data_in_gpu=False):
         f = self._predict_func
         if f is None:
-            self._get_predict()
+            self._get_predict(data_dict,data_in_gpu)
             f = self._predict_func
         ins = []
-        if isinstance(datadict,dict):
-            for k in self.inputs:
-                for l in self.inputs[k]:
-                    ins.append(datadict[k])
-        else:
-            ins = [datadict] * len(self.inputs)
+        if not data_in_gpu:
+            if isinstance(data_dict,dict):
+                for k in self.inputs:
+                    for l in self.inputs[k]:
+                        ins.append(data_dict[k])
+            else:
+                ins = [data_dict] * len(self.inputs)
         outs = f(*ins)
         if layer_names is None:
             layer_names = self.layers.keys()
