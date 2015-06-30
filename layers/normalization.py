@@ -2,6 +2,7 @@ from ..layers import Layer
 from  .. import nonlinearities
 from lasagne import init
 import theano.tensor as T
+import numpy as np
 
 
 __all__ = [

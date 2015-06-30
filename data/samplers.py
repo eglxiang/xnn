@@ -3,7 +3,7 @@ from copy import deepcopy
 import theano
 
 class Sampler(object):
-    def __init__(self, pooler,keysamplers=[],samplemethod='uniform',batchsize=128, numbatches=None, nanOthers=False):
+    def __init__(self, pooler,keysamplers=[],samplemethod='sequential',batchsize=128, numbatches=None, nanOthers=False):
         self.POSSIBLE_METHODS = {'uniform','balance','sequential'}
         self.pooler = pooler
         self.batchsize=batchsize

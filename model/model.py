@@ -311,7 +311,7 @@ class Model():
             3:T.tensor3,
             4:T.tensor4
         }
-        ldim = layer.ndim
+        ldim = len(layer.shape)
         assert ldim in variable_type_dict
         var_type = variable_type_dict[ldim]
         return var_type(layer.name)
@@ -332,6 +332,7 @@ class Model():
         f = self._predict_func
         if f is None:
             self._get_predict()
+            f = self._predict_func
         ins = []
         if isinstance(datadict,dict):
             for k in self.inputs:
