@@ -13,7 +13,8 @@ __all__ = [
     "squared_hinge_loss",
     "binary_crossentropy",
     "categorical_crossentropy",
-    "cross_covariance"
+    "cross_covariance",
+    "ScaledObjective"
 ]
 
 
@@ -147,4 +148,13 @@ def from_dict(objdict):
     o = getattr(xnn.objectives,name)()
     o.from_dict(objdict)
     return o
+
+
+class ScaledObjective(object):
+    def __init__(self, objective, scale=1.0):
+        self.objective = objective
+        self.scale = scale
+
+    def __call__(self, x, t):
+        return self.scale * self.objective(x, t)
 
