@@ -162,7 +162,9 @@ class ScaledObjective(object):
     def to_dict(self):
         outdict = self.__dict__.copy()
         outdict['name']='ScaledObjective'
+        outdict['objective'] = self.objective.__name__
 
     def from_dict(self,d):
+        self.objective = getattr(xnn.objectives,d['objective'])
         self.scale = d['scale']
 

@@ -144,7 +144,7 @@ class BinarySampler(object):
         try:
             exampleInd = np.random.choice(np.where(labels.flatten()==pickPosNeg)[0],size=1)
         except:
-            exampleInd = np.random.choice(np.arange(labelsCT.shape[0]),size=1)
+            exampleInd = np.random.choice(np.arange(labels.shape[0]),size=1)
         self._add_one_sample(exampleInd[0],labels)
         return exampleInd[0]
 
