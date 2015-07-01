@@ -159,3 +159,10 @@ class ScaledObjective(object):
     def __call__(self, x, t):
         return self.scale * self.objective(x, t)
 
+    def to_dict(self):
+        outdict = self.__dict__.copy()
+        outdict['name']='ScaledObjective'
+
+    def from_dict(self,d):
+        self.scale = d['scale']
+
