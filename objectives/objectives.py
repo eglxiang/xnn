@@ -1,3 +1,4 @@
+import theano
 import theano.tensor as T
 import xnn
 from ..utils import typechecker
@@ -11,7 +12,8 @@ __all__ = [
     "from_dict",
     "squared_hinge_loss",
     "binary_crossentropy",
-    "categorical_crossentropy"
+    "categorical_crossentropy",
+    "cross_covariance"
 ]
 
 
@@ -94,6 +96,49 @@ class squared_hinge_loss():
         self.gamma = d['gamma']
 # convenience for typical squared hinge loss
 regular_squared_hinge_loss = squared_hinge_loss(threshold=0, gamma=2.0)
+
+
+class cross_covariance():
+    def __init__(self, groups, mode='min'):
+        """
+        :param groups: a list of lists containing indices into data that define each group to compute cross-covariance
+        :param mode: 'min' or 'max' to minimize or maximize the cross-covariance
+        """
+        if mode not in ['min', 'max']:
+            raise Exception("mode must be either 'minimize' or 'maximize'")
+        self.groups = groups
+        self.mode = mode
+
+    @typechecker
+    def __call__(self, x, t):
+        allg = set(range(len(self.groups)))
+        ccov = T.zeros((1,), dtype=theano.config.floatX)
+        for g1 in range(len(self.groups)-1):
+            subsetg2 = allg.copy()
+            subsetg2.remove(g1)
+            for g2 in subsetg2:
+                group1 = self.groups[g1]
+                group2 = self.groups[g2]
+                x_ = x[:, group1]
+                t_ = t[:, group2]
+                xmean = x_.mean(axis=0, keepdims=True)
+                tmean = t_.mean(axis=0, keepdims=True)
+
+                xcov = T.dot( (x_-xmean).T, (t_-tmean) )
+                cmat = ((1.0/x_.shape[0]) * xcov)**2
+                ccov += .5 * cmat.sum()
+        if self.mode == 'min':
+            return ccov
+        elif self.mode == 'max':
+            return -ccov
+
+    def to_dict(self):
+        outdict = self.__dict__.copy()
+        outdict['name'] = 'cross_covariance'
+
+    def from_dict(self,d):
+        self.groups = d['groups']
+        self.mode = d['mode']
 
 
 #TODO:  fill in from_dict so that model can load objective objects from their serialized representation

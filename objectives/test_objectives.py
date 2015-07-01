@@ -102,9 +102,34 @@ def test_squared_hinge_loss():
     return True
 
 
+def test_cross_covariance():
+    x = T.matrix()
+    t = T.matrix()
+
+    groups = [ [0,1,2], [3,4,5,6] ]
+    y = cross_covariance(groups, 'min')(x, t)
+
+    f = theano.function([x,t], y)
+
+    a = np.random.randn(100, 3).astype(theano.config.floatX)
+    b = np.random.randn(100, 4).astype(theano.config.floatX)
+    c = np.concatenate((a,b), axis=1)
+
+    xcov = np.cov(a, b, bias=1, rowvar=0)
+    xcov = xcov[0:3, 3:]
+    cmat = xcov**2
+    expected = .5 * cmat.sum()
+    actual = f(c, c)[0]
+    assert np.isclose(actual, expected)
+
+    decorated = cross_covariance(groups, 'min')(c, c)
+    assert np.allclose(actual, decorated, rtol=1.e-4, atol=1.e-4)
+
+    return True
 
 if __name__ == '__main__':
     print 'test_absolute_error:', test_absolute_error()
     print 'test_kl_divergence:', test_kl_divergence()
     print 'test_hinge_loss:', test_hinge_loss()
     print 'test_squared_hinge_loss:', test_squared_hinge_loss()
+    print 'test_cross_covariance:', test_cross_covariance()
