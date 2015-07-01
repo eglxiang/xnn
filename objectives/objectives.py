@@ -124,9 +124,10 @@ class cross_covariance():
                 t_ = t[:, group2]
                 xmean = x_.mean(axis=0, keepdims=True)
                 tmean = t_.mean(axis=0, keepdims=True)
-
-                xcov = T.dot( (x_-xmean).T, (t_-tmean) )
-                cmat = ((1.0/x_.shape[0]) * xcov)**2
+                xdiff = x_ - xmean
+                tdiff = t_ - tmean
+                xcov = (1./x_.shape[0]) * T.dot(xdiff.T, tdiff)
+                cmat = T.sqr(xcov)
                 ccov += .5 * cmat.sum()
         if self.mode == 'min':
             return ccov
