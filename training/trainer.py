@@ -39,7 +39,7 @@ class Trainer(object):
     def __init__(self, model, trainerSettings = TrainerSettings()):
         self.__dict__.update(trainerSettings.__dict__)
         self.layer_updates = dict()
-        self._set_model(model)
+        self.set_model(model)
         self.train_func = None
 
     def bindUpdate(self, layerlist, update_settings):
@@ -53,16 +53,17 @@ class Trainer(object):
             self.layer_updates[layer] = update_settings
 
     def bindGlobalUpdate(self, update_settings, overwrite=False):
-        self.update_settings = update_settings
+        self.global_update_settings = update_settings
         if overwrite:
             self.layer_updates=dict()
-        layers = [l for l in self.layers.values() if l not in self.layer_updates]
+        layers = [l for l in self.model.layers.values() if l not in self.layer_updates]
         for layer in layers:
             prev_settings = self.layer_updates[layer] if layer in self.layer_updates else self.global_update_settings
             if update_settings.update !=  prev_settings.update:
                 self.train_func = None
 
-    def _set_model(self,model):
+    def set_model(self,model):
+        self.layer_updates=dict()
         self.train_func = None
         self.model = model
 
