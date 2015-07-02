@@ -22,7 +22,7 @@ def test_train():
     m.bind_output(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
     m.bind_output(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
 
-    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
+    global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum, learning_rate=0.1, momentum=0.5)
 
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
     trainer = Trainer(m,trainer_settings)
@@ -39,7 +39,7 @@ def test_train():
     outs = trainer.train_step(batch_dict)
     trainer.bindUpdate(l_h1,ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
+    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02, momentum=0.65))
     outs = trainer.train_step(batch_dict)
     
     print "Data on cpu succeeded"
@@ -60,7 +60,7 @@ def test_train():
     outs = trainer.train_step(batch_dict)
     trainer.bindUpdate(l_h1,ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
+    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02, momentum=0.65))
     outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"
@@ -82,7 +82,7 @@ def test_aggregation():
 
     from pprint import pprint
     pprint(m.to_dict())
-    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
+    global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.5)
 
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
     trainer = Trainer(m, trainer_settings)

@@ -4,16 +4,35 @@ import theano.tensor as T
 from .. import layers
 from collections import OrderedDict
 from xnn.utils import Tnanmean, Tnansum
+from inspect import getargspec
+import copy
 
 class ParamUpdateSettings():
     def __init__(self,
-                 update=lasagne.updates.nesterov_momentum,
-                 learning_rate=0.01,
-                 momentum=0.9,
+                 update=None,
+                 **kwargs
                  ):
-        self.update        = update
-        self.learning_rate = learning_rate
-        self.momentum      = momentum
+        self.settings = kwargs
+        self.update = update
+        self.__dict__.update(kwargs)
+
+    def _check_settings(self):
+        settings = self.settings
+        update   = self.update
+        assert update is not None
+        argspec  = getargspec(update)
+        all_args = argspec.args
+        defs     = argspec.defaults
+        ndef     = len(defs) if defs is not None else 0
+        req_args = all_args[2:-ndef] if ndef>0 else all_args[2:]
+        def_args = all_args[-ndef:] if ndef>0 else []
+        assert all([kw in all_args for kw in settings])
+        assert all([req in settings for req in req_args])
+        for dval,darg in zip(defs,def_args):
+            if not darg in settings:
+                settings[darg] = defs[dval]
+        self._update_args = all_args[2:]
+        self.__dict__.update(settings)
 
     def to_dict(self):
         properties           = self.__dict__.copy()
@@ -22,9 +41,10 @@ class ParamUpdateSettings():
 
 class TrainerSettings(object):
     def __init__(self,
-                 global_update_settings=ParamUpdateSettings(),
+                 global_update_settings=ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.01,momentum=0.9),
                  batch_size=128,
                  dataSharedVarDict=None):
+        global_update_settings._check_settings()
         self.global_update_settings = global_update_settings
         self.batch_size             = batch_size
         self.dataSharedVarDict      = dataSharedVarDict
@@ -40,27 +60,37 @@ class Trainer(object):
         self.__dict__.update(trainerSettings.__dict__)
         self.layer_updates = dict()
         self.set_model(model)
-        self.train_func = None
 
     def bindUpdate(self, layerlist, update_settings):
         if type(layerlist) != list:
             layerlist = [layerlist]
         for layer in layerlist:
-            layer = layer if type(layer) == str else layer.name
-            prev_settings = self.layer_updates[layer] if layer in self.layer_updates else self.global_update_settings
-            if update_settings.update !=  prev_settings.update:
+            update_setting = copy.copy(update_settings)
+            layer_name = layer if type(layer) == str else layer.name
+            prev_settings = self.layer_updates[layer_name] if layer_name in self.layer_updates else self.global_update_settings
+            u = update_setting.update
+            if (u is None) or (u == prev_settings.update):
+                update_setting.update = prev_settings.update
+                pdict = dict(prev_settings.settings.items()+update_setting.settings.items())
+                update_setting.settings = pdict
+            else:
                 self.train_func = None
-            self.layer_updates[layer] = update_settings
+            update_setting._check_settings()
+            self.layer_updates[layer_name] = update_setting
 
     def bindGlobalUpdate(self, update_settings, overwrite=False):
+        prev_settings = self.global_update_settings
+        u = update_settings.update
+        if (u is None) or (u == prev_settings.update):
+            update_settings.update = prev_settings.update
+            pdict = dict(prev_settings.settings.items()+update_setting.settings.items())
+            update_settings.settings = pdict
+        else:
+            self.train_func = None
+        update_settings._check_settings()
         self.global_update_settings = update_settings
         if overwrite:
             self.layer_updates=dict()
-        layers = [l for l in self.model.layers.values() if l not in self.layer_updates]
-        for layer in layers:
-            prev_settings = self.layer_updates[layer] if layer in self.layer_updates else self.global_update_settings
-            if update_settings.update !=  prev_settings.update:
-                self.train_func = None
 
     def set_model(self,model):
         self.layer_updates=dict()
@@ -131,15 +161,16 @@ class Trainer(object):
         params = all_layers[layer_name].get_params()
         update = OrderedDict()
         if len(params)>0:
-            lr = T.scalar('lr_%s'%layer_name)
-            mom = T.scalar('mom_%s'%layer_name)
-            ins.append(('learning_rate_%s'%layer_name, lr))
-            ins.append(('momentum_%s'%layer_name, mom))
-            if layer_name in self.layer_updates:
-                update_function = self.layer_updates[layer_name].update
-            else:
-                update_function = self.global_update_settings.update
-            update = update_function(costTotal, params, lr, mom)
+            update_ins = []
+            update_settings = self.layer_updates[layer_name] if layer_name in self.layer_updates else self.global_update_settings
+            update_func = update_settings.update
+            for arg in update_settings._update_args:
+                argname = '%s_%s'%(arg,layer_name)
+                self._all_update_args[argname] = layer_name
+                argvar = T.scalar(argname)
+                update_ins.append(argvar)
+                ins.append((argname,argvar))
+            update = update_func(costTotal, params, *update_ins)
         return update, ins
 
     def _create_train_func(self):
@@ -161,6 +192,7 @@ class Trainer(object):
         costTotal = T.sum(costs)
         # Get updates
         updates = OrderedDict()
+        self._all_update_args = dict()
         for layer_name in all_layers:
             update,ins = self.get_update(layer_name,ins,costTotal)
             updates.update(update)
@@ -202,23 +234,25 @@ class Trainer(object):
         self.insKeys = inkeys
         return self.train_func
 
-    def train_step(self,batch_dict):
-        if self.train_func is None:
-            self.train_func = self._create_train_func()
+    def _sort_ins(self,batch_dict):
         ins = []
-        param_names = ['learning_rate', 'momentum']
+        param_names = self._all_update_args
         for key in self.insKeys:
-            for param in param_names:
-                if param in key:
-                    layer_name = key.split(param+'_')[1]
-                    if layer_name in self.layer_updates:
-                        inval = getattr(self.layer_updates[layer_name], param)
-                    else:
-                        inval = getattr(self.global_update_settings, param)
-                    break
+            if key in param_names:
+                layer_name = param_names[key]
+                param = key.split('_%s'%layer_name)[0]
+                if layer_name in self.layer_updates:
+                    inval = getattr(self.layer_updates[layer_name], param)
+                else:
+                    inval = getattr(self.global_update_settings, param)
             else:
                 inval = batch_dict[key]
             ins.append(inval)
+        return ins
+    def train_step(self,batch_dict):
+        if self.train_func is None:
+            self.train_func = self._create_train_func()
+        ins = self._sort_ins(batch_dict)
         return self.train_func(*ins)
 
     def to_dict(self):

@@ -6,6 +6,7 @@ from xnn.layers import *
 from xnn.objectives import *
 from experiment import *
 import theano
+import lasagne
 
 import numpy as np
 import pprint
@@ -31,7 +32,7 @@ def test_experiment():
         m.bind_output(l_h1, categorical_crossentropy, "emotions", "label", "mean")
         m.bind_output(l_out, squared_error, "l_in", "recon", "mean")
 
-        global_update_settings = ParamUpdateSettings(learning_rate=cond.lr, momentum=cond.mom)
+        global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=cond.lr, momentum=cond.mom)
 
         trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
         trainer = Trainer(m,trainer_settings)
