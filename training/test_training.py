@@ -1,6 +1,7 @@
 # import xnn
 from xnn.model import Model
 from xnn import layers
+import xnn
 from xnn.training.trainer import *
 import numpy as np
 import lasagne
@@ -11,16 +12,7 @@ def test_train():
     img_size = 10
     num_hid = 100
 
-
-    m = Model('test model cpu')
-    l_in = m.add_layer(layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
-    l_loc = m.add_layer(layers.LocalLayer(l_in,num_units=3,img_shape=(2,5),local_filters=[(2,1)]))
-    l_h1 = m.add_layer(layers.DenseLayer(l_loc, num_hid), name="l_h1")
-    l_out = m.add_layer(layers.DenseLayer(l_h1, img_size), name="l_out")
-
-    m.bind_input(l_in, "pixels")
-    m.bind_output(l_h1, lasagne.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bind_output(l_out, lasagne.objectives.squared_error, "l_in", "recon", "mean")
+    m = _build_model(batch_size,img_size,num_hid)
 
     global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
 
@@ -37,9 +29,9 @@ def test_train():
         emotions=emotions
     )
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate(l_h1,ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    trainer.bindUpdate(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
+    trainer.bindUpdate([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
     outs = trainer.train_step(batch_dict)
     
     print "Data on cpu succeeded"
@@ -58,13 +50,69 @@ def test_train():
     trainer = Trainer(m,trainer_settings)
     batch_dict=dict(batch_index=0)
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate(l_h1,ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    trainer.bindUpdate(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([l_in,'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
+    trainer.bindUpdate(['l_in','l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
     outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"
     return True
+
+def test_serialization():
+    batch_size = 2
+    img_size = 10
+    num_hid = 10
+    m = _build_model(batch_size,img_size,num_hid)
+    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.2)
+    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
+    trainer = Trainer(m,trainer_settings)
+
+    pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
+    emotions = np.random.rand(batch_size,num_hid).astype(theano.config.floatX)
+
+    batch_dict = dict(
+        # learning_rate_default=0.1,
+        # momentum_default=0.5,
+        pixels=pixels,
+        emotions=emotions
+    )
+    outs = trainer.train_step(batch_dict)
+    preds = m.predict(batch_dict)
+
+    m.save_model('testtrainerout')
+    m2 = Model('load')
+    m2.load_model('testtrainerout')
+
+    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.2)
+    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
+    trainer2 = Trainer(m2,trainer_settings)
+    preds2 = m.predict(batch_dict)
+    outs  = trainer.train_step(batch_dict)
+    outs2 = trainer2.train_step(batch_dict)
+   
+    assert m.outputs.keys()==m2.outputs.keys()
+
+    for p,p2 in zip(preds.values(),preds2.values()):
+        assert np.allclose(p,p2)
+
+    for o,o2 in zip(outs,outs2):
+        assert np.allclose(o,o2)
+    return True
+
+
+
+
+def _build_model(batch_size,img_size,num_hid):    
+    m = Model('test model cpu')
+    l_in = m.add_layer(layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
+    l_loc = m.add_layer(layers.LocalLayer(l_in,num_units=3,img_shape=(2,5),local_filters=[(2,1)]))
+    l_h1 = m.add_layer(layers.DenseLayer(l_loc, num_hid), name="l_h1")
+    l_out = m.add_layer(layers.DenseLayer(l_h1, img_size), name="l_out")
+
+    m.bind_input(l_in, "pixels")
+    m.bind_output(l_h1, xnn.objectives.kl_divergence, "emotions", "label", "mean")
+    m.bind_output(l_out, xnn.objectives.squared_error, "l_in", "recon", "mean")
+    return m
 
 def test_aggregation():
     batch_size = 128
@@ -80,8 +128,8 @@ def test_aggregation():
     m.bind_output(l_out_mean, lasagne.objectives.squared_error, "emotions", "label", "mean")
     m.bind_output(l_out_sum, lasagne.objectives.squared_error, "emotions", "label", "sum")
 
-    from pprint import pprint
-    pprint(m.to_dict())
+    #from pprint import pprint
+    #pprint(m.to_dict())
     global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
 
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
@@ -105,3 +153,4 @@ def test_aggregation():
 if __name__ == '__main__':
     print test_train()
     print test_aggregation()
+    print test_serialization()

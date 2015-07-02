@@ -54,7 +54,7 @@ __all__=['metric_types','metric_names','Metric',
 metric_types={}
 metric_names={}
 
-class Metric():
+class Metric(object):
     def __init__(self,metric,targkeys,outkeys=None,weightkey=None,aggregation_type='mean',**kwargs):
         if type(metric) == str:
             self.metric = metric_types[metric.lower()]

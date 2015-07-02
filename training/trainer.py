@@ -5,7 +5,7 @@ from .. import layers
 from collections import OrderedDict
 from xnn.utils import Tnanmean, Tnansum
 
-class ParamUpdateSettings():
+class ParamUpdateSettings(object):
     def __init__(self,
                  update=lasagne.updates.nesterov_momentum,
                  learning_rate=0.01,
