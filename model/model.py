@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 __all__=['Model']
 
-class Model():
+class Model(object):
     def __init__(self,name=None):
         self.name    = name
         self.layers  = OrderedDict()
@@ -149,13 +149,13 @@ class Model():
                 ldict = self._layer_to_dict(lname,l)
             ls.append(ldict)
 
-        inputs = dict()
+        inputs = OrderedDict()
         for iname,layers in self.inputs.iteritems():
             inputs.setdefault(iname, [])
             for layer in layers:
                 inputs[iname].append(layer.name)
 
-        outputs = dict()
+        outputs = OrderedDict()
         for oname, output in self.outputs.iteritems():
             if hasattr(output['loss_function'],'to_dict'):
                 lfval = output['loss_function'].to_dict()
@@ -170,7 +170,7 @@ class Model():
                 scale            = output['scale']
             )
 
-        eval_outputs=dict()
+        eval_outputs=OrderedDict()
         for oname, output in self.eval_outputs.iteritems():
             eval_outputs[oname]= dict(
                 output_layer   = output['output_layer'].name,

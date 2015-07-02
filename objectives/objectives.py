@@ -57,7 +57,7 @@ def kl_divergence(predictions, targets, eps=1e-08):
     return T.sum(targets * lograt, axis=1)
 
 
-class hinge_loss():
+class hinge_loss(object):
     # TODO: Add to_dict and from_dict functionality to hinge_loss
     def __init__(self, threshold=0.0):
         self.threshold = threshold
@@ -76,7 +76,7 @@ class hinge_loss():
 regular_hinge_loss = hinge_loss(threshold=0)
 
 
-class squared_hinge_loss():
+class squared_hinge_loss(object):
     # TODO: Add to_dict and from_dict functionality to squared_hinge_loss
     def __init__(self, threshold=0.0, gamma=2.0):
         self.threshold = threshold
@@ -99,7 +99,7 @@ class squared_hinge_loss():
 regular_squared_hinge_loss = squared_hinge_loss(threshold=0, gamma=2.0)
 
 
-class cross_covariance():
+class cross_covariance(object):
     def __init__(self, groups=None, mode='min'):
         """
         :param groups: a list of lists containing indices into data that define each group to compute cross-covariance

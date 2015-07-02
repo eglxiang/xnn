@@ -6,7 +6,7 @@ from copy import deepcopy
 def makeFloatX(labelslist):
     return labelslist[0].astype(theano.config.floatX)
 
-class ageG_to_hard():
+class ageG_to_hard(object):
     def __init__(self, bins=[18,25,35,45,55,65,100]):
         self.bins = bins
 
@@ -37,7 +37,7 @@ class ageG_to_hard():
         return properties
 
 
-class ageG_to_soft():
+class ageG_to_soft(object):
     # TODO: Clean this up
     def __init__(self, bins=[18,25,35,45,55,65,100]):
         self.bins = bins
@@ -68,7 +68,7 @@ class ageG_to_soft():
         properties['funcName']='ageG_to_soft'
         return properties
    
-class pixelPreprocess():
+class pixelPreprocess(object):
     def __init__(self,roi=None,make_grayscale=False,flatten=True):
         self.roi = roi
         self.make_grayscale = make_grayscale 

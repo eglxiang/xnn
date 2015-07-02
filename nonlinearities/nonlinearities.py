@@ -28,7 +28,7 @@ def hardsigmoid(x):
     """
     return theano.tensor.nnet.hard_sigmoid(x)
 
-class scale():
+class scale(object):
     def __init__(self, s=1.0):
         """Specify a floating point number to scale"""
         self.s = s

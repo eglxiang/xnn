@@ -7,7 +7,7 @@ from xnn.utils import Tnanmean, Tnansum
 from inspect import getargspec
 import copy
 
-class ParamUpdateSettings():
+class ParamUpdateSettings(object):
     def __init__(self,
                  update=None,
                  **kwargs
