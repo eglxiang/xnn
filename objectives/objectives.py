@@ -91,6 +91,7 @@ class squared_hinge_loss():
     def to_dict(self):
         outdict = self.__dict__.copy()
         outdict['name'] = 'squared_hinge_loss'
+        return outdict
     
     def from_dict(self,d):
         self.threshold = d['threshold']
@@ -100,7 +101,7 @@ regular_squared_hinge_loss = squared_hinge_loss(threshold=0, gamma=2.0)
 
 
 class cross_covariance():
-    def __init__(self, groups, mode='min'):
+    def __init__(self, groups=None, mode='min'):
         """
         :param groups: a list of lists containing indices into data that define each group to compute cross-covariance
         :param mode: 'min' or 'max' to minimize or maximize the cross-covariance
@@ -137,6 +138,7 @@ class cross_covariance():
     def to_dict(self):
         outdict = self.__dict__.copy()
         outdict['name'] = 'cross_covariance'
+        return outdict
 
     def from_dict(self,d):
         self.groups = d['groups']
@@ -152,7 +154,7 @@ def from_dict(objdict):
 
 
 class ScaledObjective(object):
-    def __init__(self, objective, scale=1.0):
+    def __init__(self, objective=absolute_error, scale=1.0):
         self.objective = objective
         self.scale = scale
 
@@ -163,6 +165,7 @@ class ScaledObjective(object):
         outdict = self.__dict__.copy()
         outdict['name']='ScaledObjective'
         outdict['objective'] = self.objective.__name__
+        return outdict
 
     def from_dict(self,d):
         self.objective = getattr(xnn.objectives,d['objective'])
