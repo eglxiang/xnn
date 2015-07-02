@@ -42,11 +42,9 @@ class ParamUpdateSettings(object):
 class TrainerSettings(object):
     def __init__(self,
                  global_update_settings=ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.01,momentum=0.9),
-                 batch_size=128,
                  dataSharedVarDict=None):
         global_update_settings._check_settings()
         self.global_update_settings = global_update_settings
-        self.batch_size             = batch_size
         self.dataSharedVarDict      = dataSharedVarDict
 
     def to_dict(self):
@@ -204,7 +202,9 @@ class Trainer(object):
         if self.dataSharedVarDict is not None:
             batch_index = T.iscalar('Batch index')
             ins.append(('batch_index', batch_index))
-            batch_slice = slice(batch_index * self.batch_size,(batch_index + 1) * self.batch_size)
+            batch_size = T.iscalar('Batch size')
+            ins.append(('batch_size', batch_size))
+            batch_slice = slice(batch_index * batch_size,(batch_index + 1) * batch_size)
             for input_key,input_layers in self.model.inputs.iteritems():
                 for input_layer in input_layers:
                     ind = [item[0] for item in ins].index(input_key)
