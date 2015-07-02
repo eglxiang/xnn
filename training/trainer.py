@@ -30,7 +30,7 @@ class ParamUpdateSettings():
         assert all([req in settings for req in req_args])
         for dval,darg in zip(defs,def_args):
             if not darg in settings:
-                settings[darg] = defs[dval]
+                settings[darg] = dval
         self._update_args = all_args[2:]
         self.__dict__.update(settings)
 
