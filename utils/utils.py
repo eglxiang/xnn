@@ -5,6 +5,7 @@ import time
 import sys
 import pylab as pl
 import signal
+import pydot
 
 def theano_digitize(x, bins):
     """
@@ -243,3 +244,118 @@ def typechecker(f):
     tc = typecheck
     tc.__name__ = f.__name__
     return tc
+
+def draw_to_file(model, filename, **kwargs):
+    """
+    Draws a network diagram to a file
+    :parameters:
+        - model : list
+            List of the layers, as obtained from lasange.layers.get_all_layers, or model object
+        - filename: string
+            The filename to save output to.
+        - **kwargs: see docstring of _get_pydot_graph for other options
+    """
+    def _get_hex_color(layer_type):
+        """
+        Determines the hex color for a layer. Some classes are given
+        default values, all others are calculated pseudorandomly
+        from their name.
+        :parameters:
+            - layer_type : string
+                Class name of the layer
+
+        :returns:
+            - color : string containing a hex color.
+
+        :usage:
+            >>> color = _get_hex_color('MaxPool2DDNN')
+            '#9D9DD2'
+        """
+
+        if 'Input' in layer_type:
+            return '#A2CECE'
+        if 'Conv' in layer_type:
+            return '#7C9ABB'
+        if ('Dense' in layer_type) or ('Local' in layer_type):
+            return '#6CCF8D'
+        if 'Pool' in layer_type:
+            return '#9D9DD2'
+        else:
+            return '#{0:x}'.format(hash(layer_type) % 2**24)
+
+
+    def _get_pydot_graph(layers, output_shape=True, verbose=False):
+        """
+        Creates a PyDot graph of the network defined by the given layers.
+        :parameters:
+            - layers : list
+                List of the layers, as obtained from lasange.layers.get_all_layers
+            - output_shape: (default `True`)
+                If `True`, the output shape of each layer will be displayed.
+            - verbose: (default `False`)
+                If `True`, layer attributes like filter shape, stride, etc.
+                will be displayed.
+            - verbose:
+        :returns:
+            - pydot_graph : PyDot object containing the graph
+
+        """
+        pydot_graph = pydot.Dot('Network', graph_type='digraph')
+        pydot_nodes = {}
+        pydot_edges = []
+        for i, layer in enumerate(layers):
+            layer_name = layer.name
+            layer_type = '{0}'.format(layer.__class__.__name__)
+            key = repr(layer)
+            label = layer_name + '(' + layer_type + ')'
+            color = _get_hex_color(layer_type)
+            eol='\n'
+            if verbose:
+                for attr in ['num_filters', 'num_units', 'ds',
+                             'filter_shape', 'stride', 'strides', 'p', 'shape']:
+                    if hasattr(layer, attr):
+                        label += eol + \
+                            '{0}: {1}'.format(attr, getattr(layer, attr))
+                if hasattr(layer, 'nonlinearity'):
+                    try:
+                        nonlinearity = layer.nonlinearity.__name__
+                    except AttributeError:
+                        nonlinearity = layer.nonlinearity.__class__.__name__
+                    label += eol + 'nonlinearity: {0}'.format(nonlinearity)
+
+            if output_shape:
+                label += eol + \
+                    '({0})'.format(layer.output_shape)
+
+            nodeshape = 'box'
+            if 'Input' in layer_type:
+                nodeshape = "ellipse"
+            pydot_nodes[key] = pydot.Node(key,
+                                          label=label,
+                                          shape=nodeshape,
+                                          fillcolor=color,
+                                          style='filled',
+                                          )
+
+
+            if hasattr(layer, 'input_layers'):
+                for input_layer in layer.input_layers:
+                    pydot_edges.append([repr(input_layer), key])
+
+            if hasattr(layer, 'input_layer'):
+                pydot_edges.append([repr(layer.input_layer), key])
+
+        for node in pydot_nodes.values():
+            pydot_graph.add_node(node)
+        for edge in pydot_edges:
+            pydot_graph.add_edge(
+                pydot.Edge(pydot_nodes[edge[0]], pydot_nodes[edge[1]]))
+        return pydot_graph
+    if not isinstance(model,list):
+        model = model.layers.values()
+    dot = _get_pydot_graph(model, **kwargs)
+    dot.get_node("")
+    ext = filename[filename.rfind('.') + 1:]
+    with open(filename, 'w') as fid:
+        fid.write(dot.create(format=ext))
+
