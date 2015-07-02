@@ -191,6 +191,7 @@ class Trainer(object):
             cost *= layer_dict['scale']
             costs.append(cost)
         costTotal = T.sum(costs)
+        outsTrain.append(costTotal)
         # Get updates
         updates = OrderedDict()
         self._all_update_args = dict()
