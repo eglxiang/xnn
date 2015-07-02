@@ -188,6 +188,7 @@ class Trainer(object):
         for layer_name, layer_dict in outputs.iteritems():
             # {layer_name:{output_layer,target,target_type,loss_function,aggregation_type}}
             cost,ins = self.get_cost(layer_name,layer_dict,all_outs_dict,ins)
+            cost *= layer_dict['scale']
             costs.append(cost)
         costTotal = T.sum(costs)
         # Get updates
