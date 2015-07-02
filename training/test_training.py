@@ -31,7 +31,7 @@ def test_train():
     outs = trainer.train_step(batch_dict)
     trainer.bindUpdate(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
+    trainer.bindUpdate([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
     outs = trainer.train_step(batch_dict)
     
     print "Data on cpu succeeded"
@@ -52,7 +52,7 @@ def test_train():
     outs = trainer.train_step(batch_dict)
     trainer.bindUpdate(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate(['l_in','l_out'],ParamUpdateSettings(update=lambda *args,**kwargs: lasagne.updates.nesterov_momentum(*args,**kwargs)))
+    trainer.bindUpdate([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
     outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"
@@ -63,7 +63,7 @@ def test_serialization():
     img_size = 10
     num_hid = 10
     m = _build_model(batch_size,img_size,num_hid)
-    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.2)
+    global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.2)
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
     trainer = Trainer(m,trainer_settings)
 
@@ -83,7 +83,7 @@ def test_serialization():
     m2 = Model('load')
     m2.load_model('testtrainerout')
 
-    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.2)
+    global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.2)
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
     trainer2 = Trainer(m2,trainer_settings)
     preds2 = m.predict(batch_dict)
