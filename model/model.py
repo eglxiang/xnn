@@ -104,7 +104,7 @@ class Model(object):
         self.inputs.setdefault(input_key, [])
         self.inputs[input_key].append(input_layer)
 
-    def bind_output(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', is_eval_output=False, weight_key=None):
+    def bind_output(self, output_layer, loss_function, target, target_type='label', aggregation_type='mean', scale=1.0, is_eval_output=False, weight_key=None):
         aggregation_types = ['mean', 'sum', 'weighted_mean','weighted_sum','nanmean','nansum','nanweighted_mean','nanweighted_sum']
         target_types = ['label', 'recon']
         if aggregation_type not in aggregation_types:
@@ -117,13 +117,16 @@ class Model(object):
             raise ValueError("weight_key must be either None or a string")
         if ('weighted' in aggregation_type) and (weight_key is None):
             raise ValueError("Weighted aggregation types must have a weight key")
+        if not (isinstance(scale,float) or isinstance(scale,int)):
+            raise ValueError("Scale must be a float or an int")
         self.outputs[output_layer.name] = dict(
             output_layer     = output_layer,
             target           = target,
             target_type      = target_type,
             loss_function    = loss_function,
             aggregation_type = aggregation_type,
-            weight_key       = weight_key
+            weight_key       = weight_key,
+            scale            = float(scale)
         )
         if is_eval_output:
             self.bind_eval_output(output_layer,target)
@@ -163,7 +166,8 @@ class Model(object):
                 output_layer     = output['output_layer'].name,
                 target_type      = output['target_type'],
                 target           = output['target'],
-                aggregation_type = output['aggregation_type']
+                aggregation_type = output['aggregation_type'],
+                scale            = output['scale']
             )
 
         eval_outputs=OrderedDict()
@@ -272,7 +276,8 @@ class Model(object):
             targ      = outdict['target']
             targ_type = outdict['target_type']
             agg       = outdict['aggregation_type']
-            self.bind_output(l,f,targ,targ_type,agg)
+            scale     = outdict['scale']
+            self.bind_output(l,f,targ,targ_type,agg,scale)
 
     def _bind_eval_outputs_from_list(self,el):
         for layername, edict in el.iteritems():

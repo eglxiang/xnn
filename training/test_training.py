@@ -14,7 +14,7 @@ def test_train():
 
     m = _build_model(batch_size,img_size,num_hid)
 
-    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
+    global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum, learning_rate=0.1, momentum=0.5)
 
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
     trainer = Trainer(m,trainer_settings)
@@ -128,9 +128,9 @@ def test_aggregation():
     m.bind_output(l_out_mean, lasagne.objectives.squared_error, "emotions", "label", "mean")
     m.bind_output(l_out_sum, lasagne.objectives.squared_error, "emotions", "label", "sum")
 
-    #from pprint import pprint
-    #pprint(m.to_dict())
-    global_update_settings = ParamUpdateSettings(learning_rate=0.1, momentum=0.5)
+    from pprint import pprint
+    pprint(m.to_dict())
+    global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.5)
 
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
     trainer = Trainer(m, trainer_settings)
