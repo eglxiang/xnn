@@ -83,6 +83,12 @@ def test_bind_global_update():
     outs = trainer.train_step(batch_dict)
     trainer.bind_global_update(update_settings=global_update_settings2)
     outs = trainer.train_step(batch_dict)
+    trainer.bind_update([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
+    trainer.bind_global_update(update_settings=global_update_settings1,overwrite=False)
+    outs = trainer.train_step(batch_dict)
+    trainer.bind_global_update(update_settings=global_update_settings2,overwrite=True)
+    outs = trainer.train_step(batch_dict)
+
     return True
 
 def test_serialization():
@@ -177,4 +183,5 @@ def _build_model(batch_size,img_size,num_hid):
 if __name__ == '__main__':
     print test_train()
     print test_aggregation()
+    print test_bind_global_update()
     print test_serialization()
