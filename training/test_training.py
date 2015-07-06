@@ -58,6 +58,39 @@ def test_train():
     print "Data on gpu succeeded"
     return True
 
+def test_bind_global_update():
+    batch_size = 128
+    img_size = 10
+    num_hid = 100
+
+    m = _build_model(batch_size,img_size,num_hid)
+
+    global_update_settings1 = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum, learning_rate=0.1, momentum=0.5)
+    global_update_settings2 = ParamUpdateSettings(update=lasagne.updates.adadelta, learning_rate=1.1, rho=0.9)
+
+    trainer_settings = TrainerSettings(global_update_settings=global_update_settings1)
+    trainer = Trainer(m,trainer_settings)
+
+    pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
+    emotions = np.random.rand(batch_size,num_hid).astype(theano.config.floatX)
+
+    batch_dict = dict(
+        # learning_rate_default=0.1,
+        # momentum_default=0.5,
+        pixels=pixels,
+        emotions=emotions
+    )
+    outs = trainer.train_step(batch_dict)
+    trainer.bind_global_update(update_settings=global_update_settings2)
+    outs = trainer.train_step(batch_dict)
+    trainer.bind_update([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
+    trainer.bind_global_update(update_settings=global_update_settings1,overwrite=False)
+    outs = trainer.train_step(batch_dict)
+    trainer.bind_global_update(update_settings=global_update_settings2,overwrite=True)
+    outs = trainer.train_step(batch_dict)
+
+    return True
+
 def test_serialization():
     batch_size = 2
     img_size = 10
@@ -150,4 +183,5 @@ def _build_model(batch_size,img_size,num_hid):
 if __name__ == '__main__':
     print test_train()
     print test_aggregation()
+    print test_bind_global_update()
     print test_serialization()

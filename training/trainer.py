@@ -3,7 +3,7 @@ import theano
 import theano.tensor as T
 from .. import layers
 from collections import OrderedDict
-from xnn.utils import Tnanmean, Tnansum
+from ..utils import Tnanmean, Tnansum
 from inspect import getargspec
 import copy
 
@@ -14,7 +14,7 @@ class ParamUpdateSettings(object):
                  ):
         self.settings = kwargs
         self.update = update
-        self.__dict__.update(kwargs)
+        self._update_args = []
 
     def _check_settings(self):
         settings = self.settings
@@ -32,11 +32,12 @@ class ParamUpdateSettings(object):
             if not darg in settings:
                 settings[darg] = dval
         self._update_args = all_args[2:]
-        self.__dict__.update(settings)
+        self.settings = settings
 
     def to_dict(self):
         properties           = self.__dict__.copy()
         properties['update'] = properties['update'].func_name
+        del(properties['_update_args'])
         return properties
 
 class TrainerSettings(object):
@@ -244,9 +245,9 @@ class Trainer(object):
                 layer_name = param_names[key]
                 param = key.split('_%s'%layer_name)[0]
                 if layer_name in self.layer_updates:
-                    inval = getattr(self.layer_updates[layer_name], param)
+                    inval = self.layer_updates[layer_name].settings[param]
                 else:
-                    inval = getattr(self.global_update_settings, param)
+                    inval = self.global_update_settings.settings[param]
             else:
                 inval = batch_dict[key]
             ins.append(inval)
@@ -258,5 +259,10 @@ class Trainer(object):
         return self.train_func(*ins)
 
     def to_dict(self):
-        # Set self.model to None in dict
-        pass
+        d = {}
+        settings = self.__dict__
+        d['model'] = settings['model'].name
+        d['global_update_settings'] = settings['global_update_settings'].to_dict()
+        lu = dict([[layer,params.to_dict()] for layer,params in settings['layer_updates'].iteritems()])
+        d['layer_updates'] = lu
+        return d
