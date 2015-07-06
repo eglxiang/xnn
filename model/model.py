@@ -4,6 +4,7 @@ import cPickle
 import theano
 import theano.tensor as T
 from collections import OrderedDict
+from xnn import layers
 
 __all__=['Model']
 
@@ -15,6 +16,7 @@ class Model(object):
         self.outputs = OrderedDict()
         self.eval_outputs = OrderedDict()
         self._predict_func = None
+        self._unique_name_counters = dict()
 
     def add_layer(self,layer,name=None):
         if name is None and layer.name is not None:
@@ -43,10 +45,15 @@ class Model(object):
             name = self._get_unique_name(namebase+layer.__class__.__name__)
         return name
 
-    def _get_unique_name(self,namebase,counter=0):
-        while namebase in self.layers.keys():
-            namebase+= '_'+str(counter)
-        return namebase
+    def _get_unique_name(self,namebase):
+        if namebase in dir(layers):
+            self._unique_name_counters.setdefault(namebase, 0)
+            c = self._unique_name_counters[namebase]
+            unique_name = namebase + '_%d' % c
+            self._unique_name_counters[namebase] += 1
+            return unique_name
+        else:
+            return namebase
 
     def make_dropout_layer(self,parentlayer,p=0.5,name=None,drop_type='standard'):
         if drop_type == 'standard':
@@ -82,15 +89,19 @@ class Model(object):
 
     def make_dense_drop_stack(self,parent_layer,num_units_list=None,drop_p_list=None,nonlin_list=None,namebase=None,drop_type_list=None):
         pl = parent_layer
-        if namebase is None:
-            namebase="l_"
+        # if namebase is None:
+        #     namebase="l_"
         for i in xrange(len(num_units_list)):
             nhu        = num_units_list[i]
             p          = drop_p_list[i] if drop_p_list is not None else 0.5
             nl         = nonlin_list[i] if nonlin_list is not None else xnn.nonlinearities.rectify
             dt         = drop_type_list[i] if drop_type_list is not None else 'standard'
-            nameden    = self._get_unique_name(namebase+'_dense_'+str(i),counter=i) 
-            namedro    = self._get_unique_name(namebase+'_drop_'+str(i),counter=i)
+            if namebase is None:
+                nameden = 'DenseLayer'
+                namedro = 'DropoutLayer'
+            else:
+                nameden = namebase+'_DenseLayer_'
+                namedro = namebase+'_DropoutLayer_'
             denselayer = self.make_dense_layer(pl,nhu,nonlinearity=nl,name=nameden)
             droplayer  = self.make_dropout_layer(denselayer,p=p,name=namedro,drop_type=dt)
             pl         = droplayer

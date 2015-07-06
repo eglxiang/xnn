@@ -52,19 +52,17 @@ def test_serialization():
     m3.from_dict(serialized_old)
     print "model loaded from dict"
     pprint.pprint(m3.to_dict())
-    data = dict(
-        pixels=np.random.rand(10,1,20,10).astype(theano.config.floatX),
-            )
-    m3.save_model('testmodelout')
+    data = dict(pixels=np.random.rand(10,1,20,10).astype(theano.config.floatX))
+    m3.save_model('/tmp/testmodelout')
     out3 = m3.predict(data,['out','out2'])
 
     m4 = Model('test convenience')
-    m4.load_model('testmodelout')
+    m4.load_model('/tmp/testmodelout')
 
     assert serialized_old == m4.to_dict()
 
-    assert np.allclose(m4.layers['l__dense_2'].W.get_value(),m3.layers['l__dense_2'].W.get_value())
-    assert ~np.allclose(m4.layers['l__dense_2'].W.get_value(),m2.layers['l__dense_2'].W.get_value())
+    assert np.allclose(m4.layers['DenseLayer_2'].W.get_value(),m3.layers['DenseLayer_2'].W.get_value())
+    assert ~np.allclose(m4.layers['DenseLayer_2'].W.get_value(),m2.layers['DenseLayer_2'].W.get_value())
 
 
     out4 = m4.predict(data,['out','out2'])
