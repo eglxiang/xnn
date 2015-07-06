@@ -8,14 +8,6 @@ from copy import deepcopy
 MAXCONDITIONSINMEMORY = 10000
 
 
-def _convert_property_value(value):
-    if hasattr(value, 'to_dict'):
-        value = value.to_dict()
-    elif hasattr(value, 'func_name'):
-        value = value.func_name
-    return value
-
-
 class ExperimentCondition(object):
     def to_dict(self):
         properties = deepcopy(self.__dict__)
@@ -125,3 +117,11 @@ class Experiment(object):
             levels = factors_[name]
             factors_[name] = zip([name]*len(levels), levels)
         return product(*factors_.itervalues())
+
+
+def _convert_property_value(value):
+    if hasattr(value, 'to_dict'):
+        value = value.to_dict()
+    elif hasattr(value, 'func_name'):
+        value = value.func_name
+    return value

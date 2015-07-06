@@ -56,7 +56,6 @@ def test_train():
     outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"
-    return True
 
 def test_bind_global_update():
     batch_size = 128
@@ -89,9 +88,7 @@ def test_bind_global_update():
     trainer.bind_global_update(update_settings=global_update_settings2,overwrite=True)
     outs = trainer.train_step(batch_dict)
 
-    return True
-
-def test_serialization():
+def test_trained_model_serialization():
     batch_size = 2
     img_size = 10
     num_hid = 10
@@ -130,7 +127,6 @@ def test_serialization():
 
     for o,o2 in zip(outs,outs2):
         assert np.allclose(o,o2)
-    return True
 
 def test_aggregation():
     batch_size = 128
@@ -166,7 +162,9 @@ def test_aggregation():
     outs = trainer.train_step(batch_dict)
 
     print "Aggregation test succeeded"
-    return True
+
+def test_trainer_serialization():
+    raise NotImplementedError("Need to add a test of trainer serialization!")
 
 def _build_model(batch_size,img_size,num_hid):
     m = Model('test model cpu')
@@ -181,7 +179,8 @@ def _build_model(batch_size,img_size,num_hid):
     return m
 
 if __name__ == '__main__':
-    print test_train()
-    print test_aggregation()
-    print test_bind_global_update()
-    print test_serialization()
+    test_train()
+    test_aggregation()
+    test_bind_global_update()
+    test_trained_model_serialization()
+    test_trainer_serialization()
