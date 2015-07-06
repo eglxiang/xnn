@@ -5,13 +5,13 @@ import lasagne.nonlinearities
 
 
 __all__ = [
-    "hardsigmoid", "scale", "sigmoid_evidence", "softmax_evidence"
+    "hard_sigmoid", "scale", "sigmoid_evidence", "softmax_evidence"
 ]
 
 
 LOG10E = float(np.log10(np.exp(1)))
 
-def hardsigmoid(x):
+def hard_sigmoid(x):
     """Piecewise linear approximation to a Sigmoid activation function
     Approx in 3 parts: 0, scaled linear, 1
         slope = 0.2
