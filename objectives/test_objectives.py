@@ -33,9 +33,6 @@ def test_absolute_error():
 
     assert np.allclose(actual, expected)
 
-    return True
-
-
 def test_kl_divergence():
     # test that kl divergence comes out same as stable numpy equivalent
     x = T.matrix()
@@ -54,8 +51,6 @@ def test_kl_divergence():
 
     assert np.allclose(actual, expected, rtol=1.e-4, atol=1.e-4)
     assert np.allclose(actual, decorated, rtol=1.e-4, atol=1.e-4)
-    return True
-
 
 def test_hinge_loss():
     # TODO: Finish test for hinge loss
@@ -79,9 +74,6 @@ def test_hinge_loss():
     # print pred-targ
     # print actual
 
-    return True
-
-
 def test_squared_hinge_loss():
     # TODO: Finish test for squared hinge loss
     # Currently just ensures that it runs without error
@@ -98,9 +90,6 @@ def test_squared_hinge_loss():
     decorated = squared_hinge_loss()(pred,targ)
 
     assert np.allclose(actual, decorated, rtol=1.e-4, atol=1.e-4)
-
-    return True
-
 
 def test_cross_covariance():
     x = T.matrix()
@@ -125,11 +114,9 @@ def test_cross_covariance():
     decorated = cross_covariance(groups, 'min')(c, c)
     assert np.allclose(actual, decorated, rtol=1.e-4, atol=1.e-4)
 
-    return True
-
 if __name__ == '__main__':
-    print 'test_absolute_error:', test_absolute_error()
-    print 'test_kl_divergence:', test_kl_divergence()
-    print 'test_hinge_loss:', test_hinge_loss()
-    print 'test_squared_hinge_loss:', test_squared_hinge_loss()
-    print 'test_cross_covariance:', test_cross_covariance()
+    test_absolute_error()
+    test_kl_divergence()
+    test_hinge_loss()
+    test_squared_hinge_loss()
+    test_cross_covariance()

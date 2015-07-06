@@ -9,7 +9,23 @@ import theano.tensor as T
 import numpy as np
 
 
-def build_lr_net(batch_size, in_size, out_size):
+def test_logistic_regression_trainer():
+    params_dict = dict(
+        batch_size = 32,
+        in_size = 10,
+        out_size = 5,
+        num_batches = 2
+    )
+    dataset = _get_data(**params_dict)
+    lasagne_batch_losses = _get_lasagne_losses(dataset=dataset,**params_dict)
+    trainer_batch_losses = _get_trainer_losses(dataset=dataset,**params_dict)
+
+
+    print trainer_batch_losses
+    print lasagne_batch_losses
+    assert np.allclose(trainer_batch_losses, lasagne_batch_losses, rtol=1.e-4, atol=1.e-4)
+
+def _build_lr_net(batch_size, in_size, out_size):
     np.random.seed(100)
     m = Model()
     l_in = m.add_layer(InputLayer(shape=(batch_size,in_size)))
@@ -18,8 +34,7 @@ def build_lr_net(batch_size, in_size, out_size):
     m.bind_output(l_out, squared_error, "labels", "label", "mean")
     return m, l_in, l_out
 
-
-def build_iter_train(batch_size, l_out, dataset):
+def _build_iter_train(batch_size, l_out, dataset):
     x = T.matrix()
     y = T.matrix()
     outs = get_output(l_out, x,deterministic=False)
@@ -45,7 +60,7 @@ def build_iter_train(batch_size, l_out, dataset):
 
     return iter_train
 
-def get_data(batch_size,in_size,out_size,num_batches):
+def _get_data(batch_size,in_size,out_size,num_batches):
     np.random.seed(100)
     inputs = np.random.rand(batch_size * num_batches, in_size).astype(theano.config.floatX)
     labels = np.random.rand(batch_size * num_batches, out_size).astype(theano.config.floatX)
@@ -55,9 +70,9 @@ def get_data(batch_size,in_size,out_size,num_batches):
         labels=theano.shared(labels, borrow=True)
     )
     return dataset
-    
-def get_trainer_losses(dataset,batch_size,in_size,out_size,num_batches):
-    m, l_in, l_out = build_lr_net(batch_size, in_size, out_size)
+
+def _get_trainer_losses(dataset,batch_size,in_size,out_size,num_batches):
+    m, l_in, l_out = _build_lr_net(batch_size, in_size, out_size)
     global_update_settings = ParamUpdateSettings(update=adadelta)
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings, dataSharedVarDict=dataset)
     trainer = Trainer(m, trainer_settings)
@@ -69,32 +84,15 @@ def get_trainer_losses(dataset,batch_size,in_size,out_size,num_batches):
         trainer_batch_losses[b] = outs[-1]
     return trainer_batch_losses
 
-def get_lasagne_losses(dataset,batch_size,in_size,out_size,num_batches):
-    m, l_in, l_out = build_lr_net(batch_size, in_size, out_size)
-    iter_train = build_iter_train(batch_size, l_out, dataset)
+def _get_lasagne_losses(dataset,batch_size,in_size,out_size,num_batches):
+    m, l_in, l_out = _build_lr_net(batch_size, in_size, out_size)
+    iter_train = _build_iter_train(batch_size, l_out, dataset)
     lasagne_batch_losses = np.zeros(num_batches)
     for b in range(num_batches):
         outs,batch_train_loss = iter_train(b)
         lasagne_batch_losses[b] = batch_train_loss
     return lasagne_batch_losses
 
-def test_logistic_regression_trainer():
-    params_dict = dict(
-        batch_size = 32,
-        in_size = 10,
-        out_size = 5,
-        num_batches = 2
-    )
-    dataset = get_data(**params_dict)
-    lasagne_batch_losses = get_lasagne_losses(dataset=dataset,**params_dict)
-    trainer_batch_losses = get_trainer_losses(dataset=dataset,**params_dict)
-
-
-    print trainer_batch_losses
-    print lasagne_batch_losses
-    assert np.allclose(trainer_batch_losses, lasagne_batch_losses, rtol=1.e-4, atol=1.e-4)
-    return True
-
 if __name__ == '__main__':
-    print test_logistic_regression_trainer()
+    test_logistic_regression_trainer()
 

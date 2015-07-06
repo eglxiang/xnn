@@ -12,7 +12,6 @@ def test_hard_sigmoid():
     expected = np.array([0, .25, .5, .75, 1]).astype(theano.config.floatX)
     actual   = y.eval({x:inputs})
     assert np.allclose(expected, actual)
-    return True
 
 def test_scale():
     # test that scaling the outputs by 10 is correct
@@ -22,7 +21,6 @@ def test_scale():
     expected = np.array([-20, -10, 0, 10, 20]).astype(theano.config.floatX)
     actual   = y.eval({x:inputs})
     assert np.allclose(expected, actual)
-    return True
 
 def test_sigmoid_evidence():
     # test that the log10 odds are correct
@@ -32,7 +30,6 @@ def test_sigmoid_evidence():
     expected = np.array([2, 1, 0, -1, -2]).astype(theano.config.floatX)
     actual   = y.eval({x:inputs})
     assert np.allclose(expected, actual)
-    return True
 
 def test_softmax_evidence():
     # test that base-10 sigmoid recovers proper probabilities from softmax evidence
@@ -46,10 +43,9 @@ def test_softmax_evidence():
     actual   = f(inputs)
     actual   = 1 / (1 + np.power(10, -actual))
     assert np.allclose(expected, actual)
-    return True
 
 if __name__ == '__main__':
-    print 'test_hard_sigmoid:', test_hard_sigmoid()
-    print 'test_scale:', test_scale()
-    print 'test_sigmoid_evidence:', test_sigmoid_evidence()
-    print 'test_softmax_evidence:', test_softmax_evidence()
+    test_hard_sigmoid()
+    test_scale()
+    test_sigmoid_evidence()
+    test_softmax_evidence()

@@ -15,32 +15,9 @@ def test_build_model():
     m.bind_input(l_in, "pixels")
     m.bind_output(l_h1, xnn.objectives.categorical_crossentropy, "emotions", "label", "mean")
     m.bind_output(l_out, xnn.objectives.mse, "l_in", "recon", "mean")
-    return True
-
-
-def _build_model():
-    m2    = Model('test convenience')
-    l_in  = m2.make_bound_input_layer((10,1,20,10),'pixels')
-    l_in2 = m2.make_bound_input_layer((10,1,20,10),'pixels')
-    l_conv = m2.add_layer(xnn.layers.Conv2DLayer(l_in2,3,4),name='l_conv')
-    l_den = m2.make_dense_drop_stack(l_in,[60,3,2],[.6,.4,.3],drop_type_list=['gauss','gauss','standard'])
-    l_reshp = m2.add_layer(xnn.layers.ReshapeLayer(l_conv,(10,-1)))
-    l_mer = xnn.layers.ConcatLayer([l_reshp, l_den])
-    m2.add_layer(l_mer,name='merger')
-    l_bn = xnn.layers.BatchNormLayer(l_in2,nonlinearity=xnn.nonlinearities.sigmoid)
-    m2.add_layer(l_bn)
-    l_loc = xnn.layers.LocalLayer(l_bn,num_units=32,img_shape=(20,10),local_filters=[(2,1)],seed=121212)
-    np.random.seed(int(time.time()*10000%10000))
-    m2.add_layer(l_loc)
-    l_out= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out')
-    m2.bind_output(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean',is_eval_output=True,scale=2)
-    l_out2= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out2')
-    m2.bind_output(l_out2, xnn.objectives.hinge_loss(threshold=2), 'age','label','mean',is_eval_output=False)
-    return m2
 
 def test_convenience_build():
     m2 = _build_model()
-    return True
 
 def test_serialization():
     m2 = _build_model()
@@ -79,11 +56,28 @@ def test_serialization():
     assert np.allclose(out4['out'],out3['out'])
     assert np.allclose(out4['out2'],out3['out2'])
 
-    return True
-
+def _build_model():
+    m2    = Model('test convenience')
+    l_in  = m2.make_bound_input_layer((10,1,20,10),'pixels')
+    l_in2 = m2.make_bound_input_layer((10,1,20,10),'pixels')
+    l_conv = m2.add_layer(xnn.layers.Conv2DLayer(l_in2,3,4),name='l_conv')
+    l_den = m2.make_dense_drop_stack(l_in,[60,3,2],[.6,.4,.3],drop_type_list=['gauss','gauss','standard'])
+    l_reshp = m2.add_layer(xnn.layers.ReshapeLayer(l_conv,(10,-1)))
+    l_mer = xnn.layers.ConcatLayer([l_reshp, l_den])
+    m2.add_layer(l_mer,name='merger')
+    l_bn = xnn.layers.BatchNormLayer(l_in2,nonlinearity=xnn.nonlinearities.sigmoid)
+    m2.add_layer(l_bn)
+    l_loc = xnn.layers.LocalLayer(l_bn,num_units=32,img_shape=(20,10),local_filters=[(2,1)],seed=121212)
+    np.random.seed(int(time.time()*10000%10000))
+    m2.add_layer(l_loc)
+    l_out= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out')
+    m2.bind_output(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean',is_eval_output=True,scale=2)
+    l_out2= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out2')
+    m2.bind_output(l_out2, xnn.objectives.hinge_loss(threshold=2), 'age','label','mean',is_eval_output=False)
+    return m2
 
 if __name__ == "__main__":
-    print "test_build",test_build_model()
-    print "test_convenience_build",test_convenience_build()
-    print "test_serialization",test_serialization()
+    test_build_model()
+    test_convenience_build()
+    test_serialization()
 

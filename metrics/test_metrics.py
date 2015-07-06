@@ -22,7 +22,6 @@ def test_binarizedBER():
     assert np.allclose(bbec(probpred,td),[0.25,.7,.6])
     #print "betterbbec", bbec(betterprobpred,td)
     assert np.allclose(bbec(betterprobpred,td),[0.125,.5,.6])
-    return True
 
 def test_cce_and_KL():
     cce = xnn.metrics.Metric('cce','probtarg',aggregation_type='none')
@@ -41,7 +40,6 @@ def test_cce_and_KL():
     klMean = xnn.metrics.Metric('kl','probtarg',aggregation_type='mean')
     #print "klMean",klMean(probpred,td)
     assert np.allclose(klMean(probpred,td),10.1664)
-    return True
 
 def test_optimized_threshold():
     obeMean = xnn.metrics.Metric('obe','bintarg',aggregation_type='none')
@@ -53,7 +51,6 @@ def test_optimized_threshold():
     #print 'optimalF1',ofoMean(binpred,td)
     assert np.allclose(ofoMean(binpred,td)[0],0.75)
     assert np.allclose(ofoMean(binpred,td)[1],0.0)
-    return True
 
 def test_regression_metrics():
     mse = xnn.metrics.Metric('se','regtarg',aggregation_type='mean')
@@ -65,7 +62,6 @@ def test_regression_metrics():
     #print 'mse',mse(regpred,td)
     #print 'mae',mae(regpred,td)
     #print 'sse',sse(regpred,td)
-    return True
 
 def test_confmat():
     cm = xnn.metrics.Metric(computeConfusionMatrix,'probtarg',aggregation_type='none')
@@ -76,12 +72,11 @@ def test_confmat():
     np.allclose(cmD(probpred,td)[1],0.16666666666666666)
     #print cmD(probpred,td)
     #print cmD.to_dict()
-    return True
 
 
 if __name__=="__main__":
-    print "test_binarizedBER",test_binarizedBER()
-    print "test_cce_and_KL",test_cce_and_KL()
-    print "test_optimized_threshold",test_optimized_threshold()
-    print "test_regression_metrics",test_regression_metrics()
-    print "test_confmat",test_confmat()
+    test_binarizedBER()
+    test_cce_and_KL()
+    test_optimized_threshold()
+    test_regression_metrics()
+    test_confmat()

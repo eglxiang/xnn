@@ -50,8 +50,6 @@ def test_contrast_normalization():
     # stdevs of image should be close to 0
     assert np.allclose(s_image,1,rtol=1e-05, atol=1e-05)
 
-    return True
-
 def test_batch_normalization():
     np.random.seed(100)
     batchsize = 100
@@ -71,8 +69,6 @@ def test_batch_normalization():
 
     # make sure batch-normalized stdevs are close to 1
     assert np.allclose(outs.std(axis=0), 1, rtol=1e-05, atol=1e-05)
-
-    return True
 
 def test_gaussian_dropout():
     np.random.seed(100)
@@ -98,8 +94,6 @@ def test_gaussian_dropout():
     expected = np.abs(np.round(input_vec/10))
     actual   = np.round(outs.std(axis=0)/10)
     assert np.all(expected-actual==0)
-
-    return True
 
 def test_local():
     # TODO: Add tests for radius, edgeprotect=False, and multiple local filters with different probs
@@ -140,8 +134,6 @@ def test_local():
     # This just makes sure the forward function computes without error
     outs = f(inputs,targets)
 
-    return True
-
 def test_prelu():
     # TODO: Add more comprehensive tests of different cases with different pivots/coefs
     np.random.seed(100)
@@ -158,12 +150,10 @@ def test_prelu():
 
     assert np.alltrue(expected==actual)
 
-    return True
-
 
 if __name__ == '__main__':
-    print 'test_contrast_normalization:', test_contrast_normalization()
-    print 'test_batch_normalization:', test_batch_normalization()
-    print 'test_gaussian_dropout:', test_gaussian_dropout()
-    print 'test_local:', test_local()
-    print 'test_prelu:', test_prelu()
+    test_contrast_normalization()
+    test_batch_normalization()
+    test_gaussian_dropout()
+    test_local()
+    test_prelu()

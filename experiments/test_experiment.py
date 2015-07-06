@@ -85,8 +85,6 @@ def test_experiment():
     for cond in iter:
         print cond.to_dict()
 
-    return True
-
 def test_experiment_serialization():
     expt = _make_experiment()
     expected_dict = dict(
@@ -110,13 +108,11 @@ def test_experiment_serialization():
     actual_dict = expt.to_dict()
     pprint.pprint(actual_dict)
     assert expected_dict == actual_dict
-    return True
 
 @raises(RuntimeError)
 def test_add_invalid_factor_name():
     expt = Experiment("test experiment", _Condition())
     expt.add_factor("invalid", [])
-    return True
 
 if __name__ == "__main__":
     test_experiment()
