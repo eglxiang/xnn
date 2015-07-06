@@ -29,9 +29,9 @@ def test_train():
         emotions=emotions
     )
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    trainer.bind_update(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
+    trainer.bind_update([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
     outs = trainer.train_step(batch_dict)
     
     print "Data on cpu succeeded"
@@ -50,9 +50,9 @@ def test_train():
     trainer = Trainer(m,trainer_settings)
     batch_dict=dict(batch_index=0,batch_size=batch_size)
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    trainer.bind_update(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
+    trainer.bind_update([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
     outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"
@@ -99,21 +99,6 @@ def test_serialization():
         assert np.allclose(o,o2)
     return True
 
-
-
-
-def _build_model(batch_size,img_size,num_hid):    
-    m = Model('test model cpu')
-    l_in = m.add_layer(layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
-    l_loc = m.add_layer(layers.LocalLayer(l_in,num_units=3,img_shape=(2,5),local_filters=[(2,1)]))
-    l_h1 = m.add_layer(layers.DenseLayer(l_loc, num_hid), name="l_h1")
-    l_out = m.add_layer(layers.DenseLayer(l_h1, img_size), name="l_out")
-
-    m.bind_input(l_in, "pixels")
-    m.bind_output(l_h1, xnn.objectives.kl_divergence, "emotions", "label", "mean")
-    m.bind_output(l_out, xnn.objectives.squared_error, "l_in", "recon", "mean")
-    return m
-
 def test_aggregation():
     batch_size = 128
     img_size = 10
@@ -149,6 +134,18 @@ def test_aggregation():
 
     print "Aggregation test succeeded"
     return True
+
+def _build_model(batch_size,img_size,num_hid):
+    m = Model('test model cpu')
+    l_in = m.add_layer(layers.InputLayer(shape=(batch_size,img_size)), name="l_in")
+    l_loc = m.add_layer(layers.LocalLayer(l_in,num_units=3,img_shape=(2,5),local_filters=[(2,1)]))
+    l_h1 = m.add_layer(layers.DenseLayer(l_loc, num_hid), name="l_h1")
+    l_out = m.add_layer(layers.DenseLayer(l_h1, img_size), name="l_out")
+
+    m.bind_input(l_in, "pixels")
+    m.bind_output(l_h1, xnn.objectives.kl_divergence, "emotions", "label", "mean")
+    m.bind_output(l_out, xnn.objectives.squared_error, "l_in", "recon", "mean")
+    return m
 
 if __name__ == '__main__':
     print test_train()

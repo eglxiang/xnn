@@ -7,7 +7,7 @@ import numpy as np
 def test_hard_sigmoid():
     # test that the hard sigmoid computes the proper values for particular anchor cases
     x        = T.vector('x')
-    y        = hardsigmoid(x)
+    y        = hard_sigmoid(x)
     inputs   = np.array([-2.5, -1.25, 0., 1.25, 2.5]).astype(theano.config.floatX)
     expected = np.array([0, .25, .5, .75, 1]).astype(theano.config.floatX)
     actual   = y.eval({x:inputs})
