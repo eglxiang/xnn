@@ -29,9 +29,9 @@ def test_train():
         emotions=emotions
     )
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    trainer.bind_update(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
+    trainer.bind_update([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
     outs = trainer.train_step(batch_dict)
     
     print "Data on cpu succeeded"
@@ -50,9 +50,9 @@ def test_train():
     trainer = Trainer(m,trainer_settings)
     batch_dict=dict(batch_index=0,batch_size=batch_size)
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
+    trainer.bind_update(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
     outs = trainer.train_step(batch_dict)
-    trainer.bindUpdate([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
+    trainer.bind_update([m.layers['l_in'],'l_out'],ParamUpdateSettings(update=lambda loss,params,learning_rate,momentum=0.9: lasagne.updates.nesterov_momentum(loss,params,learning_rate,momentum),learning_rate=0.02,momentum=0.65))
     outs = trainer.train_step(batch_dict)
 
     print "Data on gpu succeeded"

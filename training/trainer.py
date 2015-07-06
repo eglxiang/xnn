@@ -59,7 +59,7 @@ class Trainer(object):
         self.layer_updates = dict()
         self.set_model(model)
 
-    def bindUpdate(self, layerlist, update_settings):
+    def bind_update(self, layerlist, update_settings):
         if type(layerlist) != list:
             layerlist = [layerlist]
         for layer in layerlist:
@@ -76,12 +76,12 @@ class Trainer(object):
             update_setting._check_settings()
             self.layer_updates[layer_name] = update_setting
 
-    def bindGlobalUpdate(self, update_settings, overwrite=False):
+    def bind_global_update(self, update_settings, overwrite=False):
         prev_settings = self.global_update_settings
         u = update_settings.update
         if (u is None) or (u == prev_settings.update):
             update_settings.update = prev_settings.update
-            pdict = dict(prev_settings.settings.items()+update_setting.settings.items())
+            pdict = dict(prev_settings.settings.items() + update_settings.settings.items())
             update_settings.settings = pdict
         else:
             self.train_func = None
