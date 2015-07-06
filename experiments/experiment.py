@@ -8,12 +8,19 @@ from copy import deepcopy
 MAXCONDITIONSINMEMORY = 10000
 
 
+def _convert_property_value(value):
+    if hasattr(value, 'to_dict'):
+        value = value.to_dict()
+    elif hasattr(value, 'func_name'):
+        value = value.func_name
+    return value
+
+
 class ExperimentCondition(object):
     def to_dict(self):
         properties = deepcopy(self.__dict__)
         for key in properties:
-            if hasattr(properties[key], 'to_dict'):
-                properties[key] = properties[key].to_dict()
+            properties[key] = _convert_property_value(properties[key])
         return properties
 
 
@@ -25,8 +32,14 @@ class Experiment(object):
         self.conditions = None
 
     def to_dict(self):
+        factors = dict()
+        for factorkey in self.factors:
+            for item in self.factors[factorkey]:
+                factors.setdefault(factorkey, [])
+                converted = _convert_property_value(item)
+                factors[factorkey].append(converted)
         return dict(
-            factors=self.factors,
+            factors=factors,
             default_condition=self.default_condition.to_dict()
         )
 
