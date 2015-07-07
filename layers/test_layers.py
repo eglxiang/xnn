@@ -145,7 +145,7 @@ def test_prelu():
     acts = l_pr.get_output_for(l_in.input_var)
     f    = theano.function([l_in.input_var], acts)
 
-    expected = np.float32([[-.5, -.25, 0], [1, 2, 3]])
+    expected = np.float32([[.5, .25, 0], [1, 2, 3]])
     actual   = f(inputs)
 
     assert np.alltrue(expected==actual)
