@@ -57,11 +57,13 @@ def test_serialization():
     assert np.allclose(out4['out2'],out3['out2'])
 
 def _build_model():
+    r = xnn.nonlinearities.rectify
+    s = xnn.nonlinearities.scale
     m2    = Model('test convenience')
     l_in  = m2.make_bound_input_layer((10,1,20,10),'pixels')
     l_in2 = m2.make_bound_input_layer((10,1,20,10),'pixels')
     l_conv = m2.add_layer(xnn.layers.Conv2DLayer(l_in2,3,4),name='l_conv')
-    l_den = m2.make_dense_drop_stack(l_in,[60,3,2],[.6,.4,.3],drop_type_list=['gauss','gauss','standard'])
+    l_den = m2.make_dense_drop_stack(l_in,[60,3,2],[.6,.4,.3],drop_type_list=['gauss','gauss','standard'],nonlin_list=[r,s(2.),r])
     l_reshp = m2.add_layer(xnn.layers.ReshapeLayer(l_conv,(10,-1)))
     l_mer = xnn.layers.ConcatLayer([l_reshp, l_den])
     m2.add_layer(l_mer,name='merger')

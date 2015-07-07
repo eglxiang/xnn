@@ -196,6 +196,8 @@ class Model(object):
         return d
 
     def from_dict(self,indict):
+        import copy
+        indict = copy.deepcopy(indict)
         self._build_layers_from_list(indict['layers'])
         self._bind_inputs_from_list(indict['inputs'])
         self._bind_outputs_from_list(indict['outputs'])
@@ -303,6 +305,9 @@ class Model(object):
     def _initialize_arg(self,a,spec):
         #TODO: expand this to take care of other objects that need to be re-initialized
         if a == 'nonlinearity':
+            if isinstance(spec,dict):
+                nonlin = getattr(xnn.nonlinearities,spec.pop('type'))
+                return nonlin(**spec)
             return getattr(xnn.nonlinearities,spec)
         if a == 'convolution':
             if spec == 'conv2d':
