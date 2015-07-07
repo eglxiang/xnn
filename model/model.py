@@ -237,7 +237,11 @@ class Model(object):
             if hasattr(l,nga):
                 at = getattr(l,nga)
                 if at is not None:
-                    ldict[nga]=at.__name__
+                    if hasattr(at, "func_name"):
+                        ldict[nga] = at.func_name
+                    else:
+                        ldict[nga] = at.__dict__.copy()
+                        ldict[nga]['type'] = at.__class__.__name__
         return ldict
 
     def _build_layers_from_list(self,ll):
