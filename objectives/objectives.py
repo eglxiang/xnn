@@ -113,7 +113,7 @@ class cross_covariance(object):
     @typechecker
     def __call__(self, x, t):
         allg = set(range(len(self.groups)))
-        ccov = T.zeros((1,), dtype=theano.config.floatX)
+        ccov = 0.
         for g1 in range(len(self.groups)-1):
             subsetg2 = allg.copy()
             subsetg2.remove(g1)
