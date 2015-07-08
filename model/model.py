@@ -83,7 +83,7 @@ class Model(object):
         if name is None:
             name = self._get_unique_name_from_layer(lin)
             lin.name = name
-        self.add_layer(lin)
+        self.add_layer(lin,name=name)
         self.bind_input(lin,inputlabelkey)
         return lin
 
