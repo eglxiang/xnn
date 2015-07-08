@@ -118,10 +118,10 @@ class cross_covariance(object):
             subsetg2 = allg.copy()
             subsetg2.remove(g1)
             for g2 in subsetg2:
-                group1 = None if self.groups is None else self.groups[g1]
-                group2 = None if self.groups is None else self.groups[g2]
-                x_ = x if self.groups is None else x[:, group1]
-                t_ = t if self.groups is None else t[:, group2]
+                group1 = self.groups[g1]
+                group2 = self.groups[g2]
+                x_ = x[:, group1]
+                t_ = t[:, group2]
                 xmean = x_.mean(axis=0, keepdims=True)
                 tmean = t_.mean(axis=0, keepdims=True)
                 xdiff = x_ - xmean
