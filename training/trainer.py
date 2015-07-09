@@ -28,7 +28,8 @@ class ParamUpdateSettings(object):
         def_args = all_args[-ndef:] if ndef>0 else []
         assert all([kw in all_args for kw in settings])
         assert all([req in settings for req in req_args])
-        for dval,darg in zip(defs,def_args):
+        z = zip(defs,def_args) if defs is not None else []
+        for dval,darg in z:
             if not darg in settings:
                 settings[darg] = dval
         self._update_args = all_args[2:]
