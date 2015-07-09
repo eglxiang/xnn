@@ -132,9 +132,9 @@ class LocalLayer(Layer):
         return True
 
     def _set_weight_params(self, W, b, input_shape, num_units, localmask):
-            W = self.add_param(init.MaskedInit(W,localmask), (self.num_inputs*input_shape[1], num_units))
+            W = self.add_param(init.MaskedInit(W,localmask), (self.num_inputs*input_shape[1], num_units),name="W")
             self.W   = W
-            self.b   = self.add_param(b, (num_units,)) if b is not None else None
+            self.b   = self.add_param(b, (num_units,), name="b", regularizable=False) if b is not None else None
 
     def _set_out_mask(self, num_units):
         out_mask = np.zeros((num_units,1,num_units))
