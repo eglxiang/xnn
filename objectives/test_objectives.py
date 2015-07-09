@@ -108,7 +108,7 @@ def test_cross_covariance():
     xcov = xcov[0:3, 3:]
     cmat = xcov**2
     expected = .5 * cmat.sum()
-    actual = f(c, c)[0]
+    actual = f(c, c)
     assert np.isclose(actual, expected)
 
     decorated = cross_covariance(groups, 'min')(c, c)
