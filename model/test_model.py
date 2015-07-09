@@ -4,6 +4,9 @@ import numpy as np
 import pprint
 import time
 import theano
+import tempfile
+import shutil
+import os.path
 
 
 def test_build_model():
@@ -30,11 +33,17 @@ def test_serialization():
     print "model loaded from dict"
     pprint.pprint(m3.to_dict())
     data = dict(pixels=np.random.rand(10,1,20,10).astype(theano.config.floatX))
-    m3.save_model('/tmp/testmodelout')
+
+    dirpath = tempfile.mkdtemp()
+    filepath = os.path.join(dirpath, 'testmodelout')
+
+    m3.save_model(filepath)
     out3 = m3.predict(data,['out','out2'])
 
     m4 = Model('test convenience')
-    m4.load_model('/tmp/testmodelout')
+    m4.load_model(filepath)
+
+    shutil.rmtree(dirpath)
 
     assert serialized_old == m4.to_dict()
 

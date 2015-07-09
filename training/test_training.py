@@ -5,7 +5,9 @@ import xnn
 from xnn.training.trainer import *
 import numpy as np
 import lasagne
-
+import tempfile
+import shutil
+import os.path
 
 def test_train():
     batch_size = 128
@@ -109,9 +111,12 @@ def test_trained_model_serialization():
     outs = trainer.train_step(batch_dict)
     preds = m.predict(batch_dict)
 
-    m.save_model('/tmp/testtrainerout')
+    dirpath = tempfile.mkdtemp()
+    filepath = os.path.join(dirpath, 'testtrainerout')
+    m.save_model(filepath)
     m2 = Model('load')
-    m2.load_model('/tmp/testtrainerout')
+    m2.load_model(filepath)
+    shutil.rmtree(dirpath)
 
     global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.2)
     trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
