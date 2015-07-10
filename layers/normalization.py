@@ -59,11 +59,11 @@ class BatchNormLayer(Layer):
         if len(input_shape) > 2:
             input_shape = [input_shape[0],np.prod(input_shape[1:])]
 
-        self.beta  = self.add_param(beta, (input_shape[1],))
-        self.gamma = self.add_param(gamma, (input_shape[1],))
+        self.beta  = self.add_param(beta, (input_shape[1],),regularizable=False)
+        self.gamma = self.add_param(gamma, (input_shape[1],),regularizable=False)
 
-        self.means  = self.add_param(means, (input_shape[1],))
-        self.stdevs = self.add_param(stdevs, (input_shape[1],))
+        self.means = theano.shared(means((input_shape[1],)))
+        self.stdevs = theano.shared(stdevs((input_shape[1],)))
 
         self.batch_size = incoming.output_shape[0]
 
