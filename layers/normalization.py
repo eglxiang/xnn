@@ -3,6 +3,7 @@ from  .. import nonlinearities
 from lasagne import init
 import theano.tensor as T
 import numpy as np
+import theano
 
 
 __all__ = [
