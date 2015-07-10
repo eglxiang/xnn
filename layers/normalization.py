@@ -3,7 +3,7 @@ from  .. import nonlinearities
 from lasagne import init
 import theano.tensor as T
 import numpy as np
-import theano
+from .. import utils
 
 
 __all__ = [
@@ -63,8 +63,8 @@ class BatchNormLayer(Layer):
         self.beta  = self.add_param(beta, (input_shape[1],),regularizable=False)
         self.gamma = self.add_param(gamma, (input_shape[1],),regularizable=False)
 
-        self.means = theano.shared(means((input_shape[1],)))
-        self.stdevs = theano.shared(stdevs((input_shape[1],)))
+        self.means = utils.create_param(means,(input_shape[1],), name='means')
+        self.stdevs = utils.create_param(stdevs,(input_shape[1],), name='stdevs')
 
         self.batch_size = incoming.output_shape[0]
 
