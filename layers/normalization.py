@@ -65,8 +65,6 @@ class BatchNormLayer(Layer):
         self.means  = self.add_param(means, (input_shape[1],))
         self.stdevs = self.add_param(stdevs, (input_shape[1],))
 
-        self.means_updates  = []
-        self.stdevs_updates = []
         self.batch_size = incoming.output_shape[0]
 
     def get_output_for(self, input, deterministic=False, **kwargs):
@@ -86,10 +84,10 @@ class BatchNormLayer(Layer):
             m = T.mean(input, axis=0, keepdims=False)
             s = T.sqrt(T.var(input, axis=0, keepdims=False) + self.eta)
 
-            self.means_updates = [means, self.alpha * means + (1-self.alpha) * m]
+            means.default_update = self.alpha * means + (1-self.alpha) * m
             Es = self.alpha * stdevs + (1-self.alpha) * s
             u  = self.batch_size / (self.batch_size - 1)
-            self.stdevs_updates = [stdevs, u * Es]
+            stdevs.default_update = u * Es
 
         else:
             m = means
@@ -127,6 +125,3 @@ class BatchNormLayer(Layer):
 
     def get_output_shape_for(self, input_shape):
         return input_shape
-
-    def get_additional_updates(self):
-        return [self.means_updates, self.stdevs_updates]
