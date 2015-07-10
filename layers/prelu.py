@@ -18,10 +18,10 @@ class PReLULayer(Layer):
         super(PReLULayer, self).__init__(incoming, name)
 
         input_shape = self.input_layer.output_shape
-        self.coef   = self.add_param(coef, input_shape)
+        self.coef   = self.add_param(coef, input_shape[1:], regularizable=False)
 
         if learn_pivot:
-            self.pivot = self.add_param(pivot, input_shape)
+            self.pivot = self.add_param(pivot, input_shape[1:], regularizable=False)
         else:
             self.pivot = utils.create_param(pivot, input_shape)
 
