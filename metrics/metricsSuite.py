@@ -94,8 +94,10 @@ class Metric(object):
             for k in self.targkeys:
                 targ[k] = datadict[k]
         settings_copy = self.settings.copy()
-        output        = self.metric(out,targ,**settings_copy)
+
         weights       = datadict[self.weightkey] if self.weightkey is not None else None
+        output        = self.metric(out,targ,**settings_copy)
+
         if self.aggregation_type == 'mean':
             output = np.nanmean(output)
         elif self.aggregation_type == 'sum':
@@ -171,17 +173,22 @@ def baseline (x, b = 0):
     return np.array(x, float) - b
 
 def threshold (x, t = 0):
-    return np.array(np.array(x, float) > t, float)
+    thresholded = np.array(np.array(x, float) > t, float)
+    thresholded[np.isnan(x)] = np.nan
+    return thresholded
 
 def computeCondProb (a, b, l):
     a = np.array(a, dtype=float)
     b = np.array(b, dtype=float)
+    naninds = np.isnan(a+b)
+    a[naninds] = np.nan
+    b[naninds] = np.nan
     if l == 0:
         a = 1-a
         b = 1-b
     c = a*b
-    d = np.sum(c,axis=0)/np.sum(b,axis=0)
-    return d 
+    d = np.nansum(c,axis=0)/np.nansum(b,axis=0)
+    return d
 # metric_types['condprob']=computeCondProb
 # metric_types['cp']=computeCondProb
 # metric_names[computeCondProb]='Conditional probability'
@@ -281,10 +288,6 @@ metric_names[computeBinarizedBalancedErrorRateCategorical]='Binarized Balanced E
 def computeBalancedErrorRate (x, y):
     r = computeHitRate(x, y)
     s = computeSpecificity(x, y)
-    r[np.isnan(r)] = 0
-    s[np.isnan(s)] = 0
-    if (r is None) or (s is None):
-        return None
     return 0.5 * (1 - r) + 0.5 * (1 - s)
 metric_types['balancederrorrate']=computeBalancedErrorRate
 metric_types['balancederror']=computeBalancedErrorRate
