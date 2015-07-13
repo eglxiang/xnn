@@ -3,13 +3,14 @@ import numpy as np
 from HDF5BatchLoad import *
 
 class HDF5RamPool(object):
-    def __init__(self, batchReader, partition='train', nBatchInPool=None, refreshPoolProp=None ):
+    def __init__(self, batchReader, partition='train', nBatchInPool=None, refreshPoolProp=None, poolSizeToReturn=None ):
         """
         Define a data loader that aggregates batches from a single partition of an HDF5 file
         :param batchReader: HDF5BatchLoad object set up to extract desired information from HDF5 
         :param partition:  partition from which to load data
         :param nBatchInPool:  number of batches to load into pool initially.  If None, load all batches (might run out of memory)
         :param refreshPoolProp: proportion of pool examples to be refreshed between calls.  If None, pool refreshed entirely
+        :param poolSizeToReturn: size of the pool to be returned when the pooler is called.  If None, entire pool returned
         """
         self.batchReader = batchReader
         self.pool = {}
@@ -18,15 +19,25 @@ class HDF5RamPool(object):
         self.refreshPoolProp = refreshPoolProp
         self.partition = partition
         self.batchIDlist = []
+        self.poolSizeToReturn = poolSizeToReturn 
 
     def __call__(self):
         self._refreshPool()
+        if self.poolSizeToReturn is not None:
+            return self._getsubpool()
         return self.pool
     
     def nInPool(self):
         if len(self.pool)==0 or len(self.pool.keys())==0:
             return 0
         return self.pool[self.pool.keys()[0]].shape[0]
+
+    def _getsubpool(self):
+        subpool = {}
+        ids = np.random.choice(self.nInPool(),size=self.poolSizeToReturn)
+        for k in self.pool.keys():
+            subpool[k] = self.pool[k][ids,...]
+        return subpool
 
     def _loadPool(self):
         self.currentID = 0
