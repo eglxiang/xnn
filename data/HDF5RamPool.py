@@ -75,9 +75,16 @@ class HDF5RamPool(object):
         if len(mergelist)<1:
             raise RuntimeError('mergelist is empty')
         items = mergelist[0]
-        for i in xrange(1,len(mergelist)):
-            for key in items.keys():
-                items[key] = np.concatenate((items[key],mergelist[i][key]),axis=0)
+        keyitems = {k:[] for k in items.keys()}
+        for key in items.keys():
+            for ml in mergelist:
+                keyitems[key].append(ml[key])
+        for key in items.keys():
+            items[key] = np.concatenate(keyitems[key],axis=0)
+
+#        for i in xrange(1,len(mergelist)):
+#            for key in items.keys():
+#                items[key] = np.concatenate((items[key],mergelist[i][key]),axis=0)
         return items
 
     def to_dict(self):
