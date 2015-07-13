@@ -21,6 +21,7 @@ class Sampler(object):
             self.numbatches = self.pooler.nInPool()//self.batchsize
         for i in xrange(self.numbatches):
             pool = self.pooler()
+            self._reset_batch()
             if self.samplemethod == 'balance' and len(self.keysamplers)>0:
                 batchinds,keyids = self._samplebalanced(pool)
             elif self.samplemethod == 'uniform':
@@ -41,6 +42,9 @@ class Sampler(object):
         batchids = np.random.choice(np.arange(self.pooler.nInPool()),self.batchsize)
         return batchids,[]
         
+    def _reset_batch(self):
+        for ks in self.keysamplers:
+            ks.reset_batch()
 
     def _samplebalanced(self,pool):
         keyids = np.random.choice(np.arange(len(self.keylist)),self.batchsize)
@@ -87,35 +91,58 @@ class CategoricalSampler(object):
         self.massSoFar = None
         self.idsSoFar = []
         self.countOthers = countOthers
+        self.newbatch = True
+        self.exampleProbs = None
+        self.labels = None
+        self.exshape = None
 
     def __call__(self,data):
-        labels = data[self.labelKey] 
-        if self.massSoFar is None:
-            self.massSoFar = np.zeros((1,labels.shape[1])).astype(theano.config.floatX)
+
+        if self.newbatch:
+            self._set_up_new_batch(data)
+
         if self.pickLowestFrequency:
             categoryToFind = np.argmin(self.massSoFar)
         else:
-            categoryToFind= np.random.choice(np.arange(labels.shape[1]),size=1)
+            categoryToFind= np.random.choice(np.arange(self.ncat),size=1)[0]
 
-        labelsCT = labels[:,categoryToFind].flatten().astype(theano.config.floatX)
-        labelindsTotal = np.nansum(labelsCT)
-        if labelindsTotal == 0:
-            exampleProbs = np.ones_like(labelsCT,dtype=float)
-            exampleProbs[np.isnan(labelsCT)] = 0
-            exampleProbs /= np.sum(exampleProbs)
-        else:
-            exampleProbs = labelsCT/np.nansum(labelsCT)
-            exampleProbs[np.isnan(exampleProbs)]=0
-        ep = exampleProbs.astype(float)/np.sum(exampleProbs.astype(float))
-        exampleInd = np.random.choice(np.arange(labelsCT.shape[0]),p=ep,size=1)
-        self._add_one_sample(exampleInd[0],labels)
+        exampleInd = np.random.choice(self.exshape[categoryToFind],p=self.exampleProbs[categoryToFind],size=1)
+        self._add_one_sample(exampleInd[0],self.labels)
         return exampleInd[0]
+
+    def _set_up_new_batch(self,data):
+        labels = data[self.labelKey]
+        self.labels = labels
+        self.ncat = labels.shape[1]
+        self.nex = labels.shape[0]
+        self.massSoFar = np.zeros((1,labels.shape[1])).astype(theano.config.floatX)
+        self.exampleProbs = {}
+        self.exshape = {}
+        for i in xrange(labels.shape[1]):
+            labelsCT = labels[:,i].flatten().astype(theano.config.floatX)
+            labelindsTotal = np.nansum(labelsCT)
+            if labelindsTotal == 0:
+                exampleProbs = np.ones_like(labelsCT,dtype=float)
+                exampleProbs[np.isnan(labelsCT)] = 0
+                exampleProbs /= np.sum(exampleProbs)
+            else:
+                exampleProbs = labelsCT/np.nansum(labelsCT)
+                exampleProbs[np.isnan(exampleProbs)]=0
+            ep = exampleProbs.astype(float)/np.sum(exampleProbs.astype(float))
+            self.exampleProbs[i] = ep
+            self.exshape[i] = np.arange(self.exampleProbs[i].shape[0])
+        self.newbatch=False
 
     def _add_one_sample(self,sampleid,labels):
         if self.massSoFar is None:
             self.massSoFar = np.zeros((1,labels.shape[1])).astype(theano.config.floatX)
         self.idsSoFar.append(sampleid)
-        self.massSoFar += np.nansum(labels[[self.idsSoFar[-1]],:],axis=0,keepdims=True)
+        l = labels[sampleid,:]
+        l[np.isnan(l)] = 0
+        self.massSoFar += l 
+
+    def reset_batch(self):
+        self.newbatch=True
 
     def add_other_sample(self,sampleid,data):
         if self.countOthers:
@@ -136,22 +163,42 @@ class BinarySampler(object):
         self.idsSoFar = []
         self.numPos = 0
         self.numNeg = 0
+        self.posnegIds = None
+        self.labels = None
+        self.newbatch = True
         self.countOthers = countOthers
 
     def __call__(self,data):
-        labels = data[self.labelKey]
+        if self.newbatch:
+            self._set_up_new_batch(data)
+
         pickPosNeg = self.numPos < self.numNeg if self.numPos != self.numNeg else np.random.randint(0,2)
         try:
-            exampleInd = np.random.choice(np.where(labels.flatten()==pickPosNeg)[0],size=1)
+            exampleInd = np.random.choice(self.posnegIds[pickPosNeg],size=1)
         except:
-            exampleInd = np.random.choice(np.arange(labels.shape[0]),size=1)
-        self._add_one_sample(exampleInd[0],labels)
+            exampleInd = np.random.choice(np.arange(self.labels.shape[0]),size=1)
+        self._add_one_sample(exampleInd[0],self.labels)
         return exampleInd[0]
+            
+    
+    
+    def _set_up_new_batch(self,data):
+        self.labels = data[self.labelKey]
+        self.posnegIds = []
+        self.posnegIds.append(np.where(self.labels.flatten()==0)[0])
+        self.posnegIds.append(np.where(self.labels.flatten()==1)[0])
+        self.newbatch=False
 
     def _add_one_sample(self,sampleid,labels):
         self.idsSoFar.append(sampleid)
-        self.numPos += np.nansum(labels[self.idsSoFar[-1],:])
-        self.numNeg += np.nansum(1-labels[self.idsSoFar[-1],:])
+        l = labels[sampleid,0]
+        if l!=l:
+            return
+        self.numPos += l 
+        self.numNeg += 1-l 
+
+    def reset_batch(self):
+        self.newbatch = True
 
     def add_other_sample(self,sampleid,data):
         if self.countOthers:
@@ -173,25 +220,46 @@ class BinnedSampler(object):
         self.bincounts = np.zeros((len(self.bins),))
         self.idsSoFar = []
         self.countOthers = countOthers
+        self.labelsBinned = None
+        self.binids = None
+        self.nexrange = None
 
     def __call__(self,data):
-        labels = data[self.labelKey]
-        labelsBinned = np.digitize(labels.flatten(),bins=self.bins)
+
+        if self.newbatch:
+            self._set_up_new_batch(data)
+
         binToFind = np.argmin(self.bincounts)
         try:
-            exampleInd = np.random.choice(np.where(labelsBinned.flatten()==binToFind)[0],size=1)
+            exampleInd = np.random.choice(self.binids[binToFind],size=1)
         except:
-            exampleInd = np.random.choice(np.arange(labels.shape[0]),size=1)
-        self._add_one_sample(exampleInd[0],labelsBinned)
+            exampleInd = np.random.choice(self.nexrange,size=1)
+        self._add_one_sample(exampleInd[0],self.labelsBinned)
         return exampleInd[0]
+
+    def _set_up_new_batch(self,data):
+        labels = data[self.labelKey]
+        self.nexrange = np.arange(labels.shape[0])
+        self.labelsBinned = np.digitize(labels.flatten(),bins=self.bins)
+        self.binids = {}
+        for i in xrange(len(self.bincounts)):
+            self.binids[i] = np.where(self.labelsBinned.flatten()==i)[0]
+        self.newbatch=False
+
 
     def _add_one_sample(self,sampleid,labelsBinned):
         self.idsSoFar.append(sampleid)
-        self.bincounts += np.bincount([labelsBinned[self.idsSoFar[-1]]],minlength=len(self.bins))[0:len(self.bins)]
+        l = labelsBinned[sampleid]
+        if l >= len(self.bincounts):
+            return
+        self.bincounts[l] += 1
 
     def add_other_sample(self,sampleid,data):
         if self.countOthers:
             self._add_one_sample(sampleid,np.digitize(data[self.labelKey].flatten(),bins=self.bins))
+    
+    def reset_batch(self):
+        self.newbatch=True
 
     def to_dict(self):
         properties = {}
