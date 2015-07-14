@@ -18,6 +18,8 @@ class Sampler(object):
     def __call__(self):
         if self.numbatches is None:
             pool = self.pooler()
+            if self.batchsize is None:
+                self.batchsize = self.pooler.nInPool()
             self.numbatches = self.pooler.nInPool()//self.batchsize
         for i in xrange(self.numbatches):
             pool = self.pooler()
