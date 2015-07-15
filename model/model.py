@@ -102,8 +102,13 @@ class Model(object):
             else:
                 nameden = namebase+'_DenseLayer_'
                 namedro = namebase+'_DropoutLayer_'
-            denselayer = self.make_dense_layer(pl,nhu,nonlinearity=nl,name=nameden)
-            droplayer  = self.make_dropout_layer(denselayer,p=p,name=namedro,drop_type=dt)
+            if nl == 'prelu':
+                denselayer = self.make_dense_layer(pl,nhu,nonlinearity=xnn.nonlinearities.linear,name=nameden)
+                prelu = self.add_layer(xnn.layers.PReLULayer(denselayer))
+                droplayer  = self.make_dropout_layer(prelu,p=p,name=namedro,drop_type=dt)
+            else:
+                denselayer = self.make_dense_layer(pl,nhu,nonlinearity=nl,name=nameden)
+                droplayer  = self.make_dropout_layer(denselayer,p=p,name=namedro,drop_type=dt)
             pl         = droplayer
         return pl
 
