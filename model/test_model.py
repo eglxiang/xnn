@@ -81,8 +81,9 @@ def _build_model():
     l_loc = xnn.layers.LocalLayer(l_bn,num_units=32,img_shape=(20,10),local_filters=[(2,1)],seed=121212)
     np.random.seed(int(time.time()*10000%10000))
     m2.add_layer(l_loc)
-    l_out= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out')
-    m2.bind_output(l_out, xnn.objectives.squared_error, 'age', 'label', 'mean',is_eval_output=True,scale=2)
+    l_out= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.linear),name='out')
+    l_pr = m2.add_layer(xnn.layers.PReLULayer(l_out,xnn.init.Constant(.25)))
+    m2.bind_output(l_pr, xnn.objectives.squared_error, 'age', 'label', 'mean',is_eval_output=True,scale=2)
     l_out2= m2.add_layer(xnn.layers.DenseLayer(l_loc,num_units=2,nonlinearity=xnn.nonlinearities.softmax),name='out2')
     m2.bind_output(l_out2, xnn.objectives.hinge_loss(threshold=2), 'age','label','mean',is_eval_output=False)
     return m2
