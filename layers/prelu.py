@@ -23,7 +23,7 @@ class PReLULayer(Layer):
         if learn_pivot:
             self.pivot = self.add_param(pivot, input_shape[1:], regularizable=False)
         else:
-            self.pivot = utils.create_param(pivot, input_shape)
+            self.pivot = utils.create_param(pivot, input_shape[1:])
 
     def get_output_for(self, input, **kwargs):
         x = input
