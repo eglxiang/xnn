@@ -134,11 +134,11 @@ class Trainer(object):
         elif aggregation_type == 'weighted_mean':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
-            cost = T.sum(cost*weights)/T.sum(weights)
+            cost = T.sum(cost*weights.T)/T.sum(weights.T)
         elif aggregation_type == 'weighted_sum':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
-            cost = T.sum(cost*weights)
+            cost = T.sum(cost*weights.T)
         # nan-protected aggregations
         elif aggregation_type == 'nanmean':
             cost = Tnanmean(cost)
