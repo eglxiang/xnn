@@ -2,6 +2,7 @@ import lasagne
 import theano
 import theano.tensor as T
 from .. import layers
+from .. import regularization
 from collections import OrderedDict
 from ..utils import Tnanmean, Tnansum
 from inspect import getargspec
@@ -60,6 +61,23 @@ class Trainer(object):
         self.__dict__.update(trainerSettings.__dict__)
         self.layer_updates = dict()
         self.set_model(model)
+        self.regularizations=dict()
+
+    def bind_regularization(self, penalty, lnamelist=None):
+        """
+        Attach a regularization penalty to a list of layers. 
+        :param penalty: a theano expression compatible with lasagne.regularization.apply_penalty
+        :param lnamelist: a list of layer names to which this regularization should apply.  If None, all layers in the model will be added.  If a list of tuples, specify regularization coefficents: [(lname,coeff),...].  If a float, all layers will be added with the float as a coefficient
+        """
+        if isinstance(lnamelist,float):
+            lnamelist = [(l,lnamelist) for l in self.model.layers.keys()]
+        if lnamelist is None:
+            lnamelist = self.model.layers.keys()
+        if type(lnamelist) != list:
+            lnamelist = [lnamelist]
+        if penalty not in self.regularizations.keys():
+            self.regularizations[penalty] = []
+        self.regularizations[penalty].extend(lnamelist)
 
     def bind_update(self, layerlist, update_settings):
         if type(layerlist) != list:
@@ -173,6 +191,21 @@ class Trainer(object):
             update = update_func(costTotal, params, *update_ins)
         return update, ins
 
+    def _get_regularization_costs(self):
+        costs = []
+        for p,lnamel in self.regularizations.iteritems():
+            weights={}
+            for ln in lnamel:
+                if isinstance(ln,tuple):
+                    wgt = ln[1]
+                    name = ln[0]
+                else:
+                    wgt = 1
+                    name = ln
+                weights[self.model.layers[name]]=wgt
+            costs.append(regularization.regularize_layer_params_weighted(weights,p))
+        return costs
+
     def _create_train_func(self):
         if self.model is None:
             raise Exception("No model has been set to train!")
@@ -190,6 +223,7 @@ class Trainer(object):
             cost,ins = self.get_cost(layer_name,layer_dict,all_outs_dict,ins)
             cost *= layer_dict['scale']
             costs.append(cost)
+        costs.extend(self._get_regularization_costs())
         costTotal = T.sum(costs)
         outsTrain.append(costTotal)
         # Get updates

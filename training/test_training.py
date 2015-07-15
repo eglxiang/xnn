@@ -1,8 +1,8 @@
 # import xnn
 from xnn.model import Model
 from xnn import layers
-import xnn
 from xnn.training.trainer import *
+import xnn
 import numpy as np
 import lasagne
 import tempfile
@@ -89,6 +89,40 @@ def test_bind_global_update():
     outs = trainer.train_step(batch_dict)
     trainer.bind_global_update(update_settings=global_update_settings2,overwrite=True)
     outs = trainer.train_step(batch_dict)
+
+def test_regularization():
+    batch_size = 2
+    img_size = 10
+    num_hid = 10
+    m = _build_model(batch_size,img_size,num_hid)
+    m2 = _build_model(batch_size,img_size,num_hid)
+    global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.2)
+    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
+    trainer = Trainer(m,trainer_settings)
+    trainer2 = Trainer(m2,trainer_settings)
+    trainer.bind_regularization(xnn.regularization.l2, ['l_h1',('l_out',.1)])
+    trainer.bind_regularization(xnn.regularization.l2,.5)
+    
+    pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
+    emotions = np.random.rand(batch_size,num_hid).astype(theano.config.floatX)
+
+    batch_dict = dict(
+        # learning_rate_default=0.1,
+        # momentum_default=0.5,
+        pixels=pixels,
+        emotions=emotions
+    )
+
+    trainer2.train_step(batch_dict)
+    trainer.train_step(batch_dict)
+    trainer2.train_step(batch_dict)
+    trainer.train_step(batch_dict)
+    lh_r= np.linalg.norm(m.layers['l_h1'].W.get_value())
+    lh_n= np.linalg.norm(m2.layers['l_h1'].W.get_value())
+    lo_r= np.linalg.norm(m.layers['l_out'].W.get_value())
+    lo_n= np.linalg.norm(m2.layers['l_out'].W.get_value())
+    assert lh_r<lh_n
+    assert lo_r<lo_n
 
 def test_trained_model_serialization():
     batch_size = 2
@@ -187,5 +221,6 @@ if __name__ == '__main__':
     test_train()
     test_aggregation()
     test_bind_global_update()
+    test_regularization()
     test_trained_model_serialization()
     test_trainer_serialization()
