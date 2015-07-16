@@ -118,11 +118,11 @@ class BinaryWeighter(Weighter):
             self._init_stats()
             self.statPool = None
 
-        labels = data[self.labelKey]
-        weights = np.ones_like(labels)
+        labels = data[self.labelKey].flatten()
+        weights = np.zeros_like(labels)
         weights[labels==1] = self.posWeight
         weights[labels==0] = self.negWeight
-        return weights
+        return weights[:,np.newaxis]
 
     def to_dict(self):
         properties = {}
