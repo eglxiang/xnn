@@ -143,6 +143,8 @@ class Trainer(object):
         else:
             raise Exception('This should have been caught earlier')
         cost = layer_dict['loss_function'](preds,targs)
+        if cost.ndim < 2:
+            cost = cost.dimshuffle(0,'x')
         aggregation_type = layer_dict['aggregation_type']
         # regular aggregations
         if aggregation_type == 'mean':
@@ -152,11 +154,11 @@ class Trainer(object):
         elif aggregation_type == 'weighted_mean':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
-            cost = T.sum(cost*weights.T)/T.sum(weights.T)
+            cost = T.sum(cost*weights)/T.sum(weights)
         elif aggregation_type == 'weighted_sum':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
-            cost = T.sum(cost*weights.T)
+            cost = T.sum(cost*weights)
         # nan-protected aggregations
         elif aggregation_type == 'nanmean':
             cost = Tnanmean(cost)
