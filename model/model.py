@@ -9,7 +9,7 @@ from xnn import layers
 __all__=['Model']
 
 class Model(object):
-    def __init__(self,name=None):
+    def __init__(self,name='model'):
         self.name    = name
         self.layers  = OrderedDict()
         self.inputs  = OrderedDict()
