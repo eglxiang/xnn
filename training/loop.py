@@ -39,7 +39,8 @@ class Loop(object):
         
 
     def __call__(self,niter=1):
-        for ep in xrange(self.ep,self.ep+niter):
+        endep = self.ep+niter
+        for ep in xrange(self.ep,endep):
             start = time.time()
             self.ep += 1
             # training
@@ -70,7 +71,7 @@ class Loop(object):
 
             #print summary to stdout
             if self._print_flag:
-                self._print(ep,trainerr,metvals,dur,niter)
+                self._print(ep,trainerr,metvals,dur,endep)
 
             #plot
             if self._plot_flag:
