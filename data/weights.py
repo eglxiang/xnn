@@ -12,6 +12,8 @@ class Weighter(object):
         pass
 
     def __call__(self,data):
+        if isinstance(self.labelKey,list):
+            return np.ones((data[self.labelKey[0]].shape[0],len(self.labelKey))).astype(theano.config.floatX)
         return np.ones((data[self.labelKey].shape[0],1)).astype(theano.config.floatX)
         
     def to_dict(self):
@@ -43,6 +45,7 @@ class BinnedWeighter(Weighter):
             #TODO: make this smoothing dependent on data?
             self.bincount += .25
         self.binweight = 1./self.bincount
+        self.binweight /=np.sum(self.binweight)
 
     def __call__(self,data):
         if self.statPool is None:
@@ -73,19 +76,31 @@ class CategoricalWeighter(Weighter):
     def __init__(self,labelKey,statPool=None):
         super(CategoricalWeighter,self).__init__(labelKey,statPool)        
 
+    def _get_labels(self,source):
+        if isinstance(self.labelKey,list):
+            labs = []
+            for l in self.labelKey:
+                labs.append(source[l])
+            return np.hstack(labs)
+        else:
+            return source[self.labelKey]
+
+
     def _init_stats(self):
-        labels = self.statPool[self.labelKey] 
+        labels = self._get_labels(self.statPool) #self.statPool[self.labelKey] 
         self.frequencies = np.nansum(labels, axis=0, keepdims=True)
         #if 0 in self.frequencies:
         self.frequencies += .1 
         self.proportions = (1./self.frequencies).astype(theano.config.floatX)
+        self.proportions /= np.sum(self.proportions)
+        
 
     def __call__(self,data):
         if self.statPool is None:
             self.statPool = data
             self._init_stats()
             self.statPool = None
-        labels = data[self.labelKey]
+        labels = self._get_labels(data) #data[self.labelKey]
         return labels.dot(self.proportions.T)
     
     def to_dict(self):
@@ -109,6 +124,9 @@ class BinaryWeighter(Weighter):
         meanNum = numPos+numNeg/2
         self.posWeight = meanNum / (numPos) 
         self.negWeight = meanNum / (numNeg)
+        nrm = self.posWeight + self.negWeight
+        self.posWeight/=nrm
+        self.negWeight/=nrm
         self.numNeg = numNeg
         self.numPos = numPos
 
