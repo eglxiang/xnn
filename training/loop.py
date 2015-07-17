@@ -1,0 +1,190 @@
+import xnn
+import numpy as np
+from bokeh.plotting import output_server, figure, push, curdoc, cursession,vplot
+import time
+
+class Loop(object):
+    def __init__(self,trainer,learndata=[],validdata=[],metricsdict={},url=None,savefilename=None,weightdict={},printflag=True,plotmetricmean=True):
+        """
+        An example training loop.  The trainer will learn from learndata, apply metrics to validdata, plot to bokeh server at url if supplied, and save to csv file.
+        :param trainer: The trainer to run
+        :param learndata:  A list of generator functions that yield batches of data from which the trainer will learn
+        :param validdata:  A list of generator functions that yield batches of data to which the metrics will be applied
+        :param metricsdict:  A dictionary of metrics to apply to the validdata.  The keys of metricsdict are the keys in the model.predict output from which the metric should be calculated
+        :param url: A string representing the url where the bokeh server is running (e.g. 'http://127.0.0.1:5006'). If None, or if server cannot be connected, no plotting will occur
+        :param savefilename:  The name of a file into which to write metric results at each epoch.
+        :param weightdict:  Dictionary of Weighters.  Keys in weightdict are keys into which the weight results will be inserted in the data dictionary.  Weights are calculated for every training batch.
+        :param printflag: Whether to print results to stdout after each epoch
+        :param plotmetricmean: Whether to print/save/plot mean of all metrics.  Depending on the metrics, this value might not make sense.
+        """
+        self.trainer = trainer
+        self.learndata = self._listify(learndata)
+        self.validdata = self._listify(validdata)
+        self.metricsdict = metricsdict
+        self.weightdict = weightdict
+        if url is not None:
+            self._plot_flag = self._init_plotsession(url)
+            self._datasources = None
+        else:
+            self._plot_flag = False
+        if savefilename is not None:
+            self.savefilename=savefilename
+            self._save_flag = True
+        else:
+            self._save_flag = False
+        self._print_flag = printflag
+        self._plotmetricmean=plotmetricmean
+        self.meandur = None
+        self.ep = 0
+        
+
+    def __call__(self,niter=1):
+        for ep in xrange(self.ep,self.ep+niter):
+            start = time.time()
+            self.ep += 1
+            # training
+            trainerrs = []
+            for ld in self.learndata:
+                for batch in ld():
+                    batch = self._weight(batch)
+                    outs = self.trainer.train_step(batch)
+                    trainerrs.append(outs[-1])
+            trainerr = np.mean(trainerrs)
+
+            # validation
+            metvals = []
+            for vd in self.validdata:
+                vals = []
+                for batch in vd():
+                    outs = self.trainer.model.predict(batch)
+                    for metkey,met in self.metricsdict.iteritems():
+                        vals.append(met(outs[metkey],batch))
+                metvals.append(vals)
+            metvals = np.mean(metvals,axis=0).tolist()
+            end = time.time()
+            dur = end-start
+            if self.meandur is None:
+                self.meandur = dur
+            else:
+                self.meandur = 0.3*self.meandur + 0.7*dur
+
+            #print summary to stdout
+            if self._print_flag:
+                self._print(ep,trainerr,metvals,dur,niter)
+
+            #plot
+            if self._plot_flag:
+                self._plot(ep,trainerr,metvals)
+
+            #save to csv
+            if self._save_flag:
+                self._save(ep,trainerr,metvals)
+        if self._print_flag:
+            print('Finished %d epochs at %s'%(niter,time.strftime('%I:%M:%S %p')))
+
+    def _weight(self,batch):
+        for k,w in self.weightdict.iteritems():
+            batch[k] = w(batch)
+        return batch
+
+    def _plot(self,ep,trainerr,metvals):
+        if self._datasources is None:
+            self._make_figures(ep,trainerr,metvals)
+        if self._plotmetricmean:
+            vals = [trainerr] + [np.mean(metvals)] + metvals
+        else:
+            vals = [trainerr] + metvals
+        for v,ds in zip(vals,self._datasources):
+            self._update_datasource(ds,v,ep)
+
+    def _update_datasource(self,ds,v,ep):
+        ds.data['x'].append(ep)
+        ds.data['y'].append(v)
+        cursession().store_objects(ds)
+
+    def _make_figures(self,ep,trainerr,metvals):
+        self._datasources = []
+        figures = []
+        fig = figure(title='Total Training Cost',x_axis_label='Epoch',y_axis_label='Cost')
+        fig.line([ep],[trainerr],name='plot')
+        ds = fig.select(dict(name='plot'))[0].data_source
+        self._datasources.append(ds)
+        if self._plotmetricmean:
+            figures.append(fig)
+            fig = figure(title='Metric Mean',x_axis_label='Epoch',y_axis_label='Mean')
+            fig.line([ep],[np.mean(metvals)],name='plot')
+            ds = fig.select(dict(name='plot'))[0].data_source
+            self._datasources.append(ds)
+            figures.append(fig)
+        for mv,(mk,m) in zip(metvals,self.metricsdict.iteritems()):
+            name = xnn.metrics.metric_names[m.metric]
+            fig = figure(title=mk,x_axis_label='Epoch',y_axis_label=name)
+            fig.line([ep],[mv],name='plot')
+            ds = fig.select(dict(name='plot'))[0].data_source
+            self._datasources.append(ds)
+            figures.append(fig)
+        allfigs = vplot(*figures)
+        push()
+
+    def _print(self,ep,trainerr,metvals,dur,totalep):
+        fmt = '{0:45} {1:20}:   {2:0.4f}'
+        print '=========='
+        print('Epoch %d / %d -- %0.2f seconds'%(ep,totalep-1,dur))
+        print('Expected Finish: %s'%(self._timedone(ep,totalep)))
+        print '----------'
+        print(fmt.format('Training total cost','',trainerr))
+        print '----------'
+        if self._plotmetricmean:
+            print fmt.format('Overall Mean','',np.mean(metvals))
+            print '----------'
+        for mv,(mk,m) in zip(metvals,self.metricsdict.iteritems()):
+            name = xnn.metrics.metric_names[m.metric]
+            print fmt.format(name,mk,mv)
+            
+    def _timedone(self,ep,totalep):
+        now = time.time()
+        done = now + self.meandur*(totalep-1-ep)
+        ts = time.localtime(done)
+        return time.strftime('%a, %I:%M:%S %p',ts)
+
+    def _save(self,ep,trainerr,metvals):
+        if (not hasattr(self,'_headers_written')) or (not self._headers_written):
+            self._save_header()
+            self._headers_written = True
+        with open(self.savefilename,'a') as f:
+            f.write(('%0.4f,'%trainerr))
+            if self._plotmetricmean:
+                f.write(('%0.4f,'%np.mean(metvals)))
+            for mv in metvals:
+                f.write(('%0.4f,'%mv))
+            f.write('\n')
+            f.flush()
+    
+    def _save_header(self):
+        with open(self.savefilename,'a') as f:
+            f.write('Training cost,')
+            if self._plotmetricmean:
+                f.write('Overall mean,')
+            for mk,m in self.metricsdict.iteritems():
+                name = xnn.metrics.metric_names[m.metric]
+                f.write(name+'_'+mk)
+            f.write('\n')
+            f.flush()
+
+    def _init_plotsession(self,url):
+        docname = self.trainer.model.name
+        try:
+            output_server(docname,url=url)
+        except:
+            return False
+        d = curdoc()
+        self.plot_address = '%s/bokeh/doc/%s/%s'%(url,d.docid,d.ref['id'])
+        print('plots available at: %s'%(self.plot_address))
+        return True
+
+
+
+    def _listify(self,thing):
+        if not isinstance(thing,list):
+            return [thing]
+        return thing
