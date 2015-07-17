@@ -37,6 +37,7 @@ __all__=['metric_types','metric_names','Metric',
             'computeJunkRate',
             'computeKLDivergence',
             'computeOptimalBalancedErrorRate',
+            'computeOptimalBalancedErrorRateCategorical',
             'computeOptimalBalancedExponentialCost',
             'computeOptimalBalancedLogisticCost',
             'computeOptimalF1',
@@ -255,6 +256,16 @@ metric_types['ober']=computeOptimalBalancedErrorRate
 metric_types['obe']=computeOptimalBalancedErrorRate
 metric_names[computeOptimalBalancedErrorRate]='Optimal Balanced Error Rate'
 
+def computeOptimalBalancedErrorRateCategorical (x, y, numThresholds = 100):
+    return optimizeOverThresholds(computeBinarizedBalancedErrorRateCategorical,
+                                    False, x, y,
+                                    numThresholds)
+metric_types['optimalbalancederrorratecategorical']=computeOptimalBalancedErrorRateCategorical
+metric_types['optimalbalancederrorcategorical']=computeOptimalBalancedErrorRateCategorical
+metric_types['oberc']=computeOptimalBalancedErrorRateCategorical
+metric_types['obec']=computeOptimalBalancedErrorRateCategorical
+metric_names[computeOptimalBalancedErrorRateCategorical]='Optimal Balanced Error Rate'
+
 def computeBinarizedBalancedErrorRateBinary(x, y, t=0.5):
     x = threshold(x,t)
     y = threshold(y,t)
@@ -448,7 +459,7 @@ metric_names[computeOptimalBalancedLogisticCost]='Optimal Balanced Logistic Cost
 def computeOptimalBalancedExponentialCost (x, y):
     return optimizeOverBaselinesAndScales(computeBalancedExponentialCost, False, x, y)
 metric_types['optimalbalancedexponentialcost']=computeOptimalBalancedExponentialCost
-metric_types['obec']=computeOptimalBalancedExponentialCost
+metric_types['obexc']=computeOptimalBalancedExponentialCost
 metric_names[computeOptimalBalancedExponentialCost]='Optimal Balanced Exponential Cost'
 
 def computeBinarizedBalancedLogisticCost (x, y):
