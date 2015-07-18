@@ -168,7 +168,7 @@ class Loop(object):
                 f.write('Overall mean,')
             for mk,m in self.metricsdict.iteritems():
                 name = xnn.metrics.metric_names[m.metric]
-                f.write(name+'_'+mk)
+                f.write(name+'_'+mk+',')
             f.write('\n')
             f.flush()
 
