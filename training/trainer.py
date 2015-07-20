@@ -78,6 +78,7 @@ class Trainer(object):
         if penalty not in self.regularizations.keys():
             self.regularizations[penalty] = []
         self.regularizations[penalty].extend(lnamelist)
+        self.train_func=None
 
     def bind_update(self, layerlist, update_settings):
         if type(layerlist) != list:
