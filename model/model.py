@@ -183,6 +183,7 @@ class Model(object):
                 target_type      = output['target_type'],
                 target           = output['target'],
                 aggregation_type = output['aggregation_type'],
+                weight_key       = output['weight_key'],
                 scale            = output['scale']
             )
 
@@ -295,11 +296,12 @@ class Model(object):
             else:
                 fname     = outdict['loss_function']
                 f         = getattr(xnn.objectives,fname)
+            wgt_key   = outdict['weight_key']
             targ      = outdict['target']
             targ_type = outdict['target_type']
             agg       = outdict['aggregation_type']
             scale     = outdict['scale']
-            self.bind_output(l,f,targ,targ_type,agg,scale)
+            self.bind_output(l,f,targ,targ_type,agg,scale,weight_key=wgt_key)
 
     def _bind_eval_outputs_from_list(self,el):
         for layername, edict in el.iteritems():
