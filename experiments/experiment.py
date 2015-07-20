@@ -61,6 +61,7 @@ class Experiment(object):
     def get_nth_condition(self, n, default=None, conditions=None):
         conditions_ = self.conditions if conditions is None else conditions
         cond = next(islice(conditions_, n, None), default)
+        self._generate_conditions()
         return self._patch_condition(cond)
 
     def get_conditions_iterator(self, start=0, stop=None):
