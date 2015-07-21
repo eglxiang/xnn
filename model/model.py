@@ -361,7 +361,7 @@ class Model(object):
                     ins.append(i)
                     data_dict[l]=i
         outs = xnn.layers.get_output(self.layers.values(),inputs=data_dict,deterministic=True)
-        f = theano.function(ins,outs)
+        f = theano.function(ins,outs,no_default_updates=True)
         self._predict_func = f
 
     def predict(self,data_dict,layer_names=None,data_in_gpu=False):
