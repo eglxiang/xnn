@@ -4,20 +4,22 @@ from bokeh.plotting import output_server, figure, push, curdoc, cursession,vplot
 import time
 
 class Loop(object):
+    """
+    An example training loop.  The trainer will learn from learndata, apply metrics to validdata, plot to bokeh server at url if supplied, and save to csv file.
+
+    :param trainer: The trainer to run
+    :param learndata:  A list of generator functions that yield batches of data from which the trainer will learn
+    :param validdata:  A list of generator functions that yield batches of data to which the metrics will be applied
+    :param metricsdict:  A dictionary of metrics to apply to the validdata.  The keys of metricsdict are the keys in the model.predict output from which the metric should be calculated
+    :param url: A string representing the url where the bokeh server is running (e.g. :samp:`http://127.0.0.1:5006`). If None, or if server cannot be connected, no plotting will occur
+    :param savefilenamecsv:  The name of a file into which to write metric results at each epoch.
+    :param weightdict:  Dictionary of Weighters.  Keys in weightdict are keys into which the weight results will be inserted in the data dictionary.  Weights are calculated for every training batch.
+    :param printflag: Whether to print results to stdout after each epoch
+    :param plotmetricmean: Whether to print/save/plot mean of all metrics.  Depending on the metrics, this value might not make sense.
+    :param savemodelnamebase: Base name for saving metrics.  If not None, models will be saved for the best values of each metric as looping procedes.
+    """
+
     def __init__(self,trainer,learndata=[],validdata=[],metricsdict={},url=None,savefilenamecsv=None,weightdict={},printflag=True,plotmetricmean=True,savemodelnamebase=None):
-        """
-        An example training loop.  The trainer will learn from learndata, apply metrics to validdata, plot to bokeh server at url if supplied, and save to csv file.
-        :param trainer: The trainer to run
-        :param learndata:  A list of generator functions that yield batches of data from which the trainer will learn
-        :param validdata:  A list of generator functions that yield batches of data to which the metrics will be applied
-        :param metricsdict:  A dictionary of metrics to apply to the validdata.  The keys of metricsdict are the keys in the model.predict output from which the metric should be calculated
-        :param url: A string representing the url where the bokeh server is running (e.g. 'http://127.0.0.1:5006'). If None, or if server cannot be connected, no plotting will occur
-        :param savefilenamecsv:  The name of a file into which to write metric results at each epoch.
-        :param weightdict:  Dictionary of Weighters.  Keys in weightdict are keys into which the weight results will be inserted in the data dictionary.  Weights are calculated for every training batch.
-        :param printflag: Whether to print results to stdout after each epoch
-        :param plotmetricmean: Whether to print/save/plot mean of all metrics.  Depending on the metrics, this value might not make sense.
-        :param savemodelnamebase: Base name for saving metrics.  If not None, models will be saved for the best values of each metric as looping procedes.
-        """
         self.trainer = trainer
         self.learndata = self._listify(learndata)
         self.validdata = self._listify(validdata)

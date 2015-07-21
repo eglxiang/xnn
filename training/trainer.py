@@ -66,6 +66,7 @@ class Trainer(object):
     def bind_regularization(self, penalty, lnamelist=None):
         """
         Attach a regularization penalty to a list of layers. 
+
         :param penalty: a theano expression compatible with lasagne.regularization.apply_penalty
         :param lnamelist: a list of layer names to which this regularization should apply.  If None, all layers in the model will be added.  If a list of tuples, specify regularization coefficents: [(lname,coeff),...].  If a float, all layers will be added with the float as a coefficient
         """
