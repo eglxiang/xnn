@@ -60,8 +60,8 @@ class BatchNormLayer(Layer):
         if len(input_shape) > 2:
             input_shape = [input_shape[0],np.prod(input_shape[1:])]
 
-        self.beta  = self.add_param(beta, (input_shape[1],),regularizable=False)
-        self.gamma = self.add_param(gamma, (input_shape[1],),regularizable=False)
+        self.beta  = self.add_param(beta, (input_shape[1],),name='beta',regularizable=False)
+        self.gamma = self.add_param(gamma, (input_shape[1],),name='gamma',regularizable=False)
 
         self.means = utils.create_param(means,(input_shape[1],), name='means')
         self.stdevs = utils.create_param(stdevs,(input_shape[1],), name='stdevs')
@@ -112,17 +112,6 @@ class BatchNormLayer(Layer):
         # else:
         #     return self.nonlinearity(activation)
 
-    def get_params(self):
-        if self.learn_transform == True:
-            return [self.gamma] + self.get_bias_params()
-        else:
-            return []
-
-    def get_bias_params(self):
-        if self.learn_transform == True:
-            return [self.beta]
-        else:
-            return []
 
     def get_output_shape_for(self, input_shape):
         return input_shape
