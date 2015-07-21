@@ -68,6 +68,10 @@ class HDF5BatchLoad(object):
                 properties[k] = deepcopy(self.__dict__[k])
         return properties
 
+    def datakeys(self):
+        keys = {i.name for i in self.inputReaders}
+        return keys
+
 
 def main():
     bl = HDF5BatchLoad('tmp/biggray.hdf5',inputReaders=dgfxReaderList)

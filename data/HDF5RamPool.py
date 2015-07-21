@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 from HDF5BatchLoad import *
+import theano
 
 class HDF5RamPool(object):
     def __init__(self, batchReader, partition='train', nBatchInPool=None, refreshPoolProp=None, poolSizeToReturn=None ):
@@ -26,7 +27,10 @@ class HDF5RamPool(object):
         if self.poolSizeToReturn is not None:
             return self._getsubpool()
         return self.pool
-    
+   
+    def datakeys(self):
+        return self.batchReader.datakeys()
+
     def nInPool(self):
         if len(self.pool)==0 or len(self.pool.keys())==0:
             return 0
@@ -98,6 +102,12 @@ class HDF5RamPool(object):
 #                items[key] = np.concatenate((items[key],mergelist[i][key]),axis=0)
         return items
 
+    def does_pool_update(self):
+        if (self.refreshPoolProp == 0 or self.nBatchInPool is None) and self.poolSizeToReturn is None:
+            return False
+        return True
+
+
     def to_dict(self):
         properties = {}
         for k in self.__dict__:
@@ -108,4 +118,69 @@ class HDF5RamPool(object):
             else:
                 properties[k] = deepcopy(self.__dict__[k])
         return properties
+
+class PoolMerger(object):
+    def __init__(self, poolers):
+        if isinstance(poolers,list):
+            self.poolers = poolers
+        else:
+            self.poolers = [poolers]
+        self.datasizes = None
+        self.datakeys  = None
+        self.pool = None
+
+
+    def __call__(self):
+        self._get_pools()
+        if self.datasizes is None:
+            self._init_poolinfo()
+        if self.pool is None or self.anyupdate:
+            self._merge_pools()
+        return self.pool
+        
+    def _merge_pools(self):
+        pool = {}
+        keyitems = {k:[] for k in self.datakeys} 
+        for key in keyitems.keys():
+            for i,p in enumerate(self.pools):
+                if key in p.keys():
+                    keyitems[key].append(p[key])
+                else:
+                    keyitems[key].append(np.nan*np.ones(self.datasizes[key][i],dtype=theano.config.floatX))
+        for key in keyitems.keys():
+            pool[key] = np.concatenate(keyitems[key],axis=0)
+        self.pool = pool
+
+    def _init_poolinfo(self):        
+        self.datakeys = set()
+        self.datasizes = dict()
+        nsinpool=dict()
+        sizeinkey= dict()
+        self.anyupdate = False
+        for plr in self.poolers:
+            self.datakeys.update(plr.datakeys())
+            self.anyupdate = self.anyupdate or plr.does_pool_update()
+        for k in self.datakeys:
+            self.datasizes[k] = [] 
+            for i,p in enumerate(self.pools):
+                if k not in p:
+                    self.datasizes[k].append(None)
+                else:
+                    nsinpool[i] = p[k].shape[0]
+                    sizeinkey[k] = p[k].shape[1:]
+                    self.datasizes[k].append(p[k].shape)
+        for k in self.datakeys:
+            for i,p in enumerate(self.pools):
+                if k not in p:
+                    shp = [nsinpool[i]]
+                    shp.extend(sizeinkey[k])
+                    shp = tuple(shp)
+                    self.datasizes[k][i] = shp 
+
+        
+
+    def _get_pools(self):
+        self.pools = []
+        for p in self.poolers:
+            self.pools.append(p())
 
