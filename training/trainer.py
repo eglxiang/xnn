@@ -144,7 +144,8 @@ class Trainer(object):
         else:
             raise Exception('This should have been caught earlier')
         cost = layer_dict['loss_function'](preds,targs)
-        #if cost.ndim < 2:
+        ## In order to use weighting on vectors need to add an extra dimension
+        #if (cost.ndim < 2):
         #    cost = cost.dimshuffle(0,'x')
         aggregation_type = layer_dict['aggregation_type']
         # regular aggregations
