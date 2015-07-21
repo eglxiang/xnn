@@ -144,7 +144,7 @@ metric_names[computeSquaredError]='Squared Error'
 def computeAbsoluteError(x,y):
     return np.abs(x-y)
 metric_types['ae']=computeAbsoluteError 
-metric_names[computeSquaredError]='Absolute Error'
+metric_names[computeAbsoluteError]='Absolute Error'
 
 def computeCategoricalCrossentropy(x,y):
     x = np.float32(x)
@@ -559,5 +559,5 @@ def confMatAggregate(c):
     cm = c.copy()
     c = c.astype(np.float32) / np.sum(c,axis=1)
     c[np.isnan(c)]=0
-    return cm,np.nanmean(np.diag(c))
+    return 1-np.nanmean(np.diag(c))
 
