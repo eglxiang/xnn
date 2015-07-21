@@ -4,13 +4,14 @@ from bokeh.plotting import output_server, figure, push, curdoc, cursession,vplot
 import time
 
 class Loop(object):
-    def __init__(self,trainer,learndata=[],validdata=[],metricsdict={},url=None,savefilenamecsv=None,weightdict={},printflag=True,plotmetricmean=True,savemodelnamebase=None):
+    def __init__(self,trainer,learndata=[],validdata=[],metrics={},url=None,savefilenamecsv=None,weightdict={},printflag=True,plotmetricmean=True,savemodelnamebase=None):
         """
         An example training loop.  The trainer will learn from learndata, apply metrics to validdata, plot to bokeh server at url if supplied, and save to csv file.
+
         :param trainer: The trainer to run
         :param learndata:  A list of generator functions that yield batches of data from which the trainer will learn
         :param validdata:  A list of generator functions that yield batches of data to which the metrics will be applied
-        :param metricsdict:  A dictionary of metrics to apply to the validdata.  The keys of metricsdict are the keys in the model.predict output from which the metric should be calculated
+        :param metrics:  A list of metrics to apply to the validdata.  Each entry is a tuple, the first element of which is the key in the model.predict output from which the metric should be calculated, the second element of which is the metric
         :param url: A string representing the url where the bokeh server is running (e.g. 'http://127.0.0.1:5006'). If None, or if server cannot be connected, no plotting will occur
         :param savefilenamecsv:  The name of a file into which to write metric results at each epoch.
         :param weightdict:  Dictionary of Weighters.  Keys in weightdict are keys into which the weight results will be inserted in the data dictionary.  Weights are calculated for every training batch.
@@ -21,7 +22,7 @@ class Loop(object):
         self.trainer = trainer
         self.learndata = self._listify(learndata)
         self.validdata = self._listify(validdata)
-        self.metricsdict = metricsdict
+        self.metrics = metrics
         self.weightdict = weightdict
         if url is not None:
             self._plot_flag = self._init_plotsession(url)
@@ -66,7 +67,7 @@ class Loop(object):
                 vals = []
                 for batch in vd():
                     outs = self.trainer.model.predict(batch)
-                    for metkey,met in self.metricsdict.iteritems():
+                    for metkey,met in self.metrics:
                         vals.append(met(outs[metkey],batch))
                 metvals.append(vals)
             metvals = np.mean(metvals,axis=0).tolist()
@@ -111,9 +112,9 @@ class Loop(object):
                 fname = self.savemodelnamebase + '_metricmean'
                 self.trainer.model.save_model(fname)
             isbest = isbest[1:] 
-        for mk,ib in zip(self.metricsdict.keys(),isbest):
+        for (mk,mt),ib in zip(self.metrics,isbest):
             if ib:
-                fname = self.savemodelnamebase + '_' + mk
+                fname = self.savemodelnamebase + '_' + mk + '_'+ xnn.metrics.metric_names[mt.metric]
                 self.trainer.model.save_model(fname)
     
     def _update_best(self,ep,trainerr,metvals):
@@ -171,7 +172,7 @@ class Loop(object):
             ds = fig.select(dict(name='plot'))[0].data_source
             self._datasources.append(ds)
             figures.append(fig)
-        for mv,(mk,m) in zip(metvals,self.metricsdict.iteritems()):
+        for mv,(mk,m) in zip(metvals,self.metrics):
             name = xnn.metrics.metric_names[m.metric]
             fig = figure(title=mk,x_axis_label='Epoch',y_axis_label=name)
             fig.line([ep],[mv],name='plot')
@@ -194,7 +195,7 @@ class Loop(object):
             print fmt.format('Overall Mean','',np.mean(metvals),self._bestmetvals[1],self._bestatep[1])
             print '----------'
             beststartid = 2
-        for mv,(mk,m),bv,be in zip(metvals,self.metricsdict.iteritems(),self._bestmetvals[beststartid:],self._bestatep[beststartid:]):
+        for mv,(mk,m),bv,be in zip(metvals,self.metrics,self._bestmetvals[beststartid:],self._bestatep[beststartid:]):
             name = xnn.metrics.metric_names[m.metric]
             print fmt.format(name,mk,mv,bv,be)
             
@@ -222,7 +223,7 @@ class Loop(object):
             f.write('Training cost,')
             if self._plotmetricmean:
                 f.write('Overall mean,')
-            for mk,m in self.metricsdict.iteritems():
+            for mk,m in self.metrics:
                 name = xnn.metrics.metric_names[m.metric]
                 f.write(name+'_'+mk+',')
             f.write('\n')
