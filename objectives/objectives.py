@@ -3,6 +3,7 @@ import theano.tensor as T
 import xnn
 from ..utils import typechecker
 from lasagne.objectives import binary_crossentropy,categorical_crossentropy
+import numpy as np
 
 
 __all__ = [
@@ -113,7 +114,7 @@ class cross_covariance(object):
     @typechecker
     def __call__(self, x, t):
         allg = set(range(len(self.groups)))
-        ccov = 0.
+        ccov = np.zeros(1)# 0.
         for g1 in range(len(self.groups)-1):
             subsetg2 = allg.copy()
             subsetg2.remove(g1)
