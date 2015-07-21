@@ -157,11 +157,17 @@ class Trainer(object):
         elif aggregation_type == 'weighted_mean':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
-            cost = T.sum(cost*weights)/T.sum(weights)
+            if cost.ndim < 2:
+                cost = T.sum(cost*weights.T)/T.sum(weights.T)
+            else:
+                cost = T.sum(cost*weights)/T.sum(weights)
         elif aggregation_type == 'weighted_sum':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
-            cost = T.sum(cost*weights)
+            if cost.ndim < 2:
+                cost = T.sum(cost*weights.T)
+            else:
+                cost = T.sum(cost*weights)
         # nan-protected aggregations
         elif aggregation_type == 'nanmean':
             cost = Tnanmean(cost)
@@ -170,11 +176,17 @@ class Trainer(object):
         elif aggregation_type == 'nanweighted_mean':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
-            cost = Tnansum(cost*weights)/Tnansum(weights)
+            if cost.ndim < 2:
+                cost = Tnansum(cost*weights.T)/Tnansum(weights.T)
+            else:
+                cost = Tnansum(cost*weights)/Tnansum(weights)
         elif aggregation_type == 'nanweighted_sum':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
-            cost = Tnansum(cost*weights)
+            if cost.ndim < 2:
+                cost = Tnansum(cost*weights.T)
+            else:
+                cost = Tnansum(cost*weights)
         else:
             raise Exception('This should have been caught earlier')
         return cost, ins

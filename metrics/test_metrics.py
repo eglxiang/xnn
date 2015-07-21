@@ -43,9 +43,18 @@ def test_cce_and_KL():
 
 def test_optimized_threshold():
     obeMean = xnn.metrics.Metric('obe','bintarg',aggregation_type='none')
-    # print 'optimalBE',obeMean(binpred,td)
+    print 'optimalBE',obeMean(binpred,td)
     assert np.allclose(obeMean(binpred,td)[0],0.25)
     assert np.allclose(obeMean(binpred,td)[1],0.0)
+
+    
+    bbec = xnn.metrics.Metric('bbec','probtarg',aggregation_type='none')
+    print 'BE categorical',bbec(probpred,td)
+    print 'BE categorical',bbec(betterprobpred,td)
+    obec = xnn.metrics.Metric('obec','probtarg',aggregation_type='none')
+    print 'optimalBE categorical',obec(probpred,td)
+    print 'optimalBE categorical',obec(betterprobpred,td)
+
     
     ofoMean = xnn.metrics.Metric('of1','bintarg',aggregation_type='none')
     #print 'optimalF1',ofoMean(binpred,td)
@@ -68,8 +77,8 @@ def test_confmat():
     #print 'cm',cm(probpred,td)
     np.allclose(cm(probpred,td),[[2,2,0],[0,0,0],[0,0,0]])
     cmD = xnn.metrics.Metric(computeConfusionMatrix,'probtarg',aggregation_type=confMatAggregate)
-    np.allclose(cmD(probpred,td)[0],[[2,2,0],[0,0,0],[0,0,0]])
-    np.allclose(cmD(probpred,td)[1],0.16666666666666666)
+    #np.allclose(cmD(probpred,td)[0],[[2,2,0],[0,0,0],[0,0,0]])
+    np.allclose(cmD(probpred,td),1-0.16666666666666666)
     #print cmD(probpred,td)
     #print cmD.to_dict()
 
