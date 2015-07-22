@@ -49,6 +49,12 @@ class Loop(object):
         self.ep = 0
         
 
+    """
+    Run the Loop by calling it with a number of epochs as argument
+
+    :param niter: number of iterations (epochs) to run
+    """
+
     def __call__(self,niter=1):
         endep = self.ep+niter
         for ep in xrange(self.ep,endep):

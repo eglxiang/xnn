@@ -8,7 +8,17 @@ from xnn import layers
 
 __all__=['Model']
 
+"""
+The Model class stores the layers and connectivity structure of the model, and
+provides utility functions for building a network from lasagne layers.  The
+Model also provides methods for associating network inputs and outputs with
+fields in the data dictionary.  One advantage of using the Model class over
+lasagne layers is that the Model provides serialization and de-serialization.
+
+"""
+
 class Model(object):
+
     def __init__(self,name='model'):
         self.name    = name
         self.layers  = OrderedDict()
@@ -17,6 +27,14 @@ class Model(object):
         self.eval_outputs = OrderedDict()
         self._predict_func = None
         self._unique_name_counters = dict()
+
+    """
+    Add a layer to the model.  Layers should be added in a topological order: all inputs to a layer (unless it is an input layer) should be added to the model first.
+
+    :param layer: A lasagne layer object
+    :param name: The name of the layer is used to index the output of that layer in the data returned from the predict method.  Although names are generated automatically, it is generally a good idea to keep track of the names of layers whose output is important.
+
+    """
 
     def add_layer(self,layer,name=None):
         if name is None and layer.name is not None:
