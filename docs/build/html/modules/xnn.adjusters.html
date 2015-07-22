@@ -38,62 +38,8 @@
             
   <div class="section" id="adjusters-package">
 <h1>Adjusters package<a class="headerlink" href="#adjusters-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="module-xnn.adjusters.adjusters">
-<span id="xnn-adjusters-adjusters-module"></span><h2>xnn.adjusters.adjusters module<a class="headerlink" href="#module-xnn.adjusters.adjusters" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="xnn.adjusters.adjusters.Adjuster">
-<em class="property">class </em><code class="descclassname">xnn.adjusters.adjusters.</code><code class="descname">Adjuster</code><a class="reference internal" href="../_modules/xnn/adjusters/adjusters.html#Adjuster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.adjusters.adjusters.Adjuster" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
-<p class="rubric">Methods</p>
-<dl class="method">
-<dt id="xnn.adjusters.adjusters.Adjuster.to_dict">
-<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/adjusters/adjusters.html#Adjuster.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.adjusters.adjusters.Adjuster.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="xnn.adjusters.adjusters.Constant">
-<em class="property">class </em><code class="descclassname">xnn.adjusters.adjusters.</code><code class="descname">Constant</code><span class="sig-paren">(</span><em>value=0.9</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/adjusters/adjusters.html#Constant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.adjusters.adjusters.Constant" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#xnn.adjusters.adjusters.Adjuster" title="xnn.adjusters.adjusters.Adjuster"><code class="xref py py-class docutils literal"><span class="pre">xnn.adjusters.adjusters.Adjuster</span></code></a></p>
-<p class="rubric">Methods</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="xnn.adjusters.adjusters.Linear">
-<em class="property">class </em><code class="descclassname">xnn.adjusters.adjusters.</code><code class="descname">Linear</code><span class="sig-paren">(</span><em>start=0.9</em>, <em>stop=0.99</em>, <em>interval=500</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/adjusters/adjusters.html#Linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.adjusters.adjusters.Linear" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#xnn.adjusters.adjusters.Adjuster" title="xnn.adjusters.adjusters.Adjuster"><code class="xref py py-class docutils literal"><span class="pre">xnn.adjusters.adjusters.Adjuster</span></code></a></p>
-<p class="rubric">Methods</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="xnn.adjusters.adjusters.Exponential">
-<em class="property">class </em><code class="descclassname">xnn.adjusters.adjusters.</code><code class="descname">Exponential</code><span class="sig-paren">(</span><em>start=0.9</em>, <em>change=0.99</em>, <em>interval=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/adjusters/adjusters.html#Exponential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.adjusters.adjusters.Exponential" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#xnn.adjusters.adjusters.Adjuster" title="xnn.adjusters.adjusters.Adjuster"><code class="xref py py-class docutils literal"><span class="pre">xnn.adjusters.adjusters.Adjuster</span></code></a></p>
-<p class="rubric">Methods</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="xnn.adjusters.adjusters.Step">
-<em class="property">class </em><code class="descclassname">xnn.adjusters.adjusters.</code><code class="descname">Step</code><span class="sig-paren">(</span><em>start=0.9</em>, <em>interval=500</em>, <em>base=10</em>, <em>steps=5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/adjusters/adjusters.html#Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.adjusters.adjusters.Step" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#xnn.adjusters.adjusters.Adjuster" title="xnn.adjusters.adjusters.Adjuster"><code class="xref py py-class docutils literal"><span class="pre">xnn.adjusters.adjusters.Adjuster</span></code></a></p>
-<p class="rubric">Methods</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="xnn.adjusters.adjusters.Anneal">
-<em class="property">class </em><code class="descclassname">xnn.adjusters.adjusters.</code><code class="descname">Anneal</code><span class="sig-paren">(</span><em>start=0.9</em>, <em>anneal_coef=1</em>, <em>interval=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/adjusters/adjusters.html#Anneal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.adjusters.adjusters.Anneal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#xnn.adjusters.adjusters.Adjuster" title="xnn.adjusters.adjusters.Adjuster"><code class="xref py py-class docutils literal"><span class="pre">xnn.adjusters.adjusters.Adjuster</span></code></a></p>
-<p class="rubric">Methods</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="xnn.adjusters.adjusters.Schedule">
-<em class="property">class </em><code class="descclassname">xnn.adjusters.adjusters.</code><code class="descname">Schedule</code><span class="sig-paren">(</span><em>start=0.9</em>, <em>changepoints=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/adjusters/adjusters.html#Schedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.adjusters.adjusters.Schedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#xnn.adjusters.adjusters.Adjuster" title="xnn.adjusters.adjusters.Adjuster"><code class="xref py py-class docutils literal"><span class="pre">xnn.adjusters.adjusters.Adjuster</span></code></a></p>
-<p class="rubric">Methods</p>
-</dd></dl>
-
+<div class="section" id="xnn-adjusters-adjusters-module">
+<h2>xnn.adjusters.adjusters module<a class="headerlink" href="#xnn-adjusters-adjusters-module" title="Permalink to this headline">¶</a></h2>
 </div>
 </div>
 
@@ -106,7 +52,7 @@
   <h3><a href="../index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Adjusters package</a><ul>
-<li><a class="reference internal" href="#module-xnn.adjusters.adjusters">xnn.adjusters.adjusters module</a></li>
+<li><a class="reference internal" href="#xnn-adjusters-adjusters-module">xnn.adjusters.adjusters module</a></li>
 </ul>
 </li>
 </ul>
