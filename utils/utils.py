@@ -6,6 +6,7 @@ import sys
 import pylab as pl
 import signal
 import pydot
+from PIL import Image
 
 def theano_digitize(x, bins):
     """
@@ -359,3 +360,5 @@ def draw_to_file(model, filename, **kwargs):
     with open(filename, 'w') as fid:
         fid.write(dot.create(format=ext))
 
+    im = Image.open(filename)
+    return im
