@@ -36,6 +36,7 @@ __all__=['metric_types','metric_names','Metric',
             'computeJCorr',
             'computeJunkRate',
             'computeKLDivergence',
+            'computeOneHotAccuracy',
             'computeOptimalBalancedErrorRate',
             'computeOptimalBalancedErrorRateCategorical',
             'computeOptimalBalancedExponentialCost',
@@ -333,6 +334,16 @@ metric_types['percentcorrect']=computePercentCorrect
 metric_types['percent correct']=computePercentCorrect
 metric_types['pc']=computePercentCorrect
 metric_names[computePercentCorrect]='Percent Correct'
+
+def computeOneHotAccuracy (x, y):
+    xinds = x.argmax(axis=1)
+    yinds = y.argmax(axis=1)
+    return computePercentCorrect(xinds, yinds)
+metric_types['onehotaccuracy']=computeOneHotAccuracy
+metric_types['onehot accuracy']=computeOneHotAccuracy
+metric_types['one hot accuracy']=computeOneHotAccuracy
+metric_types['oha']=computeOneHotAccuracy
+metric_names[computeOneHotAccuracy]='Percent Correct'
 
 def computeThresholdPercentCorrect (x, y, t=0.5):
     x=threshold(x,t)

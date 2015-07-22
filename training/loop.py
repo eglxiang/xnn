@@ -135,7 +135,7 @@ class Loop(object):
             isbest = [True]*(len(vals))
         else:
             for v,b,e,d in zip(vals,self._bestmetvals,self._bestatep,dirs):
-                if dirs == 'max':
+                if d == 'max':
                     bestcheck = v > b
                 else:
                     bestcheck = v < b
