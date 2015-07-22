@@ -10,7 +10,7 @@ class Loop(object):
     :param trainer: The trainer to run
     :param learndata:  A list of generator functions that yield batches of data from which the trainer will learn
     :param validdata:  A list of generator functions that yield batches of data to which the metrics will be applied
-    :param metrics:  A list of metrics to apply to the validdata.  Each entry is a tuple, the first element of which is the key in the model.predict output from which the metric should be calculated, the second element of which is the metric
+    :param metrics:  A list of metrics to apply to the validdata.  Each entry is a tuple, the first element of which is the key in the model.predict output from which the metric should be calculated, the second element of which is the metric, the third element of which is either 'max' or 'min' to specify which direction is best
     :param url: A string representing the url where the bokeh server is running (e.g. 'http://127.0.0.1:5006'). If None, or if server cannot be connected, no plotting will occur
     :param savefilenamecsv:  The name of a file into which to write metric results at each epoch.
     :param weightdict:  Dictionary of Weighters.  Keys in weightdict are keys into which the weight results will be inserted in the data dictionary.  Weights are calculated for every training batch.
@@ -19,11 +19,12 @@ class Loop(object):
     :param savemodelnamebase: Base name for saving metrics.  If not None, models will be saved for the best values of each metric as looping procedes.
     """
 
-    def __init__(self,trainer,learndata=[],validdata=[],metrics={},url=None,savefilenamecsv=None,weightdict={},printflag=True,plotmetricmean=True,savemodelnamebase=None):
+    def __init__(self,trainer,learndata=[],validdata=[],metrics=[],url=None,savefilenamecsv=None,weightdict={},printflag=True,plotmetricmean=True,savemodelnamebase=None):
         self.trainer = trainer
         self.learndata = self._listify(learndata)
         self.validdata = self._listify(validdata)
-        self.metrics = metrics
+        self.metrics = [(k,m) for k,m,_ in metrics]
+        self.metdirs = [d for _,_,d in metrics]
         self.weightdict = weightdict
         if url is not None:
             self._plot_flag = self._init_plotsession(url)
@@ -124,15 +125,21 @@ class Loop(object):
         bestatep = []
         if self._plotmetricmean:
             vals = [trainerr] + [np.mean(metvals)] + metvals
+            dirs = ['min'] + ['min'] + self.metdirs
         else:
             vals = [trainerr]+metvals
+            dirs = ['min'] + self.metdirs
         if self._bestmetvals is None:
             self._bestmetvals = vals
             self._bestatep = [ep]*(len(vals))
             isbest = [True]*(len(vals))
         else:
-            for v,b,e in zip(vals,self._bestmetvals,self._bestatep):
-                if v < b:
+            for v,b,e,d in zip(vals,self._bestmetvals,self._bestatep,dirs):
+                if dirs == 'max':
+                    bestcheck = v > b
+                else:
+                    bestcheck = v < b
+                if bestcheck:
                     isbest.append(True)
                     best.append(v)
                     bestatep.append(ep)
