@@ -57,6 +57,12 @@
 <span class="sd">    fields in the data dictionary.  One advantage of using the Model class over</span>
 <span class="sd">    lasagne layers is that the Model provides serialization and de-serialization.</span>
 
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    name : name of the model</span>
+
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;model&#39;</span><span class="p">):</span>
@@ -73,10 +79,22 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add a layer to the model.  Layers should be added in a topological order: all inputs to a layer (unless it is an input layer) should be added to the model first.</span>
 
-<span class="sd">        :param layer: A lasagne layer object</span>
-<span class="sd">        :param name: The name of the layer is used to index the output of that layer in the data returned from the predict method.  Although names are generated automatically, it is generally a good idea to keep track of the names of layers whose output is important.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
 
-<span class="sd">        :return: The lasagne layer object that was added to the network.</span>
+<span class="sd">        layer : lasagne :class:`Layer`</span>
+<span class="sd">            The layer that will be added to the model</span>
+
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the layer is used to index the output of that layer in</span>
+<span class="sd">            the data returned from the predict method.  Although names are</span>
+<span class="sd">            generated automatically, it is generally a good idea to keep track</span>
+<span class="sd">            of the names of layers whose output is important.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`Layer`</span>
+<span class="sd">            The lasagne layer object that was added to the network.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name_from_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
@@ -96,7 +114,12 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a model from a single output layer.  This will not work for multi-output models.</span>
 
-<span class="sd">        :param outlayer: A lasagne layer object.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        outlayer : lasagne :class:`Layer`</span>
+<span class="sd">            The layer from which to construct the model.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">layers</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">get_all_layers</span><span class="p">(</span><span class="n">outlayer</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
@@ -123,12 +146,26 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convenience function to both construct a lasagne dropout layer and add it to the model.</span>
 
-<span class="sd">        :param parentlayer: The lasagne layer object whose outputs are the input to the dropout layer</span>
-<span class="sd">        :param p: The dropout parameter.  Depending on the dropout type, this parameter means different things.  For standard dropout, this is the percent of neurons to mask.  For Gaussian dropout, this is the variance of the gaussian noise.</span>
-<span class="sd">        :param name: The name of the dropout layer.</span>
-<span class="sd">        :param drop_type: Either &#39;standard or &#39;gauss&#39; for standard and Gaussian dropout.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        parentlayer : lasagne :class:`Layer`</span>
+<span class="sd">            The layer whose outputs are the input to the dropout layer</span>
+
+<span class="sd">        p : float</span>
+<span class="sd">            The dropout parameter.  Depending on the dropout type, this</span>
+<span class="sd">            parameter means different things.  For standard dropout, this is</span>
+<span class="sd">            the percent of neurons to mask.  For Gaussian dropout, this is the</span>
+<span class="sd">            variance of the gaussian noise.  name: The name of the dropout</span>
+<span class="sd">            layer.</span>
+
+<span class="sd">        drop_type : str</span>
+<span class="sd">            Either &#39;standard or &#39;gauss&#39; for standard and Gaussian dropout.</span>
 <span class="sd">        </span>
-<span class="sd">        :return: The lasagne layer object that was added to the network.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`Layer`</span>
+<span class="sd">            The layer that was added to the network.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">drop_type</span> <span class="o">==</span> <span class="s">&#39;standard&#39;</span><span class="p">:</span>
             <span class="n">droplayer</span>  <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="p">(</span><span class="n">parentlayer</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
@@ -146,12 +183,23 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convenience function to both construct a lasagne dense (fully-connected) layer and add it to the model.</span>
 
-<span class="sd">        :param parentlayer: The lasagne layer object whose outputs are the input to the dense layer.</span>
-<span class="sd">        :param num_units: The number of units in the dense layer.</span>
-<span class="sd">        :param nonlinearity: The nonlinearity function to use on this layer.  If None, :py:meth:`xnn.nonlinearities.rectify` is used.</span>
-<span class="sd">        :param name: The name of the dense layer.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
 
-<span class="sd">        :return: The lasagne layer object that was added to the network.</span>
+<span class="sd">        parentlayer : lasagne :class:`Layer`</span>
+<span class="sd">            layer whose outputs are the input to the dense layer.</span>
+<span class="sd">        num_units : int</span>
+<span class="sd">            The number of units in the dense layer.</span>
+<span class="sd">        nonlinearity : function</span>
+<span class="sd">            The nonlinearity function to use on this layer.  If None, :py:meth:`xnn.nonlinearities.rectify` is used.</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the dense layer.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`Layer`</span>
+<span class="sd">            The layer that was added to the network.</span>
+<span class="sd">        </span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">nonlinearity</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">nonlinearity</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">nonlinearities</span><span class="o">.</span><span class="n">rectify</span>
@@ -166,12 +214,21 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create an input layer, add it to the model, and bind its input to a field in the data.</span>
 
-<span class="sd">        :param shape: The shape of the input (as a tuple) that this layer should expect.</span>
-<span class="sd">        :param inputlabelkey: The key in the data dictionary whose value should be fed to the constructed input layer.</span>
-<span class="sd">        :param name: The name of the input layer</span>
-<span class="sd">        :param input_var: The theano symbol that represents the input to this layer in theano&#39;s symbolic graph.  If None, a symbol is created internally.</span>
-<span class="sd">        </span>
-<span class="sd">        :return: The lasagne layer object that was added to the network.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        shape : tuple</span>
+<span class="sd">            The shape of the input that this layer should expect.</span>
+<span class="sd">        inputlabelkey : str</span>
+<span class="sd">            The key in the data dictionary whose value should be fed to the constructed input layer.</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the input layer</span>
+<span class="sd">        input_var : theano symbolic variable or None </span>
+<span class="sd">            The theano symbol that represents the input to this layer in theano&#39;s symbolic graph.  If None, a symbol is created internally.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`Layer`</span>
+<span class="sd">            The layer that was added to the network.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">lin</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">InputLayer</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span><span class="n">input_var</span><span class="o">=</span><span class="n">input_var</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -185,14 +242,33 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a sequence of dense layers followed by dropout layers.</span>
 
-<span class="sd">        :param parent_layer: The lasagne layer object whose outputs are the input to the first dense layer.</span>
-<span class="sd">        :param num_units_list: A list of integers specifying the number of units.  The length of this list is the number of dense layers that will be added to the model.</span>
-<span class="sd">        :param drop_p_list: A list of parameters for the dropout layers.  The length should be the same as :py:attr:`num_units_list`, :py:attr:`drop_type_list`, and :py:attr:`nonlin_list`.  If None, all values are 0.5.</span>
-<span class="sd">        :param nonlin_list: A list of nonlinearities to apply to the dense layers.  If None, all nonlinearities will be :py:meth:`xnn.nonlinearities.rectify`</span>
-<span class="sd">        :param namebase: Base name to prepend to dense and dropout layer names.</span>
-<span class="sd">        :param drop_type_list: A list of strings specifying either &#39;standard&#39; or &#39;gauss&#39; for the dropout types of each layer in the stack. If None, all types are &#39;standard&#39;.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        parent_layer : lasagne :class:`Layer`</span>
+<span class="sd">            layer whose outputs are the input to the first dense layer.</span>
+<span class="sd">        num_units_list : list</span>
+<span class="sd">            A list of integers specifying the number of units.  The length of</span>
+<span class="sd">            this list is the number of dense layers that will be added to the</span>
+<span class="sd">            model.  </span>
+<span class="sd">        drop_p_list : list</span>
+<span class="sd">            A list of parameters for the dropout layers.  The length should be</span>
+<span class="sd">            the same as :py:attr:`num_units_list`, :py:attr:`drop_type_list`,</span>
+<span class="sd">            and :py:attr:`nonlin_list`.  If None, all values are 0.5.</span>
+<span class="sd">        nonlin_list : list</span>
+<span class="sd">            A list of nonlinearities to apply to the dense layers.  If None,</span>
+<span class="sd">            all nonlinearities will be :py:meth:`xnn.nonlinearities.rectify`</span>
+<span class="sd">        namebase : str</span>
+<span class="sd">            Base name to prepend to dense and dropout layer names.</span>
+<span class="sd">        drop_type_list : list</span>
+<span class="sd">            A list of strings specifying either &#39;standard&#39; or &#39;gauss&#39; for the</span>
+<span class="sd">            dropout types of each layer in the stack. If None, all types are</span>
+<span class="sd">            &#39;standard&#39;.</span>
 <span class="sd">        </span>
-<span class="sd">        :return: The lasagne layer object of the final layer added to the network by this method.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`Layer`</span>
+<span class="sd">            The final layer added to the network by this method.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pl</span> <span class="o">=</span> <span class="n">parent_layer</span>
         <span class="c"># if namebase is None:</span>
@@ -222,9 +298,13 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Specifies that a particular model layer should be given input from the data dictionary.</span>
 
-<span class="sd">        :param input_layer: The lasagne layer object to which to bind the input.</span>
-<span class="sd">        :param input_key: The key in the data dictionary whose value will be passed to the input layer</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
 
+<span class="sd">        input_layer : lasagne :class:`Layer`</span>
+<span class="sd">            The layer to which to bind the input.</span>
+<span class="sd">        input_key : str</span>
+<span class="sd">            The key in the data dictionary whose value will be passed to the input layer</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;input_key must be a string&quot;</span><span class="p">)</span>
@@ -237,14 +317,34 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Specifies that a particular model layer should be treated as an output, which data key holds the labels for this output, and the cost function used for this output.</span>
 <span class="sd">        </span>
-<span class="sd">        :param output_layer: The lasagne layer object that will be treated as an output.</span>
-<span class="sd">        :param loss_function: The function that will be applied to this output and the target to compute the cost.</span>
-<span class="sd">        :param target: The key in the data dictionary whose value is the target for this output, or the name of the layer whose output should be reconstructed.</span>
-<span class="sd">        :param target_type: Either &#39;label&#39;, for when the target is a field in the data dictionary or &#39;recon&#39;, when the target is the output of another layer.</span>
-<span class="sd">        :param aggregation_type: How to aggregate the cost across the examples in a batch.  Must be one of these values: &#39;mean&#39;, &#39;sum&#39;, &#39;weighted_mean&#39;, &#39;weighted_sum&#39;, &#39;nanmean&#39;, &#39;nansum&#39;, &#39;nanweighted_mean&#39;, &#39;nanweighted_sum&#39;</span>
-<span class="sd">        :param scale: Scale the cost for this output by a constant.</span>
-<span class="sd">        :param is_eval_output: Specify whether this output should be added to a list of evaluation outputs.</span>
-<span class="sd">        :param weight_key: Key in the data dictionary whose value is the weight of each example in the batch for this output.  Only specified if :py:attr:`aggregation_type` is a weighted type.</span>
+<span class="sd">        Parameters </span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        output_layer : lasagne :class:`Layer`</span>
+<span class="sd">            The layer that will be treated as an output.</span>
+<span class="sd">        loss_function : function</span>
+<span class="sd">            The function that will be applied to this output and the target to compute the cost.</span>
+<span class="sd">        target  : str</span>
+<span class="sd">            The key in the data dictionary whose value is the target for this</span>
+<span class="sd">            output, or the name of the layer whose output should be</span>
+<span class="sd">            reconstructed.</span>
+<span class="sd">        target_type : str</span>
+<span class="sd">            Either &#39;label&#39;, for when the target is a field in the data</span>
+<span class="sd">            dictionary or &#39;recon&#39;, when the target is the output of another</span>
+<span class="sd">            layer.</span>
+<span class="sd">        aggregation_type : str</span>
+<span class="sd">            How to aggregate the cost across the examples in a batch.  Must be</span>
+<span class="sd">            one of these values: &#39;mean&#39;, &#39;sum&#39;, &#39;weighted_mean&#39;,</span>
+<span class="sd">            &#39;weighted_sum&#39;, &#39;nanmean&#39;, &#39;nansum&#39;, &#39;nanweighted_mean&#39;,</span>
+<span class="sd">            &#39;nanweighted_sum&#39;</span>
+<span class="sd">        scale : float</span>
+<span class="sd">            Scale the cost for this output by a constant.</span>
+<span class="sd">        is_eval_output : bool</span>
+<span class="sd">            Specify whether this output should be added to a list of evaluation outputs.</span>
+<span class="sd">        weight_key : str</span>
+<span class="sd">            Key in the data dictionary whose value is the weight of each</span>
+<span class="sd">            example in the batch for this output.  Only specified if</span>
+<span class="sd">            :py:attr:`aggregation_type` is a weighted type.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">aggregation_types</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="s">&#39;sum&#39;</span><span class="p">,</span> <span class="s">&#39;weighted_mean&#39;</span><span class="p">,</span><span class="s">&#39;weighted_sum&#39;</span><span class="p">,</span><span class="s">&#39;nanmean&#39;</span><span class="p">,</span><span class="s">&#39;nansum&#39;</span><span class="p">,</span><span class="s">&#39;nanweighted_mean&#39;</span><span class="p">,</span><span class="s">&#39;nanweighted_sum&#39;</span><span class="p">]</span>
@@ -277,8 +377,13 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add an output layer to a list of evaluation outputs.</span>
 
-<span class="sd">        :param output_layer: The layer object whose output will be considered an evaluation output.</span>
-<span class="sd">        :param target: The key in the data dictionary whose value is the target for this output.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        output_layer : lasagne :class:`Layer`</span>
+<span class="sd">            The layer whose output will be considered an evaluation output.</span>
+<span class="sd">        target : str</span>
+<span class="sd">            The key in the data dictionary whose value is the target for this output.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">output_layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
@@ -340,9 +445,14 @@
 </div>
 <div class="viewcode-block" id="Model.from_dict"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">indict</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Add layers, inputs, and outputs to the current model from a dictionary representation.</span>
+<span class="sd">        Add layers, inputs, and outputs to the current model from a dictionary</span>
+<span class="sd">        representation.</span>
 
-<span class="sd">        :param indict: A dictionary representation of a model.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        indict : dict</span>
+<span class="sd">            A dictionary representation of a model.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">import</span> <span class="nn">copy</span>
         <span class="n">indict</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">indict</span><span class="p">)</span>
@@ -353,10 +463,18 @@
 </div>
 <div class="viewcode-block" id="Model.from_dict_static"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.from_dict_static">[docs]</a>    <span class="k">def</span> <span class="nf">from_dict_static</span><span class="p">(</span><span class="n">indict</span><span class="p">):</span> 
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Construct a model from a dictionary representation</span>
+<span class="sd">        Construct a model from a dictionary representation.</span>
 
-<span class="sd">        :param indict: A dictionary representation of a model.</span>
-<span class="sd">        :return: A model build from the dictionary.</span>
+<span class="sd">        Paramters</span>
+<span class="sd">        ---------</span>
+
+<span class="sd">        indict : dict</span>
+<span class="sd">            A dictionary representation of a model.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`Model`</span>
+<span class="sd">            A model build from the dictionary.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">m</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">])</span>
         <span class="n">m</span><span class="o">.</span><span class="n">_build_layers_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;layers&#39;</span><span class="p">])</span>
@@ -473,8 +591,11 @@
 <div class="viewcode-block" id="Model.save_model"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.save_model">[docs]</a>    <span class="k">def</span> <span class="nf">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save model to a file.</span>
-
-<span class="sd">        :param fname: The filename into which the model will be saved.</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fname : str</span>
+<span class="sd">            The filename into which the model will be saved.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
         <span class="n">all_layers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
@@ -486,8 +607,12 @@
 <div class="viewcode-block" id="Model.load_model"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.load_model">[docs]</a>    <span class="k">def</span> <span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load model from a file.</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
 
-<span class="sd">        :param fname: The filename that contains the model to be loaded.</span>
+<span class="sd">        fname : str</span>
+<span class="sd">            The filename that contains the model to be loaded.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">d</span> <span class="o">=</span> <span class="n">cPickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
@@ -526,9 +651,21 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run data through a model and collect the output.</span>
 
-<span class="sd">        :param data_dict: A dictionary of data on which the model will run.  This dictionary must contain keys whose values were bound to the input layers of the model.</span>
-<span class="sd">        :param layer_names: A list of layer names for which the output will be returned.  If None, output of all layers will be returned</span>
-<span class="sd">        :param data_in_gpu: If True, data is on the gpu and the values in :py:attr:`data_dict` are the theano shared variables that contain the data.  If False, the values in :py:attr:`data_dict` are numpy arrays containing the data</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        data_dict : dict</span>
+<span class="sd">            A dictionary of data on which the model will run.  This dictionary</span>
+<span class="sd">            must contain keys whose values were bound to the input layers of</span>
+<span class="sd">            the model.</span>
+<span class="sd">        layer_names : list</span>
+<span class="sd">            A list of layer names for which the output will be returned.  If</span>
+<span class="sd">            None, output of all layers will be returned</span>
+<span class="sd">        data_in_gpu : bool</span>
+<span class="sd">            If True, data is on the gpu and the values in :py:attr:`data_dict`</span>
+<span class="sd">            are the theano shared variables that contain the data.  If False,</span>
+<span class="sd">            the values in :py:attr:`data_dict` are numpy arrays containing the</span>
+<span class="sd">            data</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_func</span>
         <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
