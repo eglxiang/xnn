@@ -75,8 +75,7 @@ def build_mlp(input_var=None):
 # ##################### Setup a trainer #######################
 def set_up_trainer(m):
     global_update_settings = ParamUpdateSettings(update=nesterov_momentum, learning_rate=0.01, momentum=0.9)
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
-    trainer = Trainer(m, trainer_settings)
+    trainer = Trainer(m, global_update_settings)
     return trainer
 
 

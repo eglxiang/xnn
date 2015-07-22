@@ -74,8 +74,7 @@ def _get_data(batch_size,in_size,out_size,num_batches):
 def _get_trainer_losses(dataset,batch_size,in_size,out_size,num_batches):
     m, l_in, l_out = _build_lr_net(batch_size, in_size, out_size)
     global_update_settings = ParamUpdateSettings(update=adadelta)
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings, dataSharedVarDict=dataset)
-    trainer = Trainer(m, trainer_settings)
+    trainer = Trainer(m, global_update_settings,dataSharedVarDict=dataset)
 
     trainer_batch_losses = np.zeros(num_batches)
     for b in range(num_batches):

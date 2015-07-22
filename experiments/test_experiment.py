@@ -1,6 +1,5 @@
 from xnn.model.model import Model
 from xnn.training.trainer import ParamUpdateSettings
-from xnn.training.trainer import TrainerSettings
 from xnn.training.trainer import Trainer
 from xnn.layers import *
 from xnn.objectives import *
@@ -47,8 +46,7 @@ def test_experiment():
 
         global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=cond.lr, momentum=cond.mom)
 
-        trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
-        trainer = Trainer(m,trainer_settings)
+        trainer = Trainer(m,global_update_settings)
 
         return trainer
 
