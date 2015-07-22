@@ -1,0 +1,232 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Layers package &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../index.html" />
+    <link rel="next" title="Metrics package" href="xnn.metrics.html" />
+    <link rel="prev" title="Init package" href="xnn.init.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="layers-package">
+<h1>Layers package<a class="headerlink" href="#layers-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-xnn.layers.local">
+<span id="xnn-layers-local-module"></span><h2>xnn.layers.local module<a class="headerlink" href="#module-xnn.layers.local" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="xnn.layers.local.LocalLayer">
+<em class="property">class </em><code class="descclassname">xnn.layers.local.</code><code class="descname">LocalLayer</code><span class="sig-paren">(</span><em>incoming</em>, <em>num_units</em>, <em>img_shape</em>, <em>local_filters</em>, <em>W=&lt;lasagne.init.GlorotUniform object&gt;</em>, <em>b=&lt;lasagne.init.Constant object&gt;</em>, <em>mode='square'</em>, <em>nonlinearity=&lt;function rectify&gt;</em>, <em>edgeprotect=True</em>, <em>cn=False</em>, <em>prior=None</em>, <em>seed=123778</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/local.html#LocalLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.local.LocalLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">lasagne.layers.base.Layer</span></code></p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.layers.local.LocalLayer.get_output_for">
+<code class="descname">get_output_for</code><span class="sig-paren">(</span><em>input</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/local.html#LocalLayer.get_output_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.local.LocalLayer.get_output_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.layers.local.LocalLayer.get_output_shape_for">
+<code class="descname">get_output_shape_for</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/local.html#LocalLayer.get_output_shape_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.local.LocalLayer.get_output_shape_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-xnn.layers.noise">
+<span id="xnn-layers-noise-module"></span><h2>xnn.layers.noise module<a class="headerlink" href="#module-xnn.layers.noise" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="xnn.layers.noise.GaussianDropoutLayer">
+<em class="property">class </em><code class="descclassname">xnn.layers.noise.</code><code class="descname">GaussianDropoutLayer</code><span class="sig-paren">(</span><em>incoming</em>, <em>sigma=1.0</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/noise.html#GaussianDropoutLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.noise.GaussianDropoutLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">lasagne.layers.base.Layer</span></code></p>
+<p>Drouput with multiplicative Gaussian noise.
+See <a class="reference external" href="http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf">http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf</a>
+Does not require rescaling at test time.</p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.layers.noise.GaussianDropoutLayer.get_output_for">
+<code class="descname">get_output_for</code><span class="sig-paren">(</span><em>input</em>, <em>deterministic=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/noise.html#GaussianDropoutLayer.get_output_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.noise.GaussianDropoutLayer.get_output_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-xnn.layers.normalization">
+<span id="xnn-layers-normalization-module"></span><h2>xnn.layers.normalization module<a class="headerlink" href="#module-xnn.layers.normalization" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="xnn.layers.normalization.ContrastNormLayer">
+<em class="property">class </em><code class="descclassname">xnn.layers.normalization.</code><code class="descname">ContrastNormLayer</code><span class="sig-paren">(</span><em>incoming</em>, <em>norm_type='mean_var'</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/normalization.html#ContrastNormLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.normalization.ContrastNormLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">lasagne.layers.base.Layer</span></code></p>
+<p>Implements per image contrast normalization</p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.layers.normalization.ContrastNormLayer.get_output_for">
+<code class="descname">get_output_for</code><span class="sig-paren">(</span><em>input</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/normalization.html#ContrastNormLayer.get_output_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.normalization.ContrastNormLayer.get_output_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="xnn.layers.normalization.BatchNormLayer">
+<em class="property">class </em><code class="descclassname">xnn.layers.normalization.</code><code class="descname">BatchNormLayer</code><span class="sig-paren">(</span><em>incoming</em>, <em>eta=0.01</em>, <em>alpha=0.1</em>, <em>learn_transform=True</em>, <em>nonlinearity=&lt;function linear&gt;</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/normalization.html#BatchNormLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.normalization.BatchNormLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">lasagne.layers.base.Layer</span></code></p>
+<p>Implements per batch input normalization</p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.layers.normalization.BatchNormLayer.get_output_for">
+<code class="descname">get_output_for</code><span class="sig-paren">(</span><em>input</em>, <em>deterministic=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/normalization.html#BatchNormLayer.get_output_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.normalization.BatchNormLayer.get_output_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.layers.normalization.BatchNormLayer.get_output_shape_for">
+<code class="descname">get_output_shape_for</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/normalization.html#BatchNormLayer.get_output_shape_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.normalization.BatchNormLayer.get_output_shape_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-xnn.layers.prelu">
+<span id="xnn-layers-prelu-module"></span><h2>xnn.layers.prelu module<a class="headerlink" href="#module-xnn.layers.prelu" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="xnn.layers.prelu.PReLULayer">
+<em class="property">class </em><code class="descclassname">xnn.layers.prelu.</code><code class="descname">PReLULayer</code><span class="sig-paren">(</span><em>incoming</em>, <em>coef=&lt;lasagne.init.Constant object&gt;</em>, <em>pivot=&lt;lasagne.init.Constant object&gt;</em>, <em>learn_pivot=False</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/prelu.html#PReLULayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.prelu.PReLULayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">lasagne.layers.base.Layer</span></code></p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.layers.prelu.PReLULayer.get_output_for">
+<code class="descname">get_output_for</code><span class="sig-paren">(</span><em>input</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/prelu.html#PReLULayer.get_output_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.prelu.PReLULayer.get_output_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-xnn.layers.transpose">
+<span id="xnn-layers-transpose-module"></span><h2>xnn.layers.transpose module<a class="headerlink" href="#module-xnn.layers.transpose" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="xnn.layers.transpose.TransposeDenseLayer">
+<em class="property">class </em><code class="descclassname">xnn.layers.transpose.</code><code class="descname">TransposeDenseLayer</code><span class="sig-paren">(</span><em>incoming</em>, <em>num_units</em>, <em>W=&lt;lasagne.init.GlorotUniform object&gt;</em>, <em>b=&lt;lasagne.init.Constant object&gt;</em>, <em>nonlinearity=&lt;function rectify&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/transpose.html#TransposeDenseLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.transpose.TransposeDenseLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">lasagne.layers.dense.DenseLayer</span></code></p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.layers.transpose.TransposeDenseLayer.get_output_for">
+<code class="descname">get_output_for</code><span class="sig-paren">(</span><em>input</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/transpose.html#TransposeDenseLayer.get_output_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.transpose.TransposeDenseLayer.get_output_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="xnn.layers.transpose.TransposeLocalLayer">
+<em class="property">class </em><code class="descclassname">xnn.layers.transpose.</code><code class="descname">TransposeLocalLayer</code><span class="sig-paren">(</span><em>incoming</em>, <em>num_units</em>, <em>localmask</em>, <em>W</em>, <em>b=&lt;lasagne.init.Constant object&gt;</em>, <em>nonlinearity=&lt;function rectify&gt;</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/transpose.html#TransposeLocalLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.transpose.TransposeLocalLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">lasagne.layers.dense.DenseLayer</span></code></p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.layers.transpose.TransposeLocalLayer.get_output_for">
+<code class="descname">get_output_for</code><span class="sig-paren">(</span><em>input</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/layers/transpose.html#TransposeLocalLayer.get_output_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.layers.transpose.TransposeLocalLayer.get_output_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Layers package</a><ul>
+<li><a class="reference internal" href="#module-xnn.layers.local">xnn.layers.local module</a></li>
+<li><a class="reference internal" href="#module-xnn.layers.noise">xnn.layers.noise module</a></li>
+<li><a class="reference internal" href="#module-xnn.layers.normalization">xnn.layers.normalization module</a></li>
+<li><a class="reference internal" href="#module-xnn.layers.prelu">xnn.layers.prelu module</a></li>
+<li><a class="reference internal" href="#module-xnn.layers.transpose">xnn.layers.transpose module</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="xnn.init.html" title="previous chapter">Init package</a></li>
+      <li>Next: <a href="xnn.metrics.html" title="next chapter">Metrics package</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/user/xnn.layers.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+      |
+      <a href="../_sources/user/xnn.layers.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

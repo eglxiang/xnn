@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Nonlinearities package &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../index.html" />
+    <link rel="next" title="Objectives package" href="xnn.objectives.html" />
+    <link rel="prev" title="Model package" href="xnn.model.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="nonlinearities-package">
+<h1>Nonlinearities package<a class="headerlink" href="#nonlinearities-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-xnn.nonlinearities.nonlinearities">
+<span id="xnn-nonlinearities-nonlinearities-module"></span><h2>xnn.nonlinearities.nonlinearities module<a class="headerlink" href="#module-xnn.nonlinearities.nonlinearities" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="xnn.nonlinearities.nonlinearities.hard_sigmoid">
+<code class="descclassname">xnn.nonlinearities.nonlinearities.</code><code class="descname">hard_sigmoid</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/nonlinearities/nonlinearities.html#hard_sigmoid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.nonlinearities.nonlinearities.hard_sigmoid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Piecewise linear approximation to a Sigmoid activation function
+Approx in 3 parts: 0, scaled linear, 1</p>
+<blockquote>
+<div>slope = 0.2
+shift = 0.5</div></blockquote>
+<p>Removing the slope and shift does not make it faster.
+Parameters
+&#8212;&#8212;&#8212;-
+x : float32</p>
+<blockquote>
+<div>The activation (the summed, weighted input of a neuron).</div></blockquote>
+<dl class="docutils">
+<dt>float32 in [0, 1]</dt>
+<dd>The output of the sigmoid function applied to the activation.</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="xnn.nonlinearities.nonlinearities.scale">
+<em class="property">class </em><code class="descclassname">xnn.nonlinearities.nonlinearities.</code><code class="descname">scale</code><span class="sig-paren">(</span><em>s=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/nonlinearities/nonlinearities.html#scale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.nonlinearities.nonlinearities.scale" title="Permalink to this definition">¶</a></dt>
+<dd><p class="rubric">Methods</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="xnn.nonlinearities.nonlinearities.sigmoid_evidence">
+<code class="descclassname">xnn.nonlinearities.nonlinearities.</code><code class="descname">sigmoid_evidence</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/nonlinearities/nonlinearities.html#sigmoid_evidence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.nonlinearities.nonlinearities.sigmoid_evidence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output log10 evidence (log-likelihood ratio) for an independent sigmoid model</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="xnn.nonlinearities.nonlinearities.softmax_evidence">
+<code class="descclassname">xnn.nonlinearities.nonlinearities.</code><code class="descname">softmax_evidence</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/nonlinearities/nonlinearities.html#softmax_evidence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.nonlinearities.nonlinearities.softmax_evidence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output log10 evidence (log-likelihood ratio) for a softmax model.
+Assumes the prior for class i is equal to the prior for not class i.
+This corresponds to comparing probability for class i to the average probability for not class i.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Nonlinearities package</a><ul>
+<li><a class="reference internal" href="#module-xnn.nonlinearities.nonlinearities">xnn.nonlinearities.nonlinearities module</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="xnn.model.html" title="previous chapter">Model package</a></li>
+      <li>Next: <a href="xnn.objectives.html" title="next chapter">Objectives package</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/modules/xnn.nonlinearities.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+      |
+      <a href="../_sources/modules/xnn.nonlinearities.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

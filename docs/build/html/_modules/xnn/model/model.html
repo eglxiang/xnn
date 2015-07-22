@@ -1,0 +1,491 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>xnn.model.model &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for xnn.model.model</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">xnn</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">cPickle</span>
+<span class="kn">import</span> <span class="nn">theano</span>
+<span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="kn">as</span> <span class="nn">T</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">xnn</span> <span class="kn">import</span> <span class="n">layers</span>
+
+<span class="n">__all__</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;Model&#39;</span><span class="p">]</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The Model class stores the layers and connectivity structure of the model, and</span>
+<span class="sd">provides utility functions for building a network from lasagne layers.  The</span>
+<span class="sd">Model also provides methods for associating network inputs and outputs with</span>
+<span class="sd">fields in the data dictionary.  One advantage of using the Model class over</span>
+<span class="sd">lasagne layers is that the Model provides serialization and de-serialization.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;model&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span>    <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span>  <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span>  <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_outputs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_predict_func</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unique_name_counters</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add a layer to the model.  Layers should be added in a topological order: all inputs to a layer (unless it is an input layer) should be added to the model first.</span>
+
+<span class="sd">    :param layer: A lasagne layer object</span>
+<span class="sd">    :param name: The name of the layer is used to index the output of that layer in the data returned from the predict method.  Although names are generated automatically, it is generally a good idea to keep track of the names of layers whose output is important.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Model.add_layer"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.add_layer">[docs]</a>    <span class="k">def</span> <span class="nf">add_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">layer</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name_from_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name_from_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="o">=</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">=</span><span class="n">layer</span>
+        <span class="k">return</span> <span class="n">layer</span>
+</div>
+<div class="viewcode-block" id="Model.add_full_net_from_layer"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.add_full_net_from_layer">[docs]</a>    <span class="k">def</span> <span class="nf">add_full_net_from_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">outlayer</span><span class="p">):</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">get_all_layers</span><span class="p">(</span><span class="n">outlayer</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_get_unique_name_from_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">layer</span><span class="p">,</span><span class="n">namebase</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name</span><span class="p">(</span><span class="n">namebase</span><span class="o">+</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name</span><span class="p">(</span><span class="n">namebase</span><span class="o">+</span><span class="n">layer</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">_get_unique_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">namebase</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">namebase</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">layers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_unique_name_counters</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">namebase</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unique_name_counters</span><span class="p">[</span><span class="n">namebase</span><span class="p">]</span>
+            <span class="n">unique_name</span> <span class="o">=</span> <span class="n">namebase</span> <span class="o">+</span> <span class="s">&#39;_</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">c</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_unique_name_counters</span><span class="p">[</span><span class="n">namebase</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">unique_name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">namebase</span>
+
+<div class="viewcode-block" id="Model.make_dropout_layer"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.make_dropout_layer">[docs]</a>    <span class="k">def</span> <span class="nf">make_dropout_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parentlayer</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">drop_type</span><span class="o">=</span><span class="s">&#39;standard&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">drop_type</span> <span class="o">==</span> <span class="s">&#39;standard&#39;</span><span class="p">:</span>
+            <span class="n">droplayer</span>  <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="p">(</span><span class="n">parentlayer</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">drop_type</span> <span class="o">==</span> <span class="s">&#39;gauss&#39;</span><span class="p">:</span>
+            <span class="n">droplayer</span>  <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">GaussianDropoutLayer</span><span class="p">(</span><span class="n">parentlayer</span><span class="p">,</span><span class="n">sigma</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;drop_type must be &#39;standard&#39; or &#39;gauss&#39;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name_from_layer</span><span class="p">(</span><span class="n">droplayer</span><span class="p">)</span>
+            <span class="n">droplayer</span><span class="o">.</span><span class="n">name</span><span class="o">=</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">droplayer</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">droplayer</span>
+</div>
+<div class="viewcode-block" id="Model.make_dense_layer"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.make_dense_layer">[docs]</a>    <span class="k">def</span> <span class="nf">make_dense_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parentlayer</span><span class="p">,</span><span class="n">num_units</span><span class="p">,</span><span class="n">nonlinearity</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">nonlinearity</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">nonlinearity</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">nonlinearities</span><span class="o">.</span><span class="n">rectify</span>
+        <span class="n">denselayer</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">DenseLayer</span><span class="p">(</span><span class="n">parentlayer</span><span class="p">,</span><span class="n">num_units</span><span class="o">=</span><span class="n">num_units</span><span class="p">,</span><span class="n">nonlinearity</span><span class="o">=</span><span class="n">nonlinearity</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name_from_layer</span><span class="p">(</span><span class="n">denselayer</span><span class="p">)</span>
+            <span class="n">denselayer</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">denselayer</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">denselayer</span>
+</div>
+<div class="viewcode-block" id="Model.make_bound_input_layer"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.make_bound_input_layer">[docs]</a>    <span class="k">def</span> <span class="nf">make_bound_input_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">shape</span><span class="p">,</span><span class="n">inputlabelkey</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">input_var</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">lin</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">InputLayer</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span><span class="n">input_var</span><span class="o">=</span><span class="n">input_var</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name_from_layer</span><span class="p">(</span><span class="n">lin</span><span class="p">)</span>
+            <span class="n">lin</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">lin</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bind_input</span><span class="p">(</span><span class="n">lin</span><span class="p">,</span><span class="n">inputlabelkey</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lin</span>
+</div>
+<div class="viewcode-block" id="Model.make_dense_drop_stack"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.make_dense_drop_stack">[docs]</a>    <span class="k">def</span> <span class="nf">make_dense_drop_stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parent_layer</span><span class="p">,</span><span class="n">num_units_list</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">drop_p_list</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">nonlin_list</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">namebase</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">drop_type_list</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">pl</span> <span class="o">=</span> <span class="n">parent_layer</span>
+        <span class="c"># if namebase is None:</span>
+        <span class="c">#     namebase=&quot;l_&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">num_units_list</span><span class="p">)):</span>
+            <span class="n">nhu</span>        <span class="o">=</span> <span class="n">num_units_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">p</span>          <span class="o">=</span> <span class="n">drop_p_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">drop_p_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="mf">0.5</span>
+            <span class="n">nl</span>         <span class="o">=</span> <span class="n">nonlin_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">nonlin_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">xnn</span><span class="o">.</span><span class="n">nonlinearities</span><span class="o">.</span><span class="n">rectify</span>
+            <span class="n">dt</span>         <span class="o">=</span> <span class="n">drop_type_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">drop_type_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="s">&#39;standard&#39;</span>
+            <span class="k">if</span> <span class="n">namebase</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">nameden</span> <span class="o">=</span> <span class="s">&#39;DenseLayer&#39;</span>
+                <span class="n">namedro</span> <span class="o">=</span> <span class="s">&#39;DropoutLayer&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">nameden</span> <span class="o">=</span> <span class="n">namebase</span><span class="o">+</span><span class="s">&#39;_DenseLayer_&#39;</span>
+                <span class="n">namedro</span> <span class="o">=</span> <span class="n">namebase</span><span class="o">+</span><span class="s">&#39;_DropoutLayer_&#39;</span>
+            <span class="k">if</span> <span class="n">nl</span> <span class="o">==</span> <span class="s">&#39;prelu&#39;</span><span class="p">:</span>
+                <span class="n">denselayer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_dense_layer</span><span class="p">(</span><span class="n">pl</span><span class="p">,</span><span class="n">nhu</span><span class="p">,</span><span class="n">nonlinearity</span><span class="o">=</span><span class="n">xnn</span><span class="o">.</span><span class="n">nonlinearities</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">nameden</span><span class="p">)</span>
+                <span class="n">prelu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">PReLULayer</span><span class="p">(</span><span class="n">denselayer</span><span class="p">))</span>
+                <span class="n">droplayer</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_dropout_layer</span><span class="p">(</span><span class="n">prelu</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">namedro</span><span class="p">,</span><span class="n">drop_type</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">denselayer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_dense_layer</span><span class="p">(</span><span class="n">pl</span><span class="p">,</span><span class="n">nhu</span><span class="p">,</span><span class="n">nonlinearity</span><span class="o">=</span><span class="n">nl</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">nameden</span><span class="p">)</span>
+                <span class="n">droplayer</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_dropout_layer</span><span class="p">(</span><span class="n">denselayer</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="n">namedro</span><span class="p">,</span><span class="n">drop_type</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+            <span class="n">pl</span>         <span class="o">=</span> <span class="n">droplayer</span>
+        <span class="k">return</span> <span class="n">pl</span>
+</div>
+<div class="viewcode-block" id="Model.bind_input"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.bind_input">[docs]</a>    <span class="k">def</span> <span class="nf">bind_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_layer</span><span class="p">,</span> <span class="n">input_key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;input_key must be a string&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_layer</span><span class="p">,</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">InputLayer</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;input_layer must be an object of type InputLayer&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">input_key</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">input_key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_layer</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Model.bind_output"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.bind_output">[docs]</a>    <span class="k">def</span> <span class="nf">bind_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_layer</span><span class="p">,</span> <span class="n">loss_function</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">target_type</span><span class="o">=</span><span class="s">&#39;label&#39;</span><span class="p">,</span> <span class="n">aggregation_type</span><span class="o">=</span><span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">is_eval_output</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">weight_key</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">aggregation_types</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="s">&#39;sum&#39;</span><span class="p">,</span> <span class="s">&#39;weighted_mean&#39;</span><span class="p">,</span><span class="s">&#39;weighted_sum&#39;</span><span class="p">,</span><span class="s">&#39;nanmean&#39;</span><span class="p">,</span><span class="s">&#39;nansum&#39;</span><span class="p">,</span><span class="s">&#39;nanweighted_mean&#39;</span><span class="p">,</span><span class="s">&#39;nanweighted_sum&#39;</span><span class="p">]</span>
+        <span class="n">target_types</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;label&#39;</span><span class="p">,</span> <span class="s">&#39;recon&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">aggregation_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">aggregation_types</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Invalid aggregation type. Expected one of: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">aggregation_types</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">target_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target_types</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Invalid target type. Expected one of: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">target_types</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Target must be a string&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">weight_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">weight_key</span><span class="p">)</span><span class="o">!=</span><span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;weight_key must be either None or a string&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s">&#39;weighted&#39;</span> <span class="ow">in</span> <span class="n">aggregation_type</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">weight_key</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Weighted aggregation types must have a weight key&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span><span class="nb">int</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Scale must be a float or an int&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">output_layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">output_layer</span>     <span class="o">=</span> <span class="n">output_layer</span><span class="p">,</span>
+            <span class="n">target</span>           <span class="o">=</span> <span class="n">target</span><span class="p">,</span>
+            <span class="n">target_type</span>      <span class="o">=</span> <span class="n">target_type</span><span class="p">,</span>
+            <span class="n">loss_function</span>    <span class="o">=</span> <span class="n">loss_function</span><span class="p">,</span>
+            <span class="n">aggregation_type</span> <span class="o">=</span> <span class="n">aggregation_type</span><span class="p">,</span>
+            <span class="n">weight_key</span>       <span class="o">=</span> <span class="n">weight_key</span><span class="p">,</span>
+            <span class="n">scale</span>            <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_eval_output</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind_eval_output</span><span class="p">(</span><span class="n">output_layer</span><span class="p">,</span><span class="n">target</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Model.bind_eval_output"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.bind_eval_output">[docs]</a>    <span class="k">def</span> <span class="nf">bind_eval_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_layer</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">output_layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Can only bind eval outputs to layers that exist in the model.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_outputs</span><span class="p">[</span><span class="n">output_layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">output_layer</span>   <span class="o">=</span> <span class="n">output_layer</span><span class="p">,</span>
+            <span class="n">target</span>         <span class="o">=</span> <span class="n">target</span>
+        <span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Model.to_dict"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">ls</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">lname</span><span class="p">,</span><span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="s">&#39;to_dict&#39;</span><span class="p">):</span>
+                <span class="n">ldict</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ldict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_to_dict</span><span class="p">(</span><span class="n">lname</span><span class="p">,</span><span class="n">l</span><span class="p">)</span>
+            <span class="n">ls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ldict</span><span class="p">)</span>
+
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">iname</span><span class="p">,</span><span class="n">layers</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">inputs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">iname</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
+                <span class="n">inputs</span><span class="p">[</span><span class="n">iname</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">oname</span><span class="p">,</span> <span class="n">output</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="s">&#39;loss_function&#39;</span><span class="p">],</span><span class="s">&#39;to_dict&#39;</span><span class="p">):</span>
+                <span class="n">lfval</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;loss_function&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lfval</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;loss_function&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">func_name</span>
+            <span class="n">outputs</span><span class="p">[</span><span class="n">oname</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">loss_function</span>    <span class="o">=</span> <span class="n">lfval</span><span class="p">,</span>
+                <span class="n">output_layer</span>     <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;output_layer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">target_type</span>      <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;target_type&#39;</span><span class="p">],</span>
+                <span class="n">target</span>           <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">],</span>
+                <span class="n">aggregation_type</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;aggregation_type&#39;</span><span class="p">],</span>
+                <span class="n">weight_key</span>       <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;weight_key&#39;</span><span class="p">],</span>
+                <span class="n">scale</span>            <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;scale&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="n">eval_outputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">oname</span><span class="p">,</span> <span class="n">output</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_outputs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">eval_outputs</span><span class="p">[</span><span class="n">oname</span><span class="p">]</span><span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">output_layer</span>   <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;output_layer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">target</span>         <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;layers&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">ls</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;inputs&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;outputs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">outputs</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;eval_outputs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">eval_outputs</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">]</span>    <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="n">d</span>
+</div>
+<div class="viewcode-block" id="Model.from_dict"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">indict</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">copy</span>
+        <span class="n">indict</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">indict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_layers_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;layers&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bind_inputs_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;inputs&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bind_outputs_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;outputs&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bind_eval_outputs_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;eval_outputs&#39;</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="Model.from_dict_static"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.from_dict_static">[docs]</a>    <span class="k">def</span> <span class="nf">from_dict_static</span><span class="p">(</span><span class="n">indict</span><span class="p">):</span> 
+        <span class="n">m</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">])</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">_build_layers_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;layers&#39;</span><span class="p">])</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">_bind_inputs_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;inputs&#39;</span><span class="p">])</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">_bind_outputs_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;outputs&#39;</span><span class="p">])</span>
+        <span class="n">m</span><span class="o">.</span><span class="n">_bind_eval_outputs_from_list</span><span class="p">(</span><span class="n">indict</span><span class="p">[</span><span class="s">&#39;eval_outputs&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">m</span></div>
+    <span class="n">from_dict_static</span> <span class="o">=</span> <span class="nb">staticmethod</span><span class="p">(</span><span class="n">from_dict_static</span><span class="p">)</span>
+                
+    <span class="k">def</span> <span class="nf">_layer_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">lname</span><span class="p">,</span><span class="n">l</span><span class="p">):</span> 
+        <span class="n">ltype</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span>
+        <span class="n">ldict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">lname</span><span class="p">,</span>
+                     <span class="n">layer_type</span><span class="o">=</span><span class="n">ltype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="s">&#39;input_layer&#39;</span><span class="p">):</span>
+            <span class="n">iln</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">input_layer</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">input_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+            <span class="n">ldict</span><span class="p">[</span><span class="s">&#39;incoming&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">iln</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="s">&#39;input_layers&#39;</span><span class="p">):</span>
+            <span class="n">iln</span> <span class="o">=</span> <span class="p">[</span><span class="n">ilay</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ilay</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">input_layers</span><span class="p">]</span>
+            <span class="n">ldict</span><span class="p">[</span><span class="s">&#39;incomings&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">iln</span>
+
+        <span class="n">directGetList</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;p&#39;</span><span class="p">,</span><span class="s">&#39;num_units&#39;</span><span class="p">,</span><span class="s">&#39;num_filters&#39;</span><span class="p">,</span><span class="s">&#39;filter_size&#39;</span><span class="p">,</span><span class="s">&#39;stride&#39;</span><span class="p">,</span>
+                         <span class="s">&#39;untie_biases&#39;</span><span class="p">,</span><span class="s">&#39;border_mode&#39;</span><span class="p">,</span><span class="s">&#39;pool_size&#39;</span><span class="p">,</span><span class="s">&#39;img_shape&#39;</span><span class="p">,</span>
+                         <span class="s">&#39;pad&#39;</span><span class="p">,</span><span class="s">&#39;ignore_border&#39;</span><span class="p">,</span><span class="s">&#39;axis&#39;</span><span class="p">,</span><span class="s">&#39;rescale&#39;</span><span class="p">,</span><span class="s">&#39;sigma&#39;</span><span class="p">,</span>
+                         <span class="s">&#39;outdim&#39;</span><span class="p">,</span><span class="s">&#39;pattern&#39;</span><span class="p">,</span><span class="s">&#39;width&#39;</span><span class="p">,</span><span class="s">&#39;val&#39;</span><span class="p">,</span><span class="s">&#39;batch_ndim&#39;</span><span class="p">,</span>
+                         <span class="s">&#39;indices&#39;</span><span class="p">,</span><span class="s">&#39;input_size&#39;</span><span class="p">,</span><span class="s">&#39;output_size&#39;</span><span class="p">,</span><span class="s">&#39;flip_filters&#39;</span><span class="p">,</span>
+                         <span class="s">&#39;edgeprotect&#39;</span><span class="p">,</span><span class="s">&#39;mode&#39;</span><span class="p">,</span><span class="s">&#39;seed&#39;</span><span class="p">,</span><span class="s">&#39;prior&#39;</span><span class="p">,</span><span class="s">&#39;local_filters&#39;</span><span class="p">,</span>
+                         <span class="s">&#39;dimshuffle&#39;</span><span class="p">,</span><span class="s">&#39;partial_sum&#39;</span><span class="p">,</span><span class="s">&#39;input_shape&#39;</span><span class="p">,</span><span class="s">&#39;output_shape&#39;</span><span class="p">,</span><span class="s">&#39;shape&#39;</span><span class="p">}</span>
+        <span class="n">nameGetList</span>   <span class="o">=</span> <span class="p">{</span><span class="s">&#39;nonlinearity&#39;</span><span class="p">,</span><span class="s">&#39;convolution&#39;</span><span class="p">,</span><span class="s">&#39;pool_function&#39;</span><span class="p">,</span><span class="s">&#39;merge_function&#39;</span><span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">dga</span> <span class="ow">in</span> <span class="n">directGetList</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">dga</span><span class="p">):</span>
+                <span class="n">ldict</span><span class="p">[</span><span class="n">dga</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">dga</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">nga</span> <span class="ow">in</span> <span class="n">nameGetList</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">nga</span><span class="p">):</span>
+                <span class="n">at</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">nga</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="s">&quot;func_name&quot;</span><span class="p">):</span>
+                        <span class="n">ldict</span><span class="p">[</span><span class="n">nga</span><span class="p">]</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">func_name</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ldict</span><span class="p">[</span><span class="n">nga</span><span class="p">]</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                        <span class="n">ldict</span><span class="p">[</span><span class="n">nga</span><span class="p">][</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span>
+        <span class="k">return</span> <span class="n">ldict</span>
+
+    <span class="k">def</span> <span class="nf">_build_layers_from_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ll</span><span class="p">):</span>
+        <span class="n">nameGetList</span>   <span class="o">=</span> <span class="p">{</span><span class="s">&#39;nonlinearity&#39;</span><span class="p">,</span><span class="s">&#39;convolution&#39;</span><span class="p">,</span><span class="s">&#39;pool_function&#39;</span><span class="p">,</span><span class="s">&#39;merge_function&#39;</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">lspec</span> <span class="ow">in</span> <span class="n">ll</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">lspec</span><span class="p">[</span><span class="s">&#39;layer_type&#39;</span><span class="p">]</span>
+            <span class="n">lclass</span>  <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lclass</span><span class="p">,</span><span class="s">&#39;from_dict&#39;</span><span class="p">):</span>
+                <span class="n">l</span> <span class="o">=</span> <span class="n">lclass</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">lspec</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">linnames</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="s">&#39;incoming&#39;</span> <span class="ow">in</span> <span class="n">lspec</span><span class="p">:</span>
+                    <span class="n">linnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">lspec</span><span class="p">[</span><span class="s">&#39;incoming&#39;</span><span class="p">]]</span>
+                <span class="k">elif</span> <span class="s">&#39;incomings&#39;</span> <span class="ow">in</span> <span class="n">lspec</span><span class="p">:</span>
+                    <span class="n">linnames</span> <span class="o">=</span> <span class="n">lspec</span><span class="p">[</span><span class="s">&#39;incomings&#39;</span><span class="p">]</span>
+
+                <span class="n">lin</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">linnames</span><span class="p">:</span>
+                    <span class="n">lin</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span><span class="p">)</span>
+                <span class="n">lin</span>     <span class="o">=</span> <span class="n">lin</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lin</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span> <span class="k">else</span> <span class="n">lin</span>
+                <span class="n">linit</span>   <span class="o">=</span> <span class="n">lclass</span><span class="o">.</span><span class="n">__init__</span>
+                <span class="n">largs</span>   <span class="o">=</span> <span class="n">linit</span><span class="o">.</span><span class="n">func_code</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">linit</span><span class="o">.</span><span class="n">func_code</span><span class="o">.</span><span class="n">co_argcount</span><span class="p">]</span>
+                <span class="n">argdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">lspec</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">largs</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s">&#39;incoming&#39;</span> <span class="ow">or</span> <span class="n">a</span> <span class="o">==</span> <span class="s">&#39;incomings&#39;</span><span class="p">:</span>
+                        <span class="n">argdict</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">lin</span>
+                    <span class="k">elif</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">nameGetList</span><span class="p">:</span>
+                        <span class="n">argdict</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_arg</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">lspec</span><span class="p">[</span><span class="n">a</span><span class="p">])</span>
+                    <span class="k">elif</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">lspec</span><span class="p">:</span>
+                        <span class="n">argdict</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">lspec</span><span class="p">[</span><span class="n">a</span><span class="p">]</span>
+                <span class="n">l</span> <span class="o">=</span> <span class="n">lclass</span><span class="p">(</span><span class="o">**</span><span class="n">argdict</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_bind_inputs_from_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">il</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">labelkey</span><span class="p">,</span> <span class="n">lnames</span> <span class="ow">in</span> <span class="n">il</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">lnames</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bind_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">ln</span><span class="p">],</span><span class="n">labelkey</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_bind_outputs_from_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ol</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">layername</span><span class="p">,</span> <span class="n">outdict</span> <span class="ow">in</span> <span class="n">ol</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">l</span>         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">layername</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outdict</span><span class="p">[</span><span class="s">&#39;loss_function&#39;</span><span class="p">],</span><span class="nb">dict</span><span class="p">):</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">objectives</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">outdict</span><span class="p">[</span><span class="s">&#39;loss_function&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fname</span>     <span class="o">=</span> <span class="n">outdict</span><span class="p">[</span><span class="s">&#39;loss_function&#39;</span><span class="p">]</span>
+                <span class="n">f</span>         <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">xnn</span><span class="o">.</span><span class="n">objectives</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
+            <span class="n">wgt_key</span>   <span class="o">=</span> <span class="n">outdict</span><span class="p">[</span><span class="s">&#39;weight_key&#39;</span><span class="p">]</span>
+            <span class="n">targ</span>      <span class="o">=</span> <span class="n">outdict</span><span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">]</span>
+            <span class="n">targ_type</span> <span class="o">=</span> <span class="n">outdict</span><span class="p">[</span><span class="s">&#39;target_type&#39;</span><span class="p">]</span>
+            <span class="n">agg</span>       <span class="o">=</span> <span class="n">outdict</span><span class="p">[</span><span class="s">&#39;aggregation_type&#39;</span><span class="p">]</span>
+            <span class="n">scale</span>     <span class="o">=</span> <span class="n">outdict</span><span class="p">[</span><span class="s">&#39;scale&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind_output</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">targ</span><span class="p">,</span><span class="n">targ_type</span><span class="p">,</span><span class="n">agg</span><span class="p">,</span><span class="n">scale</span><span class="p">,</span><span class="n">weight_key</span><span class="o">=</span><span class="n">wgt_key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_bind_eval_outputs_from_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">el</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">layername</span><span class="p">,</span> <span class="n">edict</span> <span class="ow">in</span> <span class="n">el</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">layername</span><span class="p">]</span>
+            <span class="n">targ</span> <span class="o">=</span> <span class="n">edict</span><span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind_eval_output</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">targ</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_arg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">spec</span><span class="p">):</span>
+        <span class="c">#TODO: expand this to take care of other objects that need to be re-initialized</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s">&#39;nonlinearity&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+                <span class="n">nonlin</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">xnn</span><span class="o">.</span><span class="n">nonlinearities</span><span class="p">,</span><span class="n">spec</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;type&#39;</span><span class="p">))</span>
+                <span class="k">return</span> <span class="n">nonlin</span><span class="p">(</span><span class="o">**</span><span class="n">spec</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">xnn</span><span class="o">.</span><span class="n">nonlinearities</span><span class="p">,</span><span class="n">spec</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s">&#39;convolution&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">spec</span> <span class="o">==</span> <span class="s">&#39;conv2d&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">theano</span><span class="o">.</span><span class="n">tensor</span><span class="o">.</span><span class="n">nnet</span><span class="o">.</span><span class="n">conv2d</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="Model.save_model"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.save_model">[docs]</a>    <span class="k">def</span> <span class="nf">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="n">all_layers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">get_all_param_values</span><span class="p">(</span><span class="n">all_layers</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">d</span><span class="p">,</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">cPickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">cPickle</span><span class="o">.</span><span class="n">HIGHEST_PROTOCOL</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Model.load_model"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.load_model">[docs]</a>    <span class="k">def</span> <span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">cPickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s">&#39;model&#39;</span><span class="p">])</span>
+        <span class="n">all_layers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+        <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">set_all_param_values</span><span class="p">(</span><span class="n">all_layers</span><span class="p">,</span><span class="n">d</span><span class="p">[</span><span class="s">&#39;params&#39;</span><span class="p">])</span>
+</div>
+    <span class="k">def</span> <span class="nf">_get_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">layer</span><span class="p">):</span>
+        <span class="n">variable_type_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="mi">2</span><span class="p">:</span><span class="n">T</span><span class="o">.</span><span class="n">matrix</span><span class="p">,</span>
+            <span class="mi">3</span><span class="p">:</span><span class="n">T</span><span class="o">.</span><span class="n">tensor3</span><span class="p">,</span>
+            <span class="mi">4</span><span class="p">:</span><span class="n">T</span><span class="o">.</span><span class="n">tensor4</span>
+        <span class="p">}</span>
+        <span class="n">ldim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">ldim</span> <span class="ow">in</span> <span class="n">variable_type_dict</span>
+        <span class="n">var_type</span> <span class="o">=</span> <span class="n">variable_type_dict</span><span class="p">[</span><span class="n">ldim</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">var_type</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">data_dict</span><span class="p">,</span><span class="n">data_in_gpu</span><span class="p">):</span>
+        <span class="n">ins</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">givens</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">data_in_gpu</span><span class="p">:</span>
+            <span class="n">data_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">],</span><span class="n">data_dict</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">k</span><span class="p">]))])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+                    <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">data_dict</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">=</span><span class="n">i</span>
+        <span class="n">outs</span> <span class="o">=</span> <span class="n">xnn</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span><span class="n">inputs</span><span class="o">=</span><span class="n">data_dict</span><span class="p">,</span><span class="n">deterministic</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">ins</span><span class="p">,</span><span class="n">outs</span><span class="p">,</span><span class="n">no_default_updates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_predict_func</span> <span class="o">=</span> <span class="n">f</span>
+
+<div class="viewcode-block" id="Model.predict"><a class="viewcode-back" href="../../../modules/xnn.model.html#xnn.model.model.Model.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">data_dict</span><span class="p">,</span><span class="n">layer_names</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">data_in_gpu</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_func</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_predict</span><span class="p">(</span><span class="n">data_dict</span><span class="p">,</span><span class="n">data_in_gpu</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_func</span>
+        <span class="n">ins</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data_in_gpu</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_dict</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+                        <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_dict</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ins</span> <span class="o">=</span> <span class="p">[</span><span class="n">data_dict</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">outs</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">ins</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">layer_names</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">layer_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="n">outDict</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">ln</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">layer_names</span><span class="p">:</span>
+                <span class="n">outDict</span><span class="p">[</span><span class="n">ln</span><span class="p">]</span><span class="o">=</span><span class="n">outs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">outDict</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

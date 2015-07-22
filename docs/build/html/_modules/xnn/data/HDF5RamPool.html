@@ -1,0 +1,271 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>xnn.data.HDF5RamPool &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for xnn.data.HDF5RamPool</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">HDF5BatchLoad</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">theano</span>
+
+<div class="viewcode-block" id="HDF5RamPool"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool">[docs]</a><span class="k">class</span> <span class="nc">HDF5RamPool</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batchReader</span><span class="p">,</span> <span class="n">partition</span><span class="o">=</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="n">nBatchInPool</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">refreshPoolProp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">poolSizeToReturn</span><span class="o">=</span><span class="bp">None</span> <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Define a data loader that aggregates batches from a single partition of an HDF5 file</span>
+<span class="sd">        :param batchReader: HDF5BatchLoad object set up to extract desired information from HDF5 </span>
+<span class="sd">        :param partition:  partition from which to load data</span>
+<span class="sd">        :param nBatchInPool:  number of batches to load into pool initially.  If None, load all batches (might run out of memory)</span>
+<span class="sd">        :param refreshPoolProp: proportion of pool examples to be refreshed between calls.  If None, pool refreshed entirely</span>
+<span class="sd">        :param poolSizeToReturn: size of the pool to be returned when the pooler is called.  If None, entire pool returned</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span> <span class="o">=</span> <span class="n">batchReader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">poolloaded</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nBatchInPool</span> <span class="o">=</span> <span class="n">nBatchInPool</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refreshPoolProp</span> <span class="o">=</span> <span class="n">refreshPoolProp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">partition</span> <span class="o">=</span> <span class="n">partition</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batchIDlist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span> <span class="o">=</span> <span class="n">poolSizeToReturn</span> 
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_refreshPool</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getsubpool</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span>
+   
+<div class="viewcode-block" id="HDF5RamPool.datakeys"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool.datakeys">[docs]</a>    <span class="k">def</span> <span class="nf">datakeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span><span class="o">.</span><span class="n">datakeys</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="HDF5RamPool.nInPool"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool.nInPool">[docs]</a>    <span class="k">def</span> <span class="nf">nInPool</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</div>
+    <span class="k">def</span> <span class="nf">_getsubpool</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">subpool</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nInPool</span><span class="p">(),</span><span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">subpool</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ids</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">subpool</span>
+
+    <span class="k">def</span> <span class="nf">_loadPool</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">currentID</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nBatchInPool</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nBatchInPool</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span><span class="o">.</span><span class="n">num_batches</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">)</span>
+        <span class="n">poolitems</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shuffleIDlist</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nBatchInPool</span><span class="p">):</span>
+            <span class="n">poolitems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">,</span><span class="n">batchind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batchIDlist</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">currentID</span><span class="o">+</span><span class="n">i</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merge_items</span><span class="p">(</span><span class="n">poolitems</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">currentID</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nBatchInPool</span>
+
+    <span class="k">def</span> <span class="nf">_shuffleIDlist</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batchIDlist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span><span class="o">.</span><span class="n">num_batches</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">)))</span>
+
+
+    <span class="k">def</span> <span class="nf">_refreshPool</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">refreshPoolProp</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolloaded</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loadPool</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">poolloaded</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">refreshPoolProp</span> <span class="o">&gt;</span> <span class="mf">0.</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">nBatchInPool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">nInPool</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nInPool</span><span class="p">()</span>
+            <span class="n">nToRefresh</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">nInPool</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">refreshPoolProp</span><span class="p">))</span>
+            <span class="n">numAdded</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="n">numAdded</span><span class="o">&lt;</span><span class="n">nToRefresh</span><span class="p">:</span>
+                <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">,</span><span class="n">batchind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batchIDlist</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">currentID</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">currentID</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">currentID</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span><span class="o">.</span><span class="n">num_batches</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_shuffleIDlist</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">currentID</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">numAdded</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace_items</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">nToRefresh</span><span class="o">-</span><span class="n">numAdded</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c">#no need to refresh</span>
+            <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_replace_items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">items</span><span class="p">,</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">nnew</span> <span class="o">=</span> <span class="n">items</span><span class="p">[</span><span class="n">items</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">nit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">nnew</span><span class="p">)</span>
+        <span class="n">replaceIDs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nInPool</span><span class="p">()))[</span><span class="mi">0</span><span class="p">:</span><span class="n">nit</span><span class="p">]</span>
+        <span class="n">newIDs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nnew</span><span class="p">))[</span><span class="mi">0</span><span class="p">:</span><span class="n">nit</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">replaceIDs</span><span class="p">,</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">items</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">newIDs</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">nit</span>
+
+    <span class="k">def</span> <span class="nf">_merge_items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">mergelist</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mergelist</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&#39;mergelist is empty&#39;</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">mergelist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">keyitems</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:[]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">items</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">items</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">ml</span> <span class="ow">in</span> <span class="n">mergelist</span><span class="p">:</span>
+                <span class="n">keyitems</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ml</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">items</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">items</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">keyitems</span><span class="p">[</span><span class="n">key</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c">#        for i in xrange(1,len(mergelist)):</span>
+<span class="c">#            for key in items.keys():</span>
+<span class="c">#                items[key] = np.concatenate((items[key],mergelist[i][key]),axis=0)</span>
+        <span class="k">return</span> <span class="n">items</span>
+
+<div class="viewcode-block" id="HDF5RamPool.does_pool_update"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool.does_pool_update">[docs]</a>    <span class="k">def</span> <span class="nf">does_pool_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">refreshPoolProp</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">nBatchInPool</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+</div>
+<div class="viewcode-block" id="HDF5RamPool.to_dict"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">{</span><span class="s">&#39;batchIDlist&#39;</span><span class="p">,</span><span class="s">&#39;pool&#39;</span><span class="p">}:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">],</span><span class="s">&#39;to_dict&#39;</span><span class="p">):</span>
+                <span class="n">properties</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">properties</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">properties</span>
+</div></div>
+<div class="viewcode-block" id="PoolMerger"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.PoolMerger">[docs]</a><span class="k">class</span> <span class="nc">PoolMerger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poolers</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">poolers</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">poolers</span> <span class="o">=</span> <span class="n">poolers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">poolers</span> <span class="o">=</span> <span class="p">[</span><span class="n">poolers</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datakeys</span>  <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_pools</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_init_poolinfo</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">anyupdate</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_merge_pools</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span>
+        
+    <span class="k">def</span> <span class="nf">_merge_pools</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">keyitems</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:[]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datakeys</span><span class="p">}</span> 
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keyitems</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pools</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">keyitems</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">keyitems</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="n">theano</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">floatX</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keyitems</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">pool</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">keyitems</span><span class="p">[</span><span class="n">key</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">pool</span>
+
+    <span class="k">def</span> <span class="nf">_init_poolinfo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">datakeys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">nsinpool</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
+        <span class="n">sizeinkey</span><span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anyupdate</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">for</span> <span class="n">plr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">datakeys</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">plr</span><span class="o">.</span><span class="n">datakeys</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">anyupdate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anyupdate</span> <span class="ow">or</span> <span class="n">plr</span><span class="o">.</span><span class="n">does_pool_update</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datakeys</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span> 
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pools</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">nsinpool</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">sizeinkey</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datakeys</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pools</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+                    <span class="n">shp</span> <span class="o">=</span> <span class="p">[</span><span class="n">nsinpool</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+                    <span class="n">shp</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">sizeinkey</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                    <span class="n">shp</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">shp</span> 
+
+        
+
+    <span class="k">def</span> <span class="nf">_get_pools</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pools</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pools</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">())</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

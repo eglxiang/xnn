@@ -1,0 +1,397 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>xnn.training.trainer &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for xnn.training.trainer</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">lasagne</span>
+<span class="kn">import</span> <span class="nn">theano</span>
+<span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="kn">as</span> <span class="nn">T</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">regularization</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Tnanmean</span><span class="p">,</span> <span class="n">Tnansum</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">getargspec</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<div class="viewcode-block" id="ParamUpdateSettings"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.ParamUpdateSettings">[docs]</a><span class="k">class</span> <span class="nc">ParamUpdateSettings</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">update</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span>
+                 <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span> <span class="o">=</span> <span class="n">update</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_args</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">_check_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span>
+        <span class="n">update</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span>
+        <span class="k">assert</span> <span class="n">update</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+        <span class="n">argspec</span>  <span class="o">=</span> <span class="n">getargspec</span><span class="p">(</span><span class="n">update</span><span class="p">)</span>
+        <span class="n">all_args</span> <span class="o">=</span> <span class="n">argspec</span><span class="o">.</span><span class="n">args</span>
+        <span class="n">defs</span>     <span class="o">=</span> <span class="n">argspec</span><span class="o">.</span><span class="n">defaults</span>
+        <span class="n">ndef</span>     <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">defs</span><span class="p">)</span> <span class="k">if</span> <span class="n">defs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">req_args</span> <span class="o">=</span> <span class="n">all_args</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="n">ndef</span><span class="p">]</span> <span class="k">if</span> <span class="n">ndef</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="n">all_args</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">def_args</span> <span class="o">=</span> <span class="n">all_args</span><span class="p">[</span><span class="o">-</span><span class="n">ndef</span><span class="p">:]</span> <span class="k">if</span> <span class="n">ndef</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">kw</span> <span class="ow">in</span> <span class="n">all_args</span> <span class="k">for</span> <span class="n">kw</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">req</span> <span class="ow">in</span> <span class="n">settings</span> <span class="k">for</span> <span class="n">req</span> <span class="ow">in</span> <span class="n">req_args</span><span class="p">])</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">defs</span><span class="p">,</span><span class="n">def_args</span><span class="p">)</span> <span class="k">if</span> <span class="n">defs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">dval</span><span class="p">,</span><span class="n">darg</span> <span class="ow">in</span> <span class="n">z</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">darg</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="n">settings</span><span class="p">[</span><span class="n">darg</span><span class="p">]</span> <span class="o">=</span> <span class="n">dval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_args</span> <span class="o">=</span> <span class="n">all_args</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">settings</span>
+
+<div class="viewcode-block" id="ParamUpdateSettings.to_dict"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.ParamUpdateSettings.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">properties</span>           <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">properties</span><span class="p">[</span><span class="s">&#39;update&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">properties</span><span class="p">[</span><span class="s">&#39;update&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">func_name</span>
+        <span class="k">del</span><span class="p">(</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;_update_args&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">properties</span>
+</div></div>
+<div class="viewcode-block" id="Trainer"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer">[docs]</a><span class="k">class</span> <span class="nc">Trainer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">global_update_settings</span><span class="p">,</span><span class="n">dataSharedVarDict</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span><span class="c">#trainerSettings = TrainerSettings()):</span>
+        <span class="c"># self.__dict__.update(trainerSettings.__dict__)</span>
+        <span class="n">global_update_settings</span><span class="o">.</span><span class="n">_check_settings</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_update_settings</span> <span class="o">=</span> <span class="n">global_update_settings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataSharedVarDict</span> <span class="o">=</span> <span class="n">dataSharedVarDict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularizations</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Trainer.bind_regularization"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.bind_regularization">[docs]</a>    <span class="k">def</span> <span class="nf">bind_regularization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">penalty</span><span class="p">,</span> <span class="n">lnamelist</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Attach a regularization penalty to a list of layers. </span>
+
+<span class="sd">        :param penalty: a theano expression compatible with lasagne.regularization.apply_penalty</span>
+<span class="sd">        :param lnamelist: a list of layer names to which this regularization should apply.  If None, all layers in the model will be added.  If a list of tuples, specify regularization coefficents: [(lname,coeff),...].  If a float, all layers will be added with the float as a coefficient</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lnamelist</span><span class="p">,</span><span class="nb">float</span><span class="p">):</span>
+            <span class="n">lnamelist</span> <span class="o">=</span> <span class="p">[(</span><span class="n">l</span><span class="p">,</span><span class="n">lnamelist</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="n">lnamelist</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">lnamelist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">lnamelist</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">lnamelist</span> <span class="o">=</span> <span class="p">[</span><span class="n">lnamelist</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">penalty</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">regularizations</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regularizations</span><span class="p">[</span><span class="n">penalty</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularizations</span><span class="p">[</span><span class="n">penalty</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">lnamelist</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span><span class="o">=</span><span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="Trainer.bind_update"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.bind_update">[docs]</a>    <span class="k">def</span> <span class="nf">bind_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layerlist</span><span class="p">,</span> <span class="n">update_settings</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">layerlist</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">layerlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">layerlist</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layerlist</span><span class="p">:</span>
+            <span class="n">update_setting</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">update_settings</span><span class="p">)</span>
+            <span class="n">layer_name</span> <span class="o">=</span> <span class="n">layer</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="k">else</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">prev_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">layer_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_update_settings</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">update_setting</span><span class="o">.</span><span class="n">update</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">u</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">u</span> <span class="o">==</span> <span class="n">prev_settings</span><span class="o">.</span><span class="n">update</span><span class="p">):</span>
+                <span class="n">update_setting</span><span class="o">.</span><span class="n">update</span> <span class="o">=</span> <span class="n">prev_settings</span><span class="o">.</span><span class="n">update</span>
+                <span class="n">pdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">prev_settings</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span><span class="o">+</span><span class="n">update_setting</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+                <span class="n">update_setting</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">pdict</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">update_setting</span><span class="o">.</span><span class="n">_check_settings</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">update_setting</span>
+</div>
+<div class="viewcode-block" id="Trainer.bind_global_update"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.bind_global_update">[docs]</a>    <span class="k">def</span> <span class="nf">bind_global_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_settings</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="n">prev_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_update_settings</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">update_settings</span><span class="o">.</span><span class="n">update</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">u</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">u</span> <span class="o">==</span> <span class="n">prev_settings</span><span class="o">.</span><span class="n">update</span><span class="p">):</span>
+            <span class="n">update_settings</span><span class="o">.</span><span class="n">update</span> <span class="o">=</span> <span class="n">prev_settings</span><span class="o">.</span><span class="n">update</span>
+            <span class="n">pdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">prev_settings</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="o">+</span> <span class="n">update_settings</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+            <span class="n">update_settings</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">pdict</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">update_settings</span><span class="o">.</span><span class="n">_check_settings</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_update_settings</span> <span class="o">=</span> <span class="n">update_settings</span>
+        <span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Trainer.set_model"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.set_model">[docs]</a>    <span class="k">def</span> <span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">model</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+</div>
+<div class="viewcode-block" id="Trainer.init_ins_variables"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.init_ins_variables">[docs]</a>    <span class="k">def</span> <span class="nf">init_ins_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span>
+        <span class="n">ins</span>    <span class="o">=</span> <span class="p">[]</span><span class="c">#OrderedDict()</span>
+        <span class="k">for</span> <span class="n">input_key</span><span class="p">,</span><span class="n">input_layers</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">input_layer</span> <span class="ow">in</span> <span class="n">input_layers</span><span class="p">:</span>
+                <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">input_key</span><span class="p">,</span> <span class="n">input_layer</span><span class="o">.</span><span class="n">input_var</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">ins</span>
+</div>
+<div class="viewcode-block" id="Trainer.get_outputs"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.get_outputs">[docs]</a>    <span class="k">def</span> <span class="nf">get_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">all_layers_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span>
+        <span class="n">outputs</span>         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">outputs</span>
+        <span class="n">all_layers</span>      <span class="o">=</span> <span class="n">all_layers_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="n">all_outs</span>        <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">all_layers</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="n">all_outs_dict</span>   <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">all_layers_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span><span class="n">all_outs</span><span class="p">))</span>
+        <span class="n">outsTrain</span>       <span class="o">=</span> <span class="p">[</span><span class="n">all_outs_dict</span><span class="p">[</span><span class="n">outputlayer</span><span class="p">]</span> <span class="k">for</span> <span class="n">outputlayer</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+        <span class="k">return</span> <span class="n">all_outs_dict</span><span class="p">,</span><span class="n">outsTrain</span>
+</div>
+<div class="viewcode-block" id="Trainer.get_cost"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.get_cost">[docs]</a>    <span class="k">def</span> <span class="nf">get_cost</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">layer_name</span><span class="p">,</span><span class="n">layer_dict</span><span class="p">,</span><span class="n">all_outs_dict</span><span class="p">,</span><span class="n">ins</span><span class="p">):</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">all_outs_dict</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]</span>
+        <span class="n">target_type</span> <span class="o">=</span> <span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;target_type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">target_type</span> <span class="o">==</span> <span class="s">&#39;label&#39;</span><span class="p">:</span>
+            <span class="n">targs</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="s">&#39;targets&#39;</span><span class="p">)</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">],</span> <span class="n">targs</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">target_type</span> <span class="o">==</span> <span class="s">&#39;recon&#39;</span><span class="p">:</span>
+            <span class="n">targs</span> <span class="o">=</span> <span class="n">all_outs_dict</span><span class="p">[</span><span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;This should have been caught earlier&#39;</span><span class="p">)</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;loss_function&#39;</span><span class="p">](</span><span class="n">preds</span><span class="p">,</span><span class="n">targs</span><span class="p">)</span>
+        <span class="c">## In order to use weighting on vectors need to add an extra dimension</span>
+        <span class="c">#if (cost.ndim &lt; 2):</span>
+        <span class="c">#    cost = cost.dimshuffle(0,&#39;x&#39;)</span>
+        <span class="n">aggregation_type</span> <span class="o">=</span> <span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;aggregation_type&#39;</span><span class="p">]</span>
+        <span class="c"># regular aggregations</span>
+        <span class="k">if</span> <span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;mean&#39;</span><span class="p">:</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">cost</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;sum&#39;</span><span class="p">:</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">cost</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;weighted_mean&#39;</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="s">&#39;weights&#39;</span><span class="p">)</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;weight_key&#39;</span><span class="p">],</span> <span class="n">weights</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">cost</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cost</span><span class="o">*</span><span class="n">weights</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">/</span><span class="n">T</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cost</span><span class="o">*</span><span class="n">weights</span><span class="p">)</span><span class="o">/</span><span class="n">T</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;weighted_sum&#39;</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="s">&#39;weights&#39;</span><span class="p">)</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;weight_key&#39;</span><span class="p">],</span> <span class="n">weights</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">cost</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cost</span><span class="o">*</span><span class="n">weights</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cost</span><span class="o">*</span><span class="n">weights</span><span class="p">)</span>
+        <span class="c"># nan-protected aggregations</span>
+        <span class="k">elif</span> <span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;nanmean&#39;</span><span class="p">:</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">Tnanmean</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;nansum&#39;</span><span class="p">:</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">Tnansum</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;nanweighted_mean&#39;</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="s">&#39;weights&#39;</span><span class="p">)</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;weight_key&#39;</span><span class="p">],</span> <span class="n">weights</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">cost</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">Tnansum</span><span class="p">(</span><span class="n">cost</span><span class="o">*</span><span class="n">weights</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">/</span><span class="n">Tnansum</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">Tnansum</span><span class="p">(</span><span class="n">cost</span><span class="o">*</span><span class="n">weights</span><span class="p">)</span><span class="o">/</span><span class="n">Tnansum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;nanweighted_sum&#39;</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="s">&#39;weights&#39;</span><span class="p">)</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;weight_key&#39;</span><span class="p">],</span> <span class="n">weights</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">cost</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">Tnansum</span><span class="p">(</span><span class="n">cost</span><span class="o">*</span><span class="n">weights</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">Tnansum</span><span class="p">(</span><span class="n">cost</span><span class="o">*</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;This should have been caught earlier&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">ins</span>
+</div>
+<div class="viewcode-block" id="Trainer.get_update"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.get_update">[docs]</a>    <span class="k">def</span> <span class="nf">get_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">layer_name</span><span class="p">,</span><span class="n">ins</span><span class="p">,</span><span class="n">costTotal</span><span class="p">):</span>
+        <span class="n">all_layers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">all_layers</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]</span><span class="o">.</span><span class="n">get_params</span><span class="p">()</span>
+        <span class="n">update</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">update_ins</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">update_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">layer_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_update_settings</span>
+            <span class="n">update_func</span> <span class="o">=</span> <span class="n">update_settings</span><span class="o">.</span><span class="n">update</span>
+            <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">update_settings</span><span class="o">.</span><span class="n">_update_args</span><span class="p">:</span>
+                <span class="n">argname</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">_</span><span class="si">%s</span><span class="s">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span><span class="n">layer_name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_all_update_args</span><span class="p">[</span><span class="n">argname</span><span class="p">]</span> <span class="o">=</span> <span class="n">layer_name</span>
+                <span class="n">argvar</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">argname</span><span class="p">)</span>
+                <span class="n">update_ins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">argvar</span><span class="p">)</span>
+                <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">argname</span><span class="p">,</span><span class="n">argvar</span><span class="p">))</span>
+            <span class="n">update</span> <span class="o">=</span> <span class="n">update_func</span><span class="p">(</span><span class="n">costTotal</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">update_ins</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">update</span><span class="p">,</span> <span class="n">ins</span>
+</div>
+    <span class="k">def</span> <span class="nf">_get_regularization_costs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">costs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">p</span><span class="p">,</span><span class="n">lnamel</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">regularizations</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">weights</span><span class="o">=</span><span class="p">{}</span>
+            <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">lnamel</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ln</span><span class="p">,</span><span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">wgt</span> <span class="o">=</span> <span class="n">ln</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">ln</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">wgt</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">ln</span>
+                <span class="n">weights</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span><span class="o">=</span><span class="n">wgt</span>
+            <span class="n">costs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">regularization</span><span class="o">.</span><span class="n">regularize_layer_params_weighted</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span><span class="n">p</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">costs</span>
+
+    <span class="k">def</span> <span class="nf">_create_train_func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;No model has been set to train!&quot;</span><span class="p">)</span>
+        <span class="n">inputs</span>     <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span>
+        <span class="n">outputs</span>    <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">outputs</span>
+        <span class="n">all_layers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span>
+
+        <span class="c"># Get costs</span>
+        <span class="n">ins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_ins_variables</span><span class="p">()</span>
+        <span class="n">all_outs_dict</span><span class="p">,</span><span class="n">outsTrain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_outputs</span><span class="p">()</span>
+
+        <span class="n">costs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">layer_name</span><span class="p">,</span> <span class="n">layer_dict</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="c"># {layer_name:{output_layer,target,target_type,loss_function,aggregation_type}}</span>
+            <span class="n">cost</span><span class="p">,</span><span class="n">ins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cost</span><span class="p">(</span><span class="n">layer_name</span><span class="p">,</span><span class="n">layer_dict</span><span class="p">,</span><span class="n">all_outs_dict</span><span class="p">,</span><span class="n">ins</span><span class="p">)</span>
+            <span class="n">cost</span> <span class="o">*=</span> <span class="n">layer_dict</span><span class="p">[</span><span class="s">&#39;scale&#39;</span><span class="p">]</span>
+            <span class="n">costs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+        <span class="n">costs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_regularization_costs</span><span class="p">())</span>
+        <span class="n">costTotal</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">costs</span><span class="p">)</span>
+        <span class="n">outsTrain</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">costTotal</span><span class="p">)</span>
+        <span class="c"># Get updates</span>
+        <span class="n">updates</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_update_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">layer_name</span> <span class="ow">in</span> <span class="n">all_layers</span><span class="p">:</span>
+            <span class="n">update</span><span class="p">,</span><span class="n">ins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_update</span><span class="p">(</span><span class="n">layer_name</span><span class="p">,</span><span class="n">ins</span><span class="p">,</span><span class="n">costTotal</span><span class="p">)</span>
+            <span class="n">updates</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">update</span><span class="p">)</span>
+
+        <span class="c"># Create functions</span>
+        <span class="n">givens</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataSharedVarDict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">batch_index</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">iscalar</span><span class="p">(</span><span class="s">&#39;Batch index&#39;</span><span class="p">)</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;batch_index&#39;</span><span class="p">,</span> <span class="n">batch_index</span><span class="p">))</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">iscalar</span><span class="p">(</span><span class="s">&#39;Batch size&#39;</span><span class="p">)</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;batch_size&#39;</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">))</span>
+            <span class="n">batch_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">batch_index</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,(</span><span class="n">batch_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">input_key</span><span class="p">,</span><span class="n">input_layers</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">input_layer</span> <span class="ow">in</span> <span class="n">input_layers</span><span class="p">:</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ins</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">input_key</span><span class="p">)</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">inVar</span> <span class="o">=</span> <span class="n">ins</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
+                    <span class="n">givens</span><span class="p">[</span><span class="n">inVar</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataSharedVarDict</span><span class="p">[</span><span class="n">input_key</span><span class="p">][</span><span class="n">batch_slice</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">output_layer_name</span><span class="p">,</span><span class="n">output_layer_dict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">output_layer_dict</span><span class="p">[</span><span class="s">&#39;target_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;label&#39;</span><span class="p">:</span>
+                    <span class="n">targKey</span> <span class="o">=</span> <span class="n">output_layer_dict</span><span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">]</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ins</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">targKey</span><span class="p">)</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">targVar</span> <span class="o">=</span> <span class="n">ins</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
+                    <span class="n">givens</span><span class="p">[</span><span class="n">targVar</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataSharedVarDict</span><span class="p">[</span><span class="n">targKey</span><span class="p">][</span><span class="n">batch_slice</span><span class="p">]</span>
+                <span class="n">weightKey</span> <span class="o">=</span> <span class="n">output_layer_dict</span><span class="p">[</span><span class="s">&#39;weight_key&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">weightKey</span> <span class="ow">in</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ins</span><span class="p">]:</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ins</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">weightKey</span><span class="p">)</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">weightVar</span> <span class="o">=</span> <span class="n">ins</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
+                    <span class="n">givens</span><span class="p">[</span><span class="n">weightVar</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataSharedVarDict</span><span class="p">[</span><span class="n">weightKey</span><span class="p">][</span><span class="n">batch_slice</span><span class="p">]</span>
+
+        <span class="n">inkeys</span> <span class="o">=</span> <span class="p">[</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">ins</span><span class="p">]</span>
+        <span class="n">invals</span> <span class="o">=</span> <span class="p">[</span><span class="n">items</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">ins</span><span class="p">]</span>
+        <span class="n">train</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">(</span>
+            <span class="n">invals</span><span class="p">,</span>
+            <span class="n">outsTrain</span><span class="p">,</span>
+            <span class="n">updates</span><span class="o">=</span><span class="n">updates</span><span class="p">,</span>
+            <span class="n">givens</span><span class="o">=</span><span class="n">givens</span><span class="p">,</span>
+            <span class="n">on_unused_input</span><span class="o">=</span><span class="s">&#39;warn&#39;</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span> <span class="o">=</span> <span class="n">train</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">insKeys</span> <span class="o">=</span> <span class="n">inkeys</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span>
+
+    <span class="k">def</span> <span class="nf">_sort_ins</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">batch_dict</span><span class="p">):</span>
+        <span class="n">ins</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">param_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_update_args</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">insKeys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">param_names</span><span class="p">:</span>
+                <span class="n">layer_name</span> <span class="o">=</span> <span class="n">param_names</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_</span><span class="si">%s</span><span class="s">&#39;</span><span class="o">%</span><span class="n">layer_name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">layer_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span><span class="p">:</span>
+                    <span class="n">inval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_updates</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]</span><span class="o">.</span><span class="n">settings</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">inval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_update_settings</span><span class="o">.</span><span class="n">settings</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inval</span> <span class="o">=</span> <span class="n">batch_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inval</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ins</span>
+<div class="viewcode-block" id="Trainer.train_step"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.train_step">[docs]</a>    <span class="k">def</span> <span class="nf">train_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">batch_dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_train_func</span><span class="p">()</span>
+        <span class="n">ins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sort_ins</span><span class="p">(</span><span class="n">batch_dict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span><span class="p">(</span><span class="o">*</span><span class="n">ins</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Trainer.to_dict"><a class="viewcode-back" href="../../../modules/xnn.training.html#xnn.training.trainer.Trainer.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="p">[</span><span class="s">&#39;model&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;global_update_settings&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="p">[</span><span class="s">&#39;global_update_settings&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="n">lu</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([[</span><span class="n">layer</span><span class="p">,</span><span class="n">params</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()]</span> <span class="k">for</span> <span class="n">layer</span><span class="p">,</span><span class="n">params</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">[</span><span class="s">&#39;layer_updates&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()])</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;layer_updates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lu</span>
+        <span class="n">lr</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([[</span><span class="n">regularization</span><span class="o">.</span><span class="n">func_name</span><span class="p">,</span><span class="n">layers</span><span class="p">]</span> <span class="k">for</span> <span class="n">regularization</span><span class="p">,</span><span class="n">layers</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">[</span><span class="s">&#39;regularizations&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()])</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;regularizations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span>
+        <span class="k">return</span> <span class="n">d</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

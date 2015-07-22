@@ -1,0 +1,659 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>xnn.metrics.metricsSuite &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for xnn.metrics.metricsSuite</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">A collection of metrics for evaluating detectors written by Jake Whitehill</span>
+<span class="sd">and adapted by Josh Susskind</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c"># In this file, x is the detector&#39;s output, and y is the true object label</span>
+<span class="kn">import</span> <span class="nn">pylab</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="n">__all__</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;metric_types&#39;</span><span class="p">,</span><span class="s">&#39;metric_names&#39;</span><span class="p">,</span><span class="s">&#39;Metric&#39;</span><span class="p">,</span>
+            <span class="s">&#39;baseline&#39;</span><span class="p">,</span>
+            <span class="s">&#39;confMatAggregate&#39;</span><span class="p">,</span>
+            <span class="s">&#39;compute2AFC&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBalancedErrorRate&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBalancedExponentialCost&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBalancedLogisticAndExponentialCosts&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBalancedLogisticCost&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBinarizedBalancedErrorRateBinary&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBinarizedBalancedErrorRateCategorical&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBinarizedBalancedExponentialCost&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBinarizedBalancedLogisticCost&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBinarizedF1&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBinarizedHitRate&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBinarizedJunkRate&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeBinarizedSpecificity&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeCategoricalCrossentropy&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeConfusionMatrix&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeCondProb&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeEqualErrorRate&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeErrorRateDiffSquared&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeF&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeF1&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeHitRate&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeJCorr&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeJunkRate&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeKLDivergence&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeOneHotAccuracy&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeOptimalBalancedErrorRate&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeOptimalBalancedErrorRateCategorical&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeOptimalBalancedExponentialCost&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeOptimalBalancedLogisticCost&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeOptimalF1&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computePercentCorrect&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computePrecision&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeSpecificity&#39;</span><span class="p">,</span>
+            <span class="s">&#39;computeThresholdPercentCorrect&#39;</span><span class="p">,</span>
+            <span class="s">&#39;convertLLRtoProb&#39;</span><span class="p">,</span>
+            <span class="s">&#39;optimizeOverBaselinesAndScales&#39;</span><span class="p">,</span>
+            <span class="s">&#39;optimizeOverThresholds&#39;</span><span class="p">,</span>
+            <span class="s">&#39;threshold&#39;</span><span class="p">,</span>
+            <span class="p">]</span>
+
+
+<span class="n">metric_types</span><span class="o">=</span><span class="p">{}</span>
+<span class="n">metric_names</span><span class="o">=</span><span class="p">{}</span>
+
+<div class="viewcode-block" id="Metric"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.Metric">[docs]</a><span class="k">class</span> <span class="nc">Metric</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">metric</span><span class="p">,</span><span class="n">targkeys</span><span class="p">,</span><span class="n">outkeys</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">weightkey</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">aggregation_type</span><span class="o">=</span><span class="s">&#39;mean&#39;</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric_types</span><span class="p">[</span><span class="n">metric</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span><span class="s">&#39;__call__&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="ow">in</span> <span class="n">metric_names</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">=</span><span class="n">metric_names</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">__name__</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span>  <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weightkey</span> <span class="o">=</span> <span class="n">weightkey</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_type</span><span class="o">=</span><span class="n">aggregation_type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">targkeys</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targkeys</span><span class="p">,</span><span class="nb">list</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;targetkeys needs to be a string or a list of strings&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">targkeys</span> <span class="o">=</span> <span class="n">targkeys</span>
+        <span class="k">if</span> <span class="n">outkeys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outkeys</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+            <span class="n">outkeys</span> <span class="o">=</span> <span class="p">[</span><span class="n">outkeys</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outkeys</span>  <span class="o">=</span> <span class="n">outkeys</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">out</span><span class="p">,</span><span class="n">datadict</span><span class="p">):</span>
+
+        <span class="c"># if outkeys is a list, pass the value of that list extracted from the output</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outkeys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+            <span class="n">olist</span> <span class="o">=</span> <span class="p">[</span><span class="n">out</span><span class="p">[</span><span class="n">ok</span><span class="p">]</span> <span class="k">for</span> <span class="n">ok</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outkeys</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">olist</span><span class="o">==</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">olist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">olist</span> 
+            
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targkeys</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+            <span class="n">targ</span> <span class="o">=</span> <span class="n">datadict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">targkeys</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">targ</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">targkeys</span><span class="p">:</span>
+                <span class="n">targ</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">datadict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">settings_copy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">weights</span>       <span class="o">=</span> <span class="n">datadict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">weightkey</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weightkey</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="n">output</span>        <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">targ</span><span class="p">,</span><span class="o">**</span><span class="n">settings_copy</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;mean&#39;</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;sum&#39;</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;weighted_mean&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;weighted_mean aggregation requires specifying a weightkey&#39;</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">output</span><span class="o">*</span><span class="n">weights</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_type</span> <span class="o">==</span> <span class="s">&#39;weighted_sum&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;weighted_sum aggregation requires specifying a weightkey&#39;</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">output</span><span class="o">*</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aggregation_type</span><span class="p">,</span><span class="s">&#39;__call__&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_type</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_type</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+<div class="viewcode-block" id="Metric.to_dict"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.Metric.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> 
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;metric&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s">&#39;metric&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">__name__</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s">&#39;aggregation_type&#39;</span><span class="p">],</span><span class="s">&#39;__call__&#39;</span><span class="p">):</span>
+            <span class="n">d</span><span class="p">[</span><span class="s">&#39;aggregation_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s">&#39;aggregation_type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">__name__</span>
+        <span class="k">return</span> <span class="n">d</span>
+</div></div>
+<div class="viewcode-block" id="computeKLDivergence"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeKLDivergence">[docs]</a><span class="k">def</span> <span class="nf">computeKLDivergence</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
+    <span class="n">x</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">y</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">lograt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">lograt</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">lograt</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">y</span><span class="o">*</span><span class="n">lograt</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;kl&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeKLDivergence</span> 
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeKLDivergence</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;KL Divergence&#39;</span>
+
+<span class="k">def</span> <span class="nf">computeSquaredError</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="o">-</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;se&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeSquaredError</span> 
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeSquaredError</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Squared Error&#39;</span>
+
+<span class="k">def</span> <span class="nf">computeAbsoluteError</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">y</span><span class="p">)</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;ae&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeAbsoluteError</span> 
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeAbsoluteError</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Absolute Error&#39;</span>
+
+<div class="viewcode-block" id="computeCategoricalCrossentropy"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeCategoricalCrossentropy">[docs]</a><span class="k">def</span> <span class="nf">computeCategoricalCrossentropy</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">logpred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="c"># deal with predictions that are 0</span>
+    <span class="n">logpred</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">logpred</span><span class="p">)]</span><span class="o">=-</span><span class="mi">50</span>
+    <span class="n">xlp</span> <span class="o">=</span> <span class="n">y</span><span class="o">*</span><span class="n">logpred</span>
+    <span class="k">if</span> <span class="n">xlp</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">xlp</span> <span class="o">=</span> <span class="n">xlp</span><span class="p">[:,</span><span class="bp">None</span><span class="p">]</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xlp</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;categorical_crossentropy&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeCategoricalCrossentropy</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;cce&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeCategoricalCrossentropy</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeCategoricalCrossentropy</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Categorical Crossentropy&#39;</span>
+
+<div class="viewcode-block" id="computeConfusionMatrix"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeConfusionMatrix">[docs]</a><span class="k">def</span> <span class="nf">computeConfusionMatrix</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
+    <span class="n">ym</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">n</span>  <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span>
+    <span class="n">ym</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">y</span><span class="p">),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">n</span><span class="o">-</span><span class="mi">1</span>
+    <span class="n">ntp</span>       <span class="o">=</span> <span class="n">n</span><span class="o">*</span><span class="n">ym</span> <span class="o">+</span> <span class="n">xm</span>
+    <span class="n">bc</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">ntp</span><span class="p">,</span><span class="n">minlength</span><span class="o">=</span><span class="n">n</span><span class="o">*</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">countsmat</span> <span class="o">=</span> <span class="n">bc</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">countsmat</span>
+</div>
+<div class="viewcode-block" id="baseline"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.baseline">[docs]</a><span class="k">def</span> <span class="nf">baseline</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span>
+</div>
+<div class="viewcode-block" id="threshold"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.threshold">[docs]</a><span class="k">def</span> <span class="nf">threshold</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="n">thresholded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">t</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">thresholded</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">return</span> <span class="n">thresholded</span>
+</div>
+<div class="viewcode-block" id="computeCondProb"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeCondProb">[docs]</a><span class="k">def</span> <span class="nf">computeCondProb</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">naninds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">a</span><span class="p">[</span><span class="n">naninds</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">b</span><span class="p">[</span><span class="n">naninds</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">if</span> <span class="n">l</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span><span class="o">-</span><span class="n">a</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="mi">1</span><span class="o">-</span><span class="n">b</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">a</span><span class="o">*</span><span class="n">b</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span>
+<span class="c"># metric_types[&#39;condprob&#39;]=computeCondProb</span>
+<span class="c"># metric_types[&#39;cp&#39;]=computeCondProb</span>
+<span class="c"># metric_names[computeCondProb]=&#39;Conditional probability&#39;</span>
+
+<span class="c"># Compute P(Y=0 | X=1, Tag=1) = 1 - precision</span></div>
+<div class="viewcode-block" id="computeJunkRate"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeJunkRate">[docs]</a><span class="k">def</span> <span class="nf">computeJunkRate</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">precision</span> <span class="o">=</span> <span class="n">computePrecision</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">precision</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">precision</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;junkrate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeJunkRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;junk rate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeJunkRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;jr&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeJunkRate</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeJunkRate</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Junk Rate&#39;</span>
+
+<div class="viewcode-block" id="computeBinarizedHitRate"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBinarizedHitRate">[docs]</a><span class="k">def</span> <span class="nf">computeBinarizedHitRate</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">computeHitRate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedhitrate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedHitRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bhr&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedHitRate</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBinarizedHitRate</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Binarized Hit Rate&#39;</span>
+
+<div class="viewcode-block" id="computeBinarizedSpecificity"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBinarizedSpecificity">[docs]</a><span class="k">def</span> <span class="nf">computeBinarizedSpecificity</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">computeSpecificity</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedspecificity&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedSpecificity</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bs&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedSpecificity</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBinarizedSpecificity</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Binarized Specificity&#39;</span>
+
+<div class="viewcode-block" id="computeBinarizedJunkRate"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBinarizedJunkRate">[docs]</a><span class="k">def</span> <span class="nf">computeBinarizedJunkRate</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">computeJunkRate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedjunkrate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedJunkRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedjr&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedJunkRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bjr&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedJunkRate</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBinarizedJunkRate</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Binarized Junk Rate&#39;</span>
+
+<span class="c"># Compute P(Y=1 | X=1, Tag=1)</span>
+<div class="viewcode-block" id="computePrecision"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computePrecision">[docs]</a><span class="k">def</span> <span class="nf">computePrecision</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeCondProb</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;precision&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computePrecision</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computePrecision</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Precision&#39;</span>
+<span class="c"># Compute P(X=0 | Y=0, Tag=1)</span>
+<div class="viewcode-block" id="computeSpecificity"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeSpecificity">[docs]</a><span class="k">def</span> <span class="nf">computeSpecificity</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeCondProb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;specificity&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeSpecificity</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeSpecificity</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Specificity&#39;</span>
+
+<span class="c"># Compute P(X=1 | Y=1, Tag=1)</span>
+<div class="viewcode-block" id="computeHitRate"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeHitRate">[docs]</a><span class="k">def</span> <span class="nf">computeHitRate</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeCondProb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;hitrate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeHitRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;hit rate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeHitRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;hr&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeHitRate</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeHitRate</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Hit Rate&#39;</span>
+
+<div class="viewcode-block" id="computeOptimalBalancedErrorRate"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeOptimalBalancedErrorRate">[docs]</a><span class="k">def</span> <span class="nf">computeOptimalBalancedErrorRate</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">numThresholds</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">optimizeOverThresholds</span><span class="p">(</span><span class="n">computeBalancedErrorRate</span><span class="p">,</span>
+                                    <span class="bp">False</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
+                                    <span class="n">numThresholds</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;optimalbalancederrorrate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;optimalbalancederror&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;ober&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;obe&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedErrorRate</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeOptimalBalancedErrorRate</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Optimal Balanced Error Rate&#39;</span>
+
+<div class="viewcode-block" id="computeOptimalBalancedErrorRateCategorical"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeOptimalBalancedErrorRateCategorical">[docs]</a><span class="k">def</span> <span class="nf">computeOptimalBalancedErrorRateCategorical</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">numThresholds</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">optimizeOverThresholds</span><span class="p">(</span><span class="n">computeBinarizedBalancedErrorRateCategorical</span><span class="p">,</span>
+                                    <span class="bp">False</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
+                                    <span class="n">numThresholds</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;optimalbalancederrorratecategorical&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedErrorRateCategorical</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;optimalbalancederrorcategorical&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedErrorRateCategorical</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;oberc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedErrorRateCategorical</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;obec&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedErrorRateCategorical</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeOptimalBalancedErrorRateCategorical</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Optimal Balanced Error Rate&#39;</span>
+
+<div class="viewcode-block" id="computeBinarizedBalancedErrorRateBinary"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBinarizedBalancedErrorRateBinary">[docs]</a><span class="k">def</span> <span class="nf">computeBinarizedBalancedErrorRateBinary</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">computeBalancedErrorRate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedbalancederrorratebinary&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedErrorRateBinary</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedbalancederrorbinary&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedErrorRateBinary</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bberb&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedErrorRateBinary</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bbeb&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedErrorRateBinary</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBinarizedBalancedErrorRateBinary</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Binarized Balanced Error Rate Binary&#39;</span>
+
+<span class="k">def</span> <span class="nf">_softmax</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">):</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="n">t</span><span class="p">)</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">e</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">e</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">keepdims</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dist</span>
+
+<span class="k">def</span> <span class="nf">_convertToBinaryProb</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="n">num_other_classes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">)</span><span class="o">/</span><span class="n">num_other_classes</span>
+    <span class="n">q</span><span class="p">[</span><span class="n">q</span><span class="o">==</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">_softmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">pc</span>
+
+<div class="viewcode-block" id="computeBinarizedBalancedErrorRateCategorical"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBinarizedBalancedErrorRateCategorical">[docs]</a><span class="k">def</span> <span class="nf">computeBinarizedBalancedErrorRateCategorical</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">t</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeBinarizedBalancedErrorRateBinary</span><span class="p">(</span><span class="n">_convertToBinaryProb</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="n">_convertToBinaryProb</span><span class="p">(</span><span class="n">y</span><span class="p">),</span><span class="n">t</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedbalancederrorratecategorical&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedErrorRateCategorical</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedbalancederrorcategorical&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedErrorRateCategorical</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bberc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedErrorRateCategorical</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bbec&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedErrorRateCategorical</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBinarizedBalancedErrorRateCategorical</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Binarized Balanced Error Rate Categorical&#39;</span>
+
+<div class="viewcode-block" id="computeBalancedErrorRate"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBalancedErrorRate">[docs]</a><span class="k">def</span> <span class="nf">computeBalancedErrorRate</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">computeHitRate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">computeSpecificity</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">r</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">s</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;balancederrorrate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;balancederror&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;ber&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;be&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedErrorRate</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBalancedErrorRate</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Balanced Error Rate&#39;</span>
+
+<div class="viewcode-block" id="computeF"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeF">[docs]</a><span class="k">def</span> <span class="nf">computeF</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">computePrecision</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">computeHitRate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">r</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span> <span class="c">#or (p == 0) or (r == 0):</span>
+        <span class="k">return</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="n">p</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">/</span> <span class="n">r</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;f&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeF</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeF</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;F&#39;</span>
+
+<div class="viewcode-block" id="computeErrorRateDiffSquared"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeErrorRateDiffSquared">[docs]</a><span class="k">def</span> <span class="nf">computeErrorRateDiffSquared</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">hitRate</span> <span class="o">=</span> <span class="n">computeHitRate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">hitRate</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">missRate</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">hitRate</span>
+    <span class="n">falseAlarmRate</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">computeSpecificity</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">diffSquared</span> <span class="o">=</span> <span class="p">(</span><span class="n">missRate</span> <span class="o">-</span> <span class="n">falseAlarmRate</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="n">diffSquared</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;errorratediffsquared&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeErrorRateDiffSquared</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;erds&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeErrorRateDiffSquared</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeErrorRateDiffSquared</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Error Rate Difference Squared&#39;</span>
+
+<div class="viewcode-block" id="computePercentCorrect"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computePercentCorrect">[docs]</a><span class="k">def</span> <span class="nf">computePercentCorrect</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">y</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;percentcorrect&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computePercentCorrect</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;percent correct&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computePercentCorrect</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;pc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computePercentCorrect</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computePercentCorrect</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Percent Correct&#39;</span>
+
+<div class="viewcode-block" id="computeOneHotAccuracy"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeOneHotAccuracy">[docs]</a><span class="k">def</span> <span class="nf">computeOneHotAccuracy</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">xinds</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">yinds</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">computePercentCorrect</span><span class="p">(</span><span class="n">xinds</span><span class="p">,</span> <span class="n">yinds</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;onehotaccuracy&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOneHotAccuracy</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;onehot accuracy&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOneHotAccuracy</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;one hot accuracy&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOneHotAccuracy</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;oha&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOneHotAccuracy</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeOneHotAccuracy</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Percent Correct&#39;</span>
+
+<div class="viewcode-block" id="computeThresholdPercentCorrect"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeThresholdPercentCorrect">[docs]</a><span class="k">def</span> <span class="nf">computeThresholdPercentCorrect</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+    <span class="n">x</span><span class="o">=</span><span class="n">threshold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">y</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;thresholdpercentcorrect&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeThresholdPercentCorrect</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;threshold percent correct&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeThresholdPercentCorrect</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;tpc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeThresholdPercentCorrect</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeThresholdPercentCorrect</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Threshold Percent Correct&#39;</span>
+
+<div class="viewcode-block" id="computeEqualErrorRate"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeEqualErrorRate">[docs]</a><span class="k">def</span> <span class="nf">computeEqualErrorRate</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="c"># Find threshold that minimizes squared difference between FP and FN rates</span>
+    <span class="p">(</span><span class="n">best</span><span class="p">,</span><span class="n">bestT</span><span class="p">)</span> <span class="o">=</span> <span class="n">optimizeOverThresholds</span><span class="p">(</span><span class="n">computeErrorRateDiffSquared</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="c"># For that threshold, return the percent correct</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bestT</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">computePercentCorrect</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;equalerrorrate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeEqualErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;equalerror&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeEqualErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;equal errorrate&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeEqualErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;equal error&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeEqualErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;eer&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeEqualErrorRate</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;ee&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeEqualErrorRate</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeEqualErrorRate</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Equal Error Rate&#39;</span>
+
+<div class="viewcode-block" id="optimizeOverBaselinesAndScales"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.optimizeOverBaselinesAndScales">[docs]</a><span class="k">def</span> <span class="nf">optimizeOverBaselinesAndScales</span> <span class="p">(</span><span class="n">metricFn</span><span class="p">,</span> <span class="n">shouldMaximize</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="c"># Compute array of all useful thresholds (x - eps for every x, and also max(x) + eps)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">minBaseline</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">maxBaseline</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">numBaselines</span> <span class="o">=</span> <span class="mi">100</span>
+
+    <span class="n">minScale</span> <span class="o">=</span> <span class="mf">1e-1</span>
+    <span class="n">maxScale</span> <span class="o">=</span> <span class="mf">1e+1</span>
+    <span class="n">numScales</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">scaleFactor</span> <span class="o">=</span> <span class="p">(</span><span class="n">maxScale</span><span class="o">/</span><span class="n">minScale</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">numScales</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">shouldMaximize</span><span class="p">:</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="n">bestB</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">bestS</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="o">+</span><span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="n">bestB</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">bestS</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">origX</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numBaselines</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">minBaseline</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">maxBaseline</span> <span class="o">-</span> <span class="n">minBaseline</span><span class="p">)</span> <span class="o">/</span> <span class="n">numBaselines</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numScales</span><span class="p">):</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="n">minScale</span> <span class="o">*</span> <span class="n">scaleFactor</span> <span class="o">**</span> <span class="n">j</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">baseline</span><span class="p">(</span><span class="n">origX</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">metricFn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">shouldMaximize</span> <span class="ow">and</span> <span class="p">(</span><span class="n">value</span> <span class="o">&gt;</span> <span class="n">best</span><span class="p">):</span>
+                <span class="n">best</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="n">bestB</span> <span class="o">=</span> <span class="n">b</span>
+                <span class="n">bestS</span> <span class="o">=</span> <span class="n">scale</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">shouldMaximize</span> <span class="ow">and</span> <span class="p">(</span><span class="n">value</span> <span class="o">&lt;</span> <span class="n">best</span><span class="p">):</span>
+                <span class="n">best</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="n">bestB</span> <span class="o">=</span> <span class="n">b</span>
+                <span class="n">bestS</span> <span class="o">=</span> <span class="n">scale</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">best</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="n">best</span> <span class="o">==</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)):</span>
+        <span class="c"># If we never found a valid value, then return None</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">bestB</span><span class="p">,</span> <span class="n">bestS</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="optimizeOverThresholds"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.optimizeOverThresholds">[docs]</a><span class="k">def</span> <span class="nf">optimizeOverThresholds</span> <span class="p">(</span><span class="n">metricFn</span><span class="p">,</span> <span class="n">shouldMaximize</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span><span class="n">numThresholds</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+    <span class="c"># Compute array of all useful thresholds</span>
+    <span class="c"># (x - eps for every x, and also max(x) + eps)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">epsilon</span>
+
+    <span class="k">if</span> <span class="n">numThresholds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">thresholds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">numThresholds</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">thresholds</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">eps</span>
+        <span class="n">thresholds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">shouldMaximize</span><span class="p">:</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="n">bestT</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="o">+</span><span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="n">bestT</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">origX</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">thresholds</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">(</span><span class="n">origX</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">metricFn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">shouldMaximize</span> <span class="ow">and</span> <span class="p">(</span><span class="n">value</span> <span class="o">&gt;</span> <span class="n">best</span><span class="p">):</span>
+            <span class="n">best</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="n">bestT</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">shouldMaximize</span> <span class="ow">and</span> <span class="p">(</span><span class="n">value</span> <span class="o">&lt;</span> <span class="n">best</span><span class="p">):</span>
+            <span class="n">best</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="n">bestT</span> <span class="o">=</span> <span class="n">t</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">best</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="n">best</span> <span class="o">==</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)):</span>
+        <span class="c"># If we never found a valid value, then return None</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">bestT</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="computeOptimalF1"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeOptimalF1">[docs]</a><span class="k">def</span> <span class="nf">computeOptimalF1</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">numThresholds</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">optimizeOverThresholds</span><span class="p">(</span><span class="n">computeF1</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">numThresholds</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;optimalf1&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalF1</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;of1&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalF1</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeOptimalF1</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Optimal F1&#39;</span>
+
+<div class="viewcode-block" id="computeBinarizedF1"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBinarizedF1">[docs]</a><span class="k">def</span> <span class="nf">computeBinarizedF1</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">computeF1</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedf1&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedF1</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bf1&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedF1</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBinarizedF1</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Binarized F1&#39;</span>
+
+<div class="viewcode-block" id="computeF1"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeF1">[docs]</a><span class="k">def</span> <span class="nf">computeF1</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeF</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;f1&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeF1</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeF1</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;F1&#39;</span>
+
+<span class="c"># Convert a log-likelihood ratio into a probability (around baseline b)</span>
+<div class="viewcode-block" id="convertLLRtoProb"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.convertLLRtoProb">[docs]</a><span class="k">def</span> <span class="nf">convertLLRtoProb</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">b</span><span class="p">)))</span>
+</div>
+<div class="viewcode-block" id="computeOptimalBalancedLogisticCost"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeOptimalBalancedLogisticCost">[docs]</a><span class="k">def</span> <span class="nf">computeOptimalBalancedLogisticCost</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">optimizeOverBaselinesAndScales</span><span class="p">(</span><span class="n">computeBalancedLogisticCost</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;optimalbalancedlogisticcost&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedLogisticCost</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;oblc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedLogisticCost</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeOptimalBalancedLogisticCost</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Optimal Balanced Logistic Cost&#39;</span>
+
+<div class="viewcode-block" id="computeOptimalBalancedExponentialCost"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeOptimalBalancedExponentialCost">[docs]</a><span class="k">def</span> <span class="nf">computeOptimalBalancedExponentialCost</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">optimizeOverBaselinesAndScales</span><span class="p">(</span><span class="n">computeBalancedExponentialCost</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;optimalbalancedexponentialcost&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedExponentialCost</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;obexc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeOptimalBalancedExponentialCost</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeOptimalBalancedExponentialCost</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Optimal Balanced Exponential Cost&#39;</span>
+
+<div class="viewcode-block" id="computeBinarizedBalancedLogisticCost"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBinarizedBalancedLogisticCost">[docs]</a><span class="k">def</span> <span class="nf">computeBinarizedBalancedLogisticCost</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeBalancedLogisticCost</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedbalancedlogisticcost&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedLogisticCost</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bblc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedLogisticCost</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBinarizedBalancedLogisticCost</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Binarized Balanced Logistic Cost&#39;</span>
+
+<div class="viewcode-block" id="computeBinarizedBalancedExponentialCost"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBinarizedBalancedExponentialCost">[docs]</a><span class="k">def</span> <span class="nf">computeBinarizedBalancedExponentialCost</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeBalancedExponentialCost</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;binarizedbalancedexponentialcost&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBinarizedBalancedExponentialCost</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBinarizedBalancedExponentialCost</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Binarized Balanced Exponential Cost&#39;</span>
+
+<div class="viewcode-block" id="computeBalancedLogisticCost"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBalancedLogisticCost">[docs]</a><span class="k">def</span> <span class="nf">computeBalancedLogisticCost</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeBalancedLogisticAndExponentialCosts</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;balancedlogisticcost&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedLogisticCost</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;blc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedLogisticCost</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBalancedLogisticCost</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Balanced Logistic Cost&#39;</span>
+
+<div class="viewcode-block" id="computeBalancedExponentialCost"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBalancedExponentialCost">[docs]</a><span class="k">def</span> <span class="nf">computeBalancedExponentialCost</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">computeBalancedLogisticAndExponentialCosts</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;balancedexponentialcost&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedExponentialCost</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;bec&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedExponentialCost</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBalancedExponentialCost</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Balanced Exponential Cost&#39;</span>
+
+<div class="viewcode-block" id="computeBalancedLogisticAndExponentialCosts"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeBalancedLogisticAndExponentialCosts">[docs]</a><span class="k">def</span> <span class="nf">computeBalancedLogisticAndExponentialCosts</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="c"># If specified, limit ourselves to data for which tag == 1</span>
+    <span class="n">idxs1</span> <span class="o">=</span> <span class="n">pylab</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">idxs0</span> <span class="o">=</span> <span class="n">pylab</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">n1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">idxs1</span><span class="p">)</span>
+    <span class="n">n0</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">idxs0</span><span class="p">)</span>
+    <span class="n">logisticCost</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">exponentialCost</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">idxs1</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">convertLLRtoProb</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>  <span class="c"># Precision error -- return &quot;inf&quot; as infinite cost so that, in optimization, we don&#39;t use the parameters that got us here</span>
+            <span class="k">return</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">))</span>
+        <span class="n">logisticCost</span> <span class="o">-=</span> <span class="mf">0.5</span><span class="o">/</span><span class="n">n1</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">exponentialCost</span> <span class="o">+=</span> <span class="mf">0.5</span><span class="o">/</span><span class="n">n1</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">idxs0</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">convertLLRtoProb</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>  <span class="c"># Precision error -- return &quot;inf&quot; as infinite cost so that, in optimization, we don&#39;t use the parameters that got us here</span>
+            <span class="k">return</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">))</span>
+        <span class="n">logisticCost</span> <span class="o">-=</span> <span class="mf">0.5</span><span class="o">/</span><span class="n">n0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">)</span>
+        <span class="n">exponentialCost</span> <span class="o">+=</span> <span class="mf">0.5</span><span class="o">/</span><span class="n">n0</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="mi">0</span> <span class="o">-</span> <span class="n">p</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">logisticCost</span><span class="p">,</span> <span class="n">exponentialCost</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;balancedlogisticandexponentialcosts&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedLogisticAndExponentialCosts</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;blec&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedLogisticAndExponentialCosts</span>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;blaec&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">computeBalancedLogisticAndExponentialCosts</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">computeBalancedLogisticAndExponentialCosts</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;Balanced Logistic And Exponential Costs&#39;</span>
+
+<span class="c"># Compute the 2AFC of responses x given ground-truth labels y.</span>
+<span class="c"># tags is an optional parameter and can be used to filter the</span>
+<span class="c"># set of pairs to make sure that at least one item in each pair</span>
+<span class="c"># has tag == 1.</span>
+<div class="viewcode-block" id="compute2AFC"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.compute2AFC">[docs]</a><span class="k">def</span> <span class="nf">compute2AFC</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">idxs0</span> <span class="o">=</span> <span class="n">pylab</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">idxs1</span> <span class="o">=</span> <span class="n">pylab</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">idxs0</span><span class="p">]</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">idxs1</span><span class="p">]</span>
+
+    <span class="n">n0</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span>
+    <span class="n">n1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+
+    <span class="n">c0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">numPairs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n0</span><span class="p">):</span>
+        <span class="c"># If user passed an array of tags, only consider pairs in which at least one</span>
+        <span class="c"># element has tag == 1.</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+        <span class="n">c0</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pylab</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">x1</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">x0</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">pylab</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">x1</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">==</span> <span class="n">x0</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numPairs</span><span class="p">)</span></div>
+<span class="n">metric_types</span><span class="p">[</span><span class="s">&#39;2afc&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">compute2AFC</span>
+<span class="n">metric_names</span><span class="p">[</span><span class="n">compute2AFC</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;2AFC&#39;</span>
+
+<div class="viewcode-block" id="computeJCorr"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.computeJCorr">[docs]</a><span class="k">def</span> <span class="nf">computeJCorr</span> <span class="p">(</span><span class="n">clipsData</span><span class="p">):</span>
+    <span class="n">allX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="n">varWithin</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">clip</span> <span class="ow">in</span> <span class="n">clipsData</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">clip</span><span class="p">)</span>
+        <span class="n">varWithin</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c"># Assemble all the x values into allX</span>
+        <span class="n">allX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">allX</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">varTotal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">allX</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">allX</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">varWithin</span><span class="o">/</span><span class="n">varTotal</span><span class="p">)</span>
+<span class="c"># metric_types[&#39;jcorr&#39;]=computeJCorr</span>
+
+</div>
+<div class="viewcode-block" id="confMatAggregate"><a class="viewcode-back" href="../../../modules/xnn.metrics.html#xnn.metrics.metricsSuite.confMatAggregate">[docs]</a><span class="k">def</span> <span class="nf">confMatAggregate</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+    <span class="n">cm</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">c</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">c</span><span class="p">)]</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

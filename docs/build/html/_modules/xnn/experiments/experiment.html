@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>xnn.experiments.experiment &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for xnn.experiments.experiment</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span><span class="p">,</span> <span class="n">islice</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">mul</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+
+
+<span class="c"># Don&#39;t allow user to return more than this number of conditions</span>
+<span class="c"># in a single call to get_all_conditions_changes()</span>
+<span class="n">MAXCONDITIONSINMEMORY</span> <span class="o">=</span> <span class="mi">10000</span>
+
+
+<div class="viewcode-block" id="ExperimentCondition"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.ExperimentCondition">[docs]</a><span class="k">class</span> <span class="nc">ExperimentCondition</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="ExperimentCondition.to_dict"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.ExperimentCondition.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">properties</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+            <span class="n">properties</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_convert_property_value</span><span class="p">(</span><span class="n">properties</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">properties</span>
+
+</div></div>
+<div class="viewcode-block" id="Experiment"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment">[docs]</a><span class="k">class</span> <span class="nc">Experiment</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">default_condition</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_condition</span> <span class="o">=</span> <span class="n">default_condition</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="Experiment.to_dict"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">factorkey</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">[</span><span class="n">factorkey</span><span class="p">]:</span>
+                <span class="n">factors</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">factorkey</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="n">converted</span> <span class="o">=</span> <span class="n">_convert_property_value</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+                <span class="n">factors</span><span class="p">[</span><span class="n">factorkey</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">converted</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">factors</span><span class="o">=</span><span class="n">factors</span><span class="p">,</span>
+            <span class="n">default_condition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_condition</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Experiment.add_factor"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.add_factor">[docs]</a>    <span class="k">def</span> <span class="nf">add_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">levels</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_condition</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
+            <span class="n">errstr</span> <span class="o">=</span> <span class="s">&quot;name </span><span class="si">%s</span><span class="s"> is not a valid property. Must be one of these:</span><span class="se">\n\t</span><span class="si">%s</span><span class="s">&quot;</span> \
+                <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;</span><span class="se">\n\t</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_condition</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">errstr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">levels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_conditions</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Experiment.get_num_conditions"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_num_conditions">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_conditions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">reduce</span><span class="p">(</span><span class="n">mul</span><span class="p">,</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">[</span><span class="n">factor</span><span class="p">])</span> <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+</div>
+<div class="viewcode-block" id="Experiment.get_nth_condition_changes"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_nth_condition_changes">[docs]</a>    <span class="k">def</span> <span class="nf">get_nth_condition_changes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">conditions_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditions</span> <span class="k">if</span> <span class="n">conditions</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">conditions</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">islice</span><span class="p">(</span><span class="n">conditions_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span> <span class="n">default</span><span class="p">)</span>
+        <span class="c"># print n</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="c"># TODO: allow maintaining position in generator rather than resetting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_conditions</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">condition</span>
+</div>
+<div class="viewcode-block" id="Experiment.get_nth_condition"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_nth_condition">[docs]</a>    <span class="k">def</span> <span class="nf">get_nth_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">conditions_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditions</span> <span class="k">if</span> <span class="n">conditions</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">conditions</span>
+        <span class="n">cond</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">islice</span><span class="p">(</span><span class="n">conditions_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span> <span class="n">default</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_conditions</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patch_condition</span><span class="p">(</span><span class="n">cond</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Experiment.get_conditions_iterator"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_conditions_iterator">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_iterator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_conditions</span><span class="p">()</span> <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">stop</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nth_condition</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Experiment.get_conditions_slice_iterator"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_conditions_slice_iterator">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_slice_iterator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable_keys</span><span class="p">,</span> <span class="n">fixed_dict</span><span class="p">):</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">variable_key</span> <span class="ow">in</span> <span class="n">variable_keys</span><span class="p">:</span>
+            <span class="n">factors</span><span class="p">[</span><span class="n">variable_key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">[</span><span class="n">variable_key</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">fixed_key</span> <span class="ow">in</span> <span class="n">fixed_dict</span><span class="p">:</span>
+            <span class="n">factors</span><span class="p">[</span><span class="n">fixed_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">fixed_key</span><span class="p">,</span> <span class="n">fixed_dict</span><span class="p">[</span><span class="n">fixed_key</span><span class="p">])]</span>
+        <span class="n">conditions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expand_factors</span><span class="p">(</span><span class="n">factors</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">factors</span><span class="p">[</span><span class="n">variable_key</span><span class="p">])</span> <span class="k">for</span> <span class="n">variable_key</span> <span class="ow">in</span> <span class="n">variable_keys</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">cond</span> <span class="o">=</span> <span class="n">conditions</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patch_condition</span><span class="p">(</span><span class="n">cond</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Experiment.get_all_conditions_changes"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_all_conditions_changes">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_conditions_changes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_max_to_return</span><span class="p">()</span>
+        <span class="n">conditions</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_num_conditions</span><span class="p">()):</span>
+            <span class="n">condition_changes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nth_condition_changes</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">condition</span> <span class="o">=</span> <span class="n">ExperimentCondition</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">condition_changes</span><span class="p">:</span>
+                <span class="n">condition</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">condition_changes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">conditions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">conditions</span>
+</div>
+    <span class="k">def</span> <span class="nf">_generate_conditions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;You must add at least one factor to the experiment!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expand_factors</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_check_max_to_return</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_conditions</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="n">MAXCONDITIONSINMEMORY</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;You cannot get all conditions because&quot;</span>
+                            <span class="s">&quot; the number requested </span><span class="si">%d</span><span class="s"> is greater than max=</span><span class="si">%d</span><span class="s">&quot;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">MAXCONDITIONSINMEMORY</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_patch_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cond</span><span class="p">):</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_condition</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cond</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">condition</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">condition</span>
+
+    <span class="k">def</span> <span class="nf">_expand_factors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factors</span><span class="p">):</span>
+        <span class="n">factors_</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">factors</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">factors_</span><span class="p">:</span>
+            <span class="n">levels</span> <span class="o">=</span> <span class="n">factors_</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="n">factors_</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">([</span><span class="n">name</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">),</span> <span class="n">levels</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">factors_</span><span class="o">.</span><span class="n">itervalues</span><span class="p">())</span>
+
+</div>
+<span class="k">def</span> <span class="nf">_convert_property_value</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;to_dict&#39;</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;func_name&#39;</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">func_name</span>
+    <span class="k">return</span> <span class="n">value</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>xnn.layers.normalization &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for xnn.layers.normalization</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">..layers</span> <span class="kn">import</span> <span class="n">Layer</span>
+<span class="kn">from</span>  <span class="nn">..</span> <span class="kn">import</span> <span class="n">nonlinearities</span>
+<span class="kn">from</span> <span class="nn">lasagne</span> <span class="kn">import</span> <span class="n">init</span>
+<span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="kn">as</span> <span class="nn">T</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">utils</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">&quot;ContrastNormLayer&quot;</span><span class="p">,</span>
+    <span class="s">&quot;BatchNormLayer&quot;</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="ContrastNormLayer"><a class="viewcode-back" href="../../../modules/xnn.layers.html#xnn.layers.normalization.ContrastNormLayer">[docs]</a><span class="k">class</span> <span class="nc">ContrastNormLayer</span><span class="p">(</span><span class="n">Layer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements per image contrast normalization</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">incoming</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="s">&quot;mean_var&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ContrastNormLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">incoming</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">norm_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="s">&quot;mean_var&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;norm_type </span><span class="si">%s</span><span class="s"> Not implemented!&quot;</span> <span class="o">%</span> <span class="n">norm_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_type</span> <span class="o">=</span> <span class="n">norm_type</span>
+
+<div class="viewcode-block" id="ContrastNormLayer.get_output_for"><a class="viewcode-back" href="../../../modules/xnn.layers.html#xnn.layers.normalization.ContrastNormLayer.get_output_for">[docs]</a>    <span class="k">def</span> <span class="nf">get_output_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">output_shape</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="nb">input</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="nb">input</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_type</span> <span class="o">==</span> <span class="s">&quot;mean_var&quot;</span><span class="p">:</span>
+            <span class="nb">input</span> <span class="o">-=</span> <span class="n">T</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="nb">input</span> <span class="o">/=</span> <span class="n">T</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="nb">input</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output_shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">input</span>
+
+
+<span class="c"># TODO: Consider using default_updates to clean up mean/std params. (https://gist.github.com/f0k/f1a6bd3c8585c400c190)</span>
+<span class="c"># TODO: Consider parameterizing moving average versus exponential average to be able to apply to test data at eval time</span></div></div>
+<div class="viewcode-block" id="BatchNormLayer"><a class="viewcode-back" href="../../../modules/xnn.layers.html#xnn.layers.normalization.BatchNormLayer">[docs]</a><span class="k">class</span> <span class="nc">BatchNormLayer</span><span class="p">(</span><span class="n">Layer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements per batch input normalization</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">incoming</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">1</span><span class="p">,</span> <span class="n">learn_transform</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                 <span class="n">nonlinearity</span><span class="o">=</span><span class="n">nonlinearities</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span> <span class="c">#window_size=10</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BatchNormLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">incoming</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nonlinearity</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity</span>  <span class="o">=</span> <span class="n">nonlinearities</span><span class="o">.</span><span class="n">linear</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity</span>  <span class="o">=</span> <span class="n">nonlinearity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_nonlinearity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span>               <span class="o">=</span> <span class="n">eta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>             <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learn_transform</span>   <span class="o">=</span> <span class="n">learn_transform</span>
+
+        <span class="n">beta</span>   <span class="o">=</span> <span class="n">init</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">gamma</span>  <span class="o">=</span> <span class="n">init</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">means</span>  <span class="o">=</span> <span class="n">init</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">stdevs</span> <span class="o">=</span> <span class="n">init</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">incoming</span><span class="o">.</span><span class="n">output_shape</span> <span class="c"># batch_size, channels, width * height</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">input_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;beta&#39;</span><span class="p">,</span><span class="n">regularizable</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="n">gamma</span><span class="p">,</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;gamma&#39;</span><span class="p">,</span><span class="n">regularizable</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">means</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">create_param</span><span class="p">(</span><span class="n">means</span><span class="p">,(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">name</span><span class="o">=</span><span class="s">&#39;means&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdevs</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">create_param</span><span class="p">(</span><span class="n">stdevs</span><span class="p">,(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">name</span><span class="o">=</span><span class="s">&#39;stdevs&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">incoming</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="BatchNormLayer.get_output_for"><a class="viewcode-back" href="../../../modules/xnn.layers.html#xnn.layers.normalization.BatchNormLayer.get_output_for">[docs]</a>    <span class="k">def</span> <span class="nf">get_output_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">beta</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>
+        <span class="n">gamma</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span>
+        <span class="n">means</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">means</span>
+        <span class="n">stdevs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdevs</span>
+
+        <span class="n">output_shape</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">if</span> <span class="nb">input</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c"># if the input has more than two dimensions, flatten it into a</span>
+            <span class="c"># batch of feature vectors.</span>
+            <span class="nb">input</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">deterministic</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span><span class="p">)</span>
+
+            <span class="n">means</span><span class="o">.</span><span class="n">default_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">means</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">m</span>
+            <span class="n">Es</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">stdevs</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">s</span>
+            <span class="n">u</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">stdevs</span><span class="o">.</span><span class="n">default_update</span> <span class="o">=</span> <span class="n">u</span> <span class="o">*</span> <span class="n">Es</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">means</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">stdevs</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="nb">input</span> <span class="o">-</span> <span class="n">m</span>
+        <span class="n">output</span> <span class="o">/=</span> <span class="n">s</span>
+
+        <span class="c"># transform normalized outputs based on learned shift and scale</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">learn_transform</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">output</span> <span class="o">+</span> <span class="n">beta</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output_shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+        <span class="c"># TODO: Deal with eval_output_activation</span>
+        <span class="c"># activation = output</span>
+        <span class="c">#</span>
+        <span class="c"># if kwargs.has_key(&#39;eval&#39;) and kwargs[&#39;eval&#39;] and hasattr(self,&#39;eval_output_activation&#39;) and self.eval_output_activation is not None:# and self.eval_output_activation.lower() == &#39;linear&#39;:</span>
+        <span class="c">#     self.eval_nonlinearity = self.eval_output_activation</span>
+        <span class="c">#     return self.eval_nonlinearity(activation)</span>
+        <span class="c"># else:</span>
+        <span class="c">#     return self.nonlinearity(activation)</span>
+
+</div>
+<div class="viewcode-block" id="BatchNormLayer.get_output_shape_for"><a class="viewcode-back" href="../../../modules/xnn.layers.html#xnn.layers.normalization.BatchNormLayer.get_output_shape_for">[docs]</a>    <span class="k">def</span> <span class="nf">get_output_shape_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">input_shape</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

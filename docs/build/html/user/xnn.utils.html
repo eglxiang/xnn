@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Utils package &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../index.html" />
+    <link rel="prev" title="Training package" href="xnn.training.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="utils-package">
+<h1>Utils package<a class="headerlink" href="#utils-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-xnn.utils.utils">
+<span id="xnn-utils-utils-module"></span><h2>xnn.utils.utils module<a class="headerlink" href="#module-xnn.utils.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="xnn.utils.utils.GracefulStop">
+<em class="property">class </em><code class="descclassname">xnn.utils.utils.</code><code class="descname">GracefulStop</code><a class="reference internal" href="../_modules/xnn/utils/utils.html#GracefulStop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.GracefulStop" title="Permalink to this definition">¶</a></dt>
+<dd><p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.utils.utils.GracefulStop.handler">
+<code class="descname">handler</code><span class="sig-paren">(</span><em>signal</em>, <em>frame</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#GracefulStop.handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.GracefulStop.handler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="xnn.utils.utils.Progbar">
+<em class="property">class </em><code class="descclassname">xnn.utils.utils.</code><code class="descname">Progbar</code><span class="sig-paren">(</span><em>target</em>, <em>width=30</em>, <em>verbose=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#Progbar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.Progbar" title="Permalink to this definition">¶</a></dt>
+<dd><p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.utils.utils.Progbar.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>n</em>, <em>values=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#Progbar.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.Progbar.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.utils.utils.Progbar.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>current</em>, <em>values=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#Progbar.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.Progbar.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;param current: index of current step
+&#64;param values: list of tuples (name, value_for_last_step).
+The progress bar will display averages for these values.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="xnn.utils.utils.Tnanmax">
+<code class="descclassname">xnn.utils.utils.</code><code class="descname">Tnanmax</code><span class="sig-paren">(</span><em>x</em>, <em>axis=None</em>, <em>keepdims=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#Tnanmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.Tnanmax" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="xnn.utils.utils.Tnanmean">
+<code class="descclassname">xnn.utils.utils.</code><code class="descname">Tnanmean</code><span class="sig-paren">(</span><em>x</em>, <em>axis=None</em>, <em>keepdims=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#Tnanmean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.Tnanmean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="xnn.utils.utils.Tnansum">
+<code class="descclassname">xnn.utils.utils.</code><code class="descname">Tnansum</code><span class="sig-paren">(</span><em>x</em>, <em>axis=None</em>, <em>keepdims=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#Tnansum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.Tnansum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="xnn.utils.utils.draw_to_file">
+<code class="descclassname">xnn.utils.utils.</code><code class="descname">draw_to_file</code><span class="sig-paren">(</span><em>model</em>, <em>filename</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#draw_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.draw_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draws a network diagram to a file
+:parameters:</p>
+<blockquote>
+<div><ul>
+<li><dl class="first docutils">
+<dt>model <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd><p class="first last">List of the layers, as obtained from lasange.layers.get_all_layers, or model object</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>filename: string</dt>
+<dd><p class="first last">The filename to save output to.</p>
+</dd>
+</dl>
+</li>
+<li><p class="first"><a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs: see docstring of _get_pydot_graph for other options</p>
+</li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="exception">
+<dt id="xnn.utils.utils.lengthExpection">
+<em class="property">exception </em><code class="descclassname">xnn.utils.utils.</code><code class="descname">lengthExpection</code><a class="reference internal" href="../_modules/xnn/utils/utils.html#lengthExpection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.lengthExpection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="xnn.utils.utils.noProbVectorException">
+<em class="property">exception </em><code class="descclassname">xnn.utils.utils.</code><code class="descname">noProbVectorException</code><a class="reference internal" href="../_modules/xnn/utils/utils.html#noProbVectorException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.noProbVectorException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="xnn.utils.utils.nonNegativeExpection">
+<em class="property">exception </em><code class="descclassname">xnn.utils.utils.</code><code class="descname">nonNegativeExpection</code><a class="reference internal" href="../_modules/xnn/utils/utils.html#nonNegativeExpection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.nonNegativeExpection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="xnn.utils.utils.numpy_one_hot">
+<code class="descclassname">xnn.utils.utils.</code><code class="descname">numpy_one_hot</code><span class="sig-paren">(</span><em>x</em>, <em>numclasses=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#numpy_one_hot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.numpy_one_hot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="xnn.utils.utils.probEmbarrasingMistakeForAge">
+<code class="descclassname">xnn.utils.utils.</code><code class="descname">probEmbarrasingMistakeForAge</code><span class="sig-paren">(</span><em>fHuman, pMachine, bins=[18, 25, 35, 45, 55, 65, 100]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#probEmbarrasingMistakeForAge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.probEmbarrasingMistakeForAge" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="xnn.utils.utils.theano_digitize">
+<code class="descclassname">xnn.utils.utils.</code><code class="descname">theano_digitize</code><span class="sig-paren">(</span><em>x</em>, <em>bins</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#theano_digitize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.theano_digitize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Equivalent to numpy digitize</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="xnn.utils.utils.typechecker">
+<code class="descclassname">xnn.utils.utils.</code><code class="descname">typechecker</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/utils/utils.html#typechecker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.utils.utils.typechecker" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Utils package</a><ul>
+<li><a class="reference internal" href="#module-xnn.utils.utils">xnn.utils.utils module</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="xnn.training.html" title="previous chapter">Training package</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/user/xnn.utils.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+      |
+      <a href="../_sources/user/xnn.utils.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

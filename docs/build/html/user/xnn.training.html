@@ -1,0 +1,236 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Training package &mdash; xnn 2.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="xnn 2.2 documentation" href="../index.html" />
+    <link rel="next" title="Utils package" href="xnn.utils.html" />
+    <link rel="prev" title="Objectives package" href="xnn.objectives.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="training-package">
+<h1>Training package<a class="headerlink" href="#training-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-xnn.training.loop">
+<span id="xnn-training-loop-module"></span><h2>xnn.training.loop module<a class="headerlink" href="#module-xnn.training.loop" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="xnn.training.loop.Loop">
+<em class="property">class </em><code class="descclassname">xnn.training.loop.</code><code class="descname">Loop</code><span class="sig-paren">(</span><em>trainer</em>, <em>learndata=[]</em>, <em>validdata=[]</em>, <em>metricsdict={}</em>, <em>url=None</em>, <em>savefilenamecsv=None</em>, <em>weightdict={}</em>, <em>printflag=True</em>, <em>plotmetricmean=True</em>, <em>savemodelnamebase=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/loop.html#Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.loop.Loop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>An example training loop.  The trainer will learn from learndata, apply metrics to validdata, plot to bokeh server at url if supplied, and save to csv file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>trainer</strong> &#8211; The trainer to run</li>
+<li><strong>learndata</strong> &#8211; A list of generator functions that yield batches of data from which the trainer will learn</li>
+<li><strong>validdata</strong> &#8211; A list of generator functions that yield batches of data to which the metrics will be applied</li>
+<li><strong>metricsdict</strong> &#8211; A dictionary of metrics to apply to the validdata.  The keys of metricsdict are the keys in the model.predict output from which the metric should be calculated</li>
+<li><strong>url</strong> &#8211; A string representing the url where the bokeh server is running (e.g. <code class="samp docutils literal"><span class="pre">http://127.0.0.1:5006</span></code>). If None, or if server cannot be connected, no plotting will occur</li>
+<li><strong>savefilenamecsv</strong> &#8211; The name of a file into which to write metric results at each epoch.</li>
+<li><strong>weightdict</strong> &#8211; Dictionary of Weighters.  Keys in weightdict are keys into which the weight results will be inserted in the data dictionary.  Weights are calculated for every training batch.</li>
+<li><strong>printflag</strong> &#8211; Whether to print results to stdout after each epoch</li>
+<li><strong>plotmetricmean</strong> &#8211; Whether to print/save/plot mean of all metrics.  Depending on the metrics, this value might not make sense.</li>
+<li><strong>savemodelnamebase</strong> &#8211; Base name for saving metrics.  If not None, models will be saved for the best values of each metric as looping procedes.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-xnn.training.trainer">
+<span id="xnn-training-trainer-module"></span><h2>xnn.training.trainer module<a class="headerlink" href="#module-xnn.training.trainer" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="xnn.training.trainer.ParamUpdateSettings">
+<em class="property">class </em><code class="descclassname">xnn.training.trainer.</code><code class="descname">ParamUpdateSettings</code><span class="sig-paren">(</span><em>update=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#ParamUpdateSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.ParamUpdateSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.training.trainer.ParamUpdateSettings.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#ParamUpdateSettings.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.ParamUpdateSettings.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="xnn.training.trainer.Trainer">
+<em class="property">class </em><code class="descclassname">xnn.training.trainer.</code><code class="descname">Trainer</code><span class="sig-paren">(</span><em>model</em>, <em>trainerSettings=&lt;xnn.training.trainer.TrainerSettings object&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.bind_global_update">
+<code class="descname">bind_global_update</code><span class="sig-paren">(</span><em>update_settings</em>, <em>overwrite=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.bind_global_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.bind_global_update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.bind_regularization">
+<code class="descname">bind_regularization</code><span class="sig-paren">(</span><em>penalty</em>, <em>lnamelist=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.bind_regularization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.bind_regularization" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attach a regularization penalty to a list of layers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>penalty</strong> &#8211; a theano expression compatible with lasagne.regularization.apply_penalty</li>
+<li><strong>lnamelist</strong> &#8211; a list of layer names to which this regularization should apply.  If None, all layers in the model will be added.  If a list of tuples, specify regularization coefficents: [(lname,coeff),...].  If a float, all layers will be added with the float as a coefficient</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.bind_update">
+<code class="descname">bind_update</code><span class="sig-paren">(</span><em>layerlist</em>, <em>update_settings</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.bind_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.bind_update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.get_cost">
+<code class="descname">get_cost</code><span class="sig-paren">(</span><em>layer_name</em>, <em>layer_dict</em>, <em>all_outs_dict</em>, <em>ins</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.get_cost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.get_cost" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.get_outputs">
+<code class="descname">get_outputs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.get_outputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.get_outputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.get_update">
+<code class="descname">get_update</code><span class="sig-paren">(</span><em>layer_name</em>, <em>ins</em>, <em>costTotal</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.get_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.get_update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.init_ins_variables">
+<code class="descname">init_ins_variables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.init_ins_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.init_ins_variables" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.set_model">
+<code class="descname">set_model</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.set_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.set_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="xnn.training.trainer.Trainer.train_step">
+<code class="descname">train_step</code><span class="sig-paren">(</span><em>batch_dict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#Trainer.train_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.Trainer.train_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="xnn.training.trainer.TrainerSettings">
+<em class="property">class </em><code class="descclassname">xnn.training.trainer.</code><code class="descname">TrainerSettings</code><span class="sig-paren">(</span><em>global_update_settings=&lt;xnn.training.trainer.ParamUpdateSettings object&gt;</em>, <em>dataSharedVarDict=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#TrainerSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.TrainerSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.training.trainer.TrainerSettings.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/training/trainer.html#TrainerSettings.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.training.trainer.TrainerSettings.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Training package</a><ul>
+<li><a class="reference internal" href="#module-xnn.training.loop">xnn.training.loop module</a></li>
+<li><a class="reference internal" href="#module-xnn.training.trainer">xnn.training.trainer module</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="xnn.objectives.html" title="previous chapter">Objectives package</a></li>
+      <li>Next: <a href="xnn.utils.html" title="next chapter">Utils package</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/user/xnn.training.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Josh Susskind and contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+      |
+      <a href="../_sources/user/xnn.training.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
