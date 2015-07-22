@@ -42,23 +42,12 @@ class ParamUpdateSettings(object):
         del(properties['_update_args'])
         return properties
 
-class TrainerSettings(object):
-    def __init__(self,
-                 global_update_settings=ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.01,momentum=0.9),
-                 dataSharedVarDict=None):
+class Trainer(object):
+    def __init__(self, model, global_update_settings,dataSharedVarDict=None):#trainerSettings = TrainerSettings()):
+        # self.__dict__.update(trainerSettings.__dict__)
         global_update_settings._check_settings()
         self.global_update_settings = global_update_settings
-        self.dataSharedVarDict      = dataSharedVarDict
-
-    def to_dict(self):
-        properties = self.__dict__.copy()
-        del(properties['dataSharedVarDict'])
-        properties['global_update_settings'] = properties['global_update_settings'].to_dict()
-        return properties
-
-class Trainer(object):
-    def __init__(self, model, trainerSettings = TrainerSettings()):
-        self.__dict__.update(trainerSettings.__dict__)
+        self.dataSharedVarDict = dataSharedVarDict
         self.layer_updates = dict()
         self.set_model(model)
         self.regularizations=dict()
@@ -317,4 +306,6 @@ class Trainer(object):
         d['global_update_settings'] = settings['global_update_settings'].to_dict()
         lu = dict([[layer,params.to_dict()] for layer,params in settings['layer_updates'].iteritems()])
         d['layer_updates'] = lu
+        lr = dict([[regularization.func_name,layers] for regularization,layers in settings['regularizations'].iteritems()])
+        d['regularizations'] = lr
         return d
