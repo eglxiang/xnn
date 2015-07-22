@@ -50,22 +50,81 @@
 <dl class="method">
 <dt id="xnn.data.HDF5BatchLoad.HDF5BatchLoad.addReaders">
 <code class="descname">addReaders</code><span class="sig-paren">(</span><em>inputReaders</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5BatchLoad.html#HDF5BatchLoad.addReaders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5BatchLoad.HDF5BatchLoad.addReaders" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Add a list of <code class="xref py py-class docutils literal"><span class="pre">HDF5FieldReader</span></code> objects to the loader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>inputReaders</strong> : list</p>
+<blockquote class="last">
+<div><p>list of <code class="xref py py-class docutils literal"><span class="pre">HDF5FieldReader</span></code> objects to add to the batch loader.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.data.HDF5BatchLoad.HDF5BatchLoad.datakeys">
 <code class="descname">datakeys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5BatchLoad.html#HDF5BatchLoad.datakeys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5BatchLoad.HDF5BatchLoad.datakeys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get a list of keys that the data returned by this loader will contain.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list of str</p>
+<blockquote class="last">
+<div><p>Keys that the data returned by this loader will contain.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.data.HDF5BatchLoad.HDF5BatchLoad.num_batches">
 <code class="descname">num_batches</code><span class="sig-paren">(</span><em>partition='train'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5BatchLoad.html#HDF5BatchLoad.num_batches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5BatchLoad.HDF5BatchLoad.num_batches" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get the number of batches in a partition in the HDF5 file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>partition</strong> : str</p>
+<blockquote>
+<div><p>The partition in the HDF5 file for which to retrieve the number of
+batches.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">int</p>
+<blockquote class="last">
+<div><p>Number of batch groups inside <code class="xref py py-attr docutils literal"><span class="pre">partition</span></code></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.data.HDF5BatchLoad.HDF5BatchLoad.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5BatchLoad.html#HDF5BatchLoad.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5BatchLoad.HDF5BatchLoad.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Serialize to a dictionary representation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>A dictionary representation of the <a class="reference internal" href="#xnn.data.HDF5BatchLoad.HDF5BatchLoad" title="xnn.data.HDF5BatchLoad.HDF5BatchLoad"><code class="xref py py-class docutils literal"><span class="pre">HDF5BatchLoad</span></code></a></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -85,17 +144,59 @@
 <dl class="method">
 <dt id="xnn.data.HDF5FieldReader.HDF5FieldReader.getName">
 <code class="descname">getName</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5FieldReader.html#HDF5FieldReader.getName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5FieldReader.HDF5FieldReader.getName" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Gets the name of the this <a class="reference internal" href="#xnn.data.HDF5FieldReader.HDF5FieldReader" title="xnn.data.HDF5FieldReader.HDF5FieldReader"><code class="xref py py-class docutils literal"><span class="pre">HDF5FieldReader</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">str</p>
+<blockquote class="last">
+<div><p>The name of this <a class="reference internal" href="#xnn.data.HDF5FieldReader.HDF5FieldReader" title="xnn.data.HDF5FieldReader.HDF5FieldReader"><code class="xref py py-class docutils literal"><span class="pre">HDF5FieldReader</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.data.HDF5FieldReader.HDF5FieldReader.readBatch">
 <code class="descname">readBatch</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5FieldReader.html#HDF5FieldReader.readBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5FieldReader.HDF5FieldReader.readBatch" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Reads the fields for which this object is responsible from a batch of data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>batch</strong> : The HDF5 dataset that contains data from a single HDF5 batch.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></p>
+<blockquote class="last">
+<div><p>The preprocessed data from the fields for which this object is responsible.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.data.HDF5FieldReader.HDF5FieldReader.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5FieldReader.html#HDF5FieldReader.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5FieldReader.HDF5FieldReader.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Serialize to a dictionary representation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>A dictionary representation of the <a class="reference internal" href="#xnn.data.HDF5FieldReader.HDF5FieldReader" title="xnn.data.HDF5FieldReader.HDF5FieldReader"><code class="xref py py-class docutils literal"><span class="pre">HDF5FieldReader</span></code></a></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 

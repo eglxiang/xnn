@@ -46,10 +46,22 @@
 <div class="viewcode-block" id="HDF5BatchLoad"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5BatchLoad.HDF5BatchLoad">[docs]</a><span class="k">class</span> <span class="nc">HDF5BatchLoad</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">inputReaders</span><span class="o">=</span><span class="p">[]):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Define a batch generator that reads batches directly from an HDF5 file</span>
-<span class="sd">        :param filepath: the path to the hdf5 file</span>
-<span class="sd">        :param partition: train, test or valid</span>
-<span class="sd">        :param inputReaders: list of HDF5FieldReader objects that extract input info from HDF5</span>
+<span class="sd">        Define a batch generator that reads batches directly from an HDF5 file.</span>
+<span class="sd">        The HDF5 file must be structured with the groups</span>
+<span class="sd">        &#39;train&#39;,&#39;test&#39;,&#39;valid&#39;.  Each of these groups must contain a group for</span>
+<span class="sd">        each batch, with the group name &#39;batchN&#39; where N is an integer in the</span>
+<span class="sd">        range 0 to the number of batches.  Each batch group must have datasets</span>
+<span class="sd">        inside it that contain the data of interest.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        filepath : str</span>
+<span class="sd">            The path to the hdf5 file.</span>
+<span class="sd">        partition : str</span>
+<span class="sd">            &#39;train&#39;, &#39;test&#39;, or &#39;valid&#39;</span>
+<span class="sd">        inputReaders : list of :class:`HDF5FieldReader` </span>
+<span class="sd">            Readers that extract input from the HDF5 file</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hdf5data</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filepath</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span>
@@ -59,8 +71,19 @@
     
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">partition</span><span class="o">=</span><span class="s">&#39;train&#39;</span><span class="p">,</span><span class="n">batchind</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Returns a batch </span>
-<span class="sd">        :param batchind: batch index to read.  If None, or if out of range, a random batch will be returned</span>
+<span class="sd">        Returns the data from a single batch group from the HDF5 data</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        batchind : int</span>
+<span class="sd">            batch index to read.  If None, or if out of range, a random batch</span>
+<span class="sd">            will be returned</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary with keys corresponding to the names of the :class:`HDF5FieldReader` objects and values corresponding to the data as read and preprocessed by the :class:`HDF5FieldReader` objects</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">nb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_batches</span><span class="p">(</span><span class="n">partition</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">nb</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -78,26 +101,52 @@
         <span class="k">return</span> <span class="n">items</span>
 
 <div class="viewcode-block" id="HDF5BatchLoad.addReaders"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5BatchLoad.HDF5BatchLoad.addReaders">[docs]</a>    <span class="k">def</span> <span class="nf">addReaders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">inputReaders</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a list of :class:`HDF5FieldReader` objects to the loader.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inputReaders : list</span>
+<span class="sd">            list of :class:`HDF5FieldReader` objects to add to the batch loader.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">inputReaders</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">inputReaders</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">inputReaders</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">inputReaders</span><span class="p">)</span> <span class="ow">is</span> <span class="n">HDF5FieldReader</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">inputReaders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputReaders</span><span class="p">)</span>
    </div>
 <div class="viewcode-block" id="HDF5BatchLoad.num_batches"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5BatchLoad.HDF5BatchLoad.num_batches">[docs]</a>    <span class="k">def</span> <span class="nf">num_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">partition</span><span class="o">=</span><span class="s">&#39;train&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of batches in a partition in the HDF5 file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        partition : str</span>
+<span class="sd">            The partition in the HDF5 file for which to retrieve the number of</span>
+<span class="sd">            batches.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            Number of batch groups inside :py:attr:`partition`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_batches_in_file</span><span class="p">(</span><span class="n">partition</span><span class="p">)</span>
 </div>
     <span class="k">def</span> <span class="nf">_num_batches_in_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">partition</span><span class="o">=</span><span class="s">&#39;train&#39;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Return number of batches in the specified partition of the HDF5 file</span>
-<span class="sd">        :param partition: train, test or valid</span>
-<span class="sd">        :return: number of batches</span>
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">partition</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">nb</span><span class="p">[</span><span class="n">partition</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hdf5data</span><span class="p">[</span><span class="n">partition</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb</span><span class="p">[</span><span class="n">partition</span><span class="p">]</span>
     
 <div class="viewcode-block" id="HDF5BatchLoad.to_dict"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5BatchLoad.HDF5BatchLoad.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Serialize to a dictionary representation.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary representation of the :class:`HDF5BatchLoad`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s">&#39;hdf5data&#39;</span><span class="p">:</span>
@@ -109,6 +158,15 @@
         <span class="k">return</span> <span class="n">properties</span>
 </div>
 <div class="viewcode-block" id="HDF5BatchLoad.datakeys"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5BatchLoad.HDF5BatchLoad.datakeys">[docs]</a>    <span class="k">def</span> <span class="nf">datakeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of keys that the data returned by this loader will contain.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of str</span>
+<span class="sd">            Keys that the data returned by this loader will contain.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">keys</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputReaders</span><span class="p">}</span>
         <span class="k">return</span> <span class="n">keys</span>
 

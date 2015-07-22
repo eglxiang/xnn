@@ -48,10 +48,18 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">preprocessFunc</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">missingValue</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Read data from the HDF5 batch</span>
-<span class="sd">        :param name: What name to associate with read and preprocessed data</span>
-<span class="sd">        :param fields: list of fields to read.  if a element i is a str, read batch[field[i]].  if element i is a tuple, read batch[field[i][0]][field[i][1]]</span>
-<span class="sd">        :param preprocessFunc: function to apply to data before it is returned.  This function will get a list of numpy arrays, and return a single numpy array</span>
-<span class="sd">        :param missingValueFlag: If not none, labels matching this float value will be set to NaN</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        name : str</span>
+<span class="sd">            What name to associate with read and preprocessed data</span>
+<span class="sd">        fields : list</span>
+<span class="sd">            List of fields to read.  if element i is a str, read batch[fields[i]].  if element i is a tuple, read batch[fields[i][0]][fields[i][1]]</span>
+<span class="sd">        preprocessFunc : function</span>
+<span class="sd">            The function to apply to data before it is returned.  This function will get a list of numpy arrays, and return a single numpy array</span>
+<span class="sd">        missingValueFlag : float or None </span>
+<span class="sd">            If not None, labels matching this float value will be set to NaN</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">=</span><span class="n">name</span>
         <span class="k">if</span> <span class="n">fields</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -62,9 +70,30 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">missingValue</span><span class="o">=</span><span class="n">missingValue</span>
 
 <div class="viewcode-block" id="HDF5FieldReader.getName"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5FieldReader.HDF5FieldReader.getName">[docs]</a>    <span class="k">def</span> <span class="nf">getName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the name of the this :class:`HDF5FieldReader`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The name of this :class:`HDF5FieldReader`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 </div>
 <div class="viewcode-block" id="HDF5FieldReader.readBatch"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5FieldReader.HDF5FieldReader.readBatch">[docs]</a>    <span class="k">def</span> <span class="nf">readBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">batch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads the fields for which this object is responsible from a batch of data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        batch : The HDF5 dataset that contains data from a single HDF5 batch.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`numpy.ndarray`</span>
+<span class="sd">            The preprocessed data from the fields for which this object is responsible.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">]</span>
        
@@ -94,6 +123,15 @@
         <span class="k">return</span> <span class="n">value</span>
 </div>
 <div class="viewcode-block" id="HDF5FieldReader.to_dict"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5FieldReader.HDF5FieldReader.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Serialize to a dictionary representation.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary representation of the :class:`HDF5FieldReader`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="n">properties</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span> 
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">properties</span><span class="p">[</span><span class="n">k</span><span class="p">],</span><span class="s">&#39;to_dict&#39;</span><span class="p">):</span>
