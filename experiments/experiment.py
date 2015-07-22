@@ -12,7 +12,7 @@ class ExperimentCondition(object):
     """
     The :class:`ExperimentCondition` class represents a structure holding experiment variable values.
 
-    This class is used to parameterize experiment conditions.
+    This class is used to parametrize experiment conditions.
     """
 
     def to_dict(self):
