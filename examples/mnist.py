@@ -47,7 +47,7 @@ class iterate_minibatches():
 # ##################### Build the neural network model #######################
 # We define a function that takes a Theano variable representing the input and returns
 # the output layer of a neural network model.
-def build_mlp(input_var=None):
+def build_mlp(input_var=None, numhidunits=800, hiddropout=.5):
     m = Model("MLP")
     # This creates an MLP of two hidden layers of 800 units each, followed by
     # a softmax output layer of 10 units. It applies 20% dropout to the input
@@ -63,7 +63,8 @@ def build_mlp(input_var=None):
     l_in_drop = m.make_dropout_layer(lin, p=0.2)
 
     # Add a stack of fully-connected layers of 800 units each with dropout
-    l_stacktop = m.make_dense_drop_stack(l_in_drop, [800, 800], drop_p_list=[.5, .5])
+    l_stacktop = m.make_dense_drop_stack(l_in_drop, [numhidunits, numhidunits],
+                                         drop_p_list=[hiddropout, hiddropout])
 
     # Finally, we'll add the fully-connected output layer, of 10 softmax units:
     l_out = m.add_layer(DenseLayer(l_stacktop, num_units=10, nonlinearity=softmax), "l_out")
@@ -75,8 +76,7 @@ def build_mlp(input_var=None):
 # ##################### Setup a trainer #######################
 def set_up_trainer(m):
     global_update_settings = ParamUpdateSettings(update=nesterov_momentum, learning_rate=0.01, momentum=0.9)
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
-    trainer = Trainer(m, trainer_settings)
+    trainer = Trainer(m, global_update_settings)
     return trainer
 
 

@@ -1,2 +1,2 @@
-from trainer import Trainer,TrainerSettings,ParamUpdateSettings
+from trainer import Trainer,ParamUpdateSettings
 from loop import Loop

@@ -18,8 +18,7 @@ def test_train():
 
     global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum, learning_rate=0.1, momentum=0.5)
 
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
-    trainer = Trainer(m,trainer_settings)
+    trainer = Trainer(m,global_update_settings)
 
     pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
     emotions = np.random.rand(batch_size,num_hid).astype(theano.config.floatX)
@@ -48,8 +47,7 @@ def test_train():
         pixels=pixelsT,
         emotions=emotionsT
     )
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings,dataSharedVarDict=dataDict)
-    trainer = Trainer(m,trainer_settings)
+    trainer = Trainer(m,global_update_settings,dataDict)
     batch_dict=dict(batch_index=0,batch_size=batch_size)
     outs = trainer.train_step(batch_dict)
     trainer.bind_update(m.layers['l_h1'],ParamUpdateSettings(learning_rate=0.01, momentum=0.6))
@@ -69,8 +67,7 @@ def test_bind_global_update():
     global_update_settings1 = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum, learning_rate=0.1, momentum=0.5)
     global_update_settings2 = ParamUpdateSettings(update=lasagne.updates.adadelta, learning_rate=1.1, rho=0.9)
 
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings1)
-    trainer = Trainer(m,trainer_settings)
+    trainer = Trainer(m,global_update_settings1)
 
     pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
     emotions = np.random.rand(batch_size,num_hid).astype(theano.config.floatX)
@@ -97,9 +94,8 @@ def test_regularization():
     m = _build_model(batch_size,img_size,num_hid)
     m2 = _build_model(batch_size,img_size,num_hid)
     global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.2)
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
-    trainer = Trainer(m,trainer_settings)
-    trainer2 = Trainer(m2,trainer_settings)
+    trainer = Trainer(m,global_update_settings)
+    trainer2 = Trainer(m2,global_update_settings)
     trainer.bind_regularization(xnn.regularization.l2, ['l_h1',('l_out',.1)])
     trainer.bind_regularization(xnn.regularization.l2,.5)
     
@@ -130,8 +126,7 @@ def test_trained_model_serialization():
     num_hid = 10
     m = _build_model(batch_size,img_size,num_hid)
     global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.2)
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
-    trainer = Trainer(m,trainer_settings)
+    trainer = Trainer(m,global_update_settings)
 
     pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
     emotions = np.random.rand(batch_size,num_hid).astype(theano.config.floatX)
@@ -153,8 +148,7 @@ def test_trained_model_serialization():
     shutil.rmtree(dirpath)
 
     global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.2)
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
-    trainer2 = Trainer(m2,trainer_settings)
+    trainer2 = Trainer(m2,global_update_settings)
     preds2 = m.predict(batch_dict)
     outs  = trainer.train_step(batch_dict)
     outs2 = trainer2.train_step(batch_dict)
@@ -185,8 +179,7 @@ def test_aggregation():
     pprint(m.to_dict())
     global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum,learning_rate=0.1, momentum=0.5)
 
-    trainer_settings = TrainerSettings(global_update_settings=global_update_settings)
-    trainer = Trainer(m, trainer_settings)
+    trainer = Trainer(m, global_update_settings)
 
     pixels = np.random.rand(batch_size,img_size).astype(theano.config.floatX)
     emotions = np.random.rand(batch_size,num_out).astype(theano.config.floatX)
