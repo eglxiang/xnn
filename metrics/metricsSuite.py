@@ -1,8 +1,3 @@
-"""
-A collection of metrics for evaluating detectors written by Jake Whitehill
-and adapted by Josh Susskind
-"""
-
 # In this file, x is the detector's output, and y is the true object label
 import pylab
 import numpy as np
@@ -57,6 +52,33 @@ metric_types={}
 metric_names={}
 
 class Metric(object):
+    """
+    An object to manage and apply performance evaluation functions to data.
+
+    Parameters
+    ----------
+    metric : str or function
+        A string corresponding to the name of a metric provided in the :py:attr:`metric_types` dictionary (see metricsSuite.py for keys).  If a function, should take two arguments, **x**, the predictions of the network, and **y**, the targets.
+
+    targkeys : str or list
+        A string or list of strings of keys in the data dictionary that contain the targets.  If a list, the values are added to a dictionary that is passed to the :py:attr:`metric` function as argument **y**.
+
+    outkeys : str or list or None
+        A string or list of strings of keys in the output dictionary that
+        contain the predictions passed to the metric as argument **x**. If
+        None, the output dictionary is fed directly to the :py:attr:`metric`.
+
+    weightkey : str or None
+        If a string, specifies the key in the data dictionary that contains the
+        weights for each example.  Depending on the
+        :py:attr:`aggregation_type`, these weights change the contribution of
+        each example to the overall metric value. If None, no weights are used,
+        but a nonweighted :py:attr:`aggregation_type` must be specified.
+
+    aggregation_type : str
+        The method for computing the metric value across examples.  Can be
+        'mean','sum','weighted_mean','weighted_sum', or 'none'.
+    """
     def __init__(self,metric,targkeys,outkeys=None,weightkey=None,aggregation_type='mean',**kwargs):
         if type(metric) == str:
             self.metric = metric_types[metric.lower()]
@@ -122,6 +144,12 @@ class Metric(object):
         return output
 
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this metric.
+        """
         d = self.__dict__.copy() 
         d['metric'] = d['metric'].__name__
         if hasattr(d['aggregation_type'],'__call__'):
