@@ -53,7 +53,7 @@ class BinnedWeighter(Weighter):
     Weighs examples based on the frequency of the bin to which they
     belong.  Examples with higher frequency labels get lower weights.
 
-    Parameter
+    Parameters
     ----------
 
     labelKey : str
