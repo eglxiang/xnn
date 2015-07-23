@@ -75,9 +75,11 @@ class Metric(object):
         each example to the overall metric value. If None, no weights are used,
         but a nonweighted :py:attr:`aggregation_type` must be specified.
 
-    aggregation_type : str
-        The method for computing the metric value across examples.  Can be
-        'mean','sum','weighted_mean','weighted_sum', or 'none'.
+    aggregation_type : str or function
+        The method for computing the metric value across examples.  If a
+        string, can be 'mean','sum','weighted_mean','weighted_sum', or 'none'.
+        If a function, the output of the metric will be passed to it, and its
+        return value will be returned from this :class:`Metric`.
     """
     def __init__(self,metric,targkeys,outkeys=None,weightkey=None,aggregation_type='mean',**kwargs):
         if type(metric) == str:
@@ -102,7 +104,26 @@ class Metric(object):
         self.outkeys  = outkeys
 
     def __call__(self,out,datadict):
+        """
+        Apply metric to data.
 
+        Parameters
+        ----------
+        out : dict or :class:`numpy.ndarray`
+            The output of a model.  If a dictionary, the :class:`Metric`
+            :py:attr:`outkeys` can specify the keys that should be passed
+            through to the metric function.  If an :class:`numpy.ndarray`, no
+            :py:attr:`outkeys` should be specified, and the data will be passed
+            directly to the metric function.
+
+        datadict : dict
+            A dictionary that contains the labels, using the keys specified in
+            the :class:`Metric` :py:attr:`labelKeys`.
+
+        Returns
+        -------
+            The output of the metric function and the :py:attr:`aggregation_type`.   
+        """
         # if outkeys is a list, pass the value of that list extracted from the output
         if self.outkeys is not None and isinstance(out,dict):
             olist = [out[ok] for ok in self.outkeys]

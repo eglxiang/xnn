@@ -50,6 +50,15 @@ class Sampler(object):
             raise NotImplementedError(("samplemethod should be one of: %s"%', '.join(self.POSSIBLE_METHODS)))
 
     def __call__(self):
+        """
+        Sample a batch from the pool.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the examples selected for the current
+            batch.
+        """
         if self.numbatches is None:
             pool = self.pooler()
             if self.batchsize is None:
@@ -160,6 +169,19 @@ class CategoricalSampler(object):
         self.exshape = None
 
     def __call__(self,data):
+        """
+        Select a single sample based on the labels specified in :py:attr:`labelKey'.
+
+        Parameters
+        ----------
+        data : dict
+            A dictionary that contains all elements in the pool.
+
+        Returns
+        -------
+        int
+            Index of example that should be added to the batch.
+        """
 
         if self.newbatch:
             self._set_up_new_batch(data)
@@ -252,6 +274,19 @@ class BinarySampler(object):
         self.countOthers = countOthers
 
     def __call__(self,data):
+        """
+        Select a single sample based on the labels specified in :py:attr:`labelKey'.
+
+        Parameters
+        ----------
+        data : dict
+            A dictionary that contains all elements in the pool.
+
+        Returns
+        -------
+        int
+            Index of example that should be added to the batch.
+        """
         if self.newbatch:
             self._set_up_new_batch(data)
 
@@ -332,7 +367,19 @@ class BinnedSampler(object):
         self.nexrange = None
 
     def __call__(self,data):
+        """
+        Select a single sample based on the labels specified in :py:attr:`labelKey'.
 
+        Parameters
+        ----------
+        data : dict
+            A dictionary that contains all elements in the pool.
+
+        Returns
+        -------
+        int
+            Index of example that should be added to the batch.
+        """
         if self.newbatch:
             self._set_up_new_batch(data)
 

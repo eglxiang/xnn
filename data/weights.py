@@ -26,6 +26,21 @@ class Weighter(object):
         pass
 
     def __call__(self,data):
+        """
+        Weighs data.
+
+        Parameters
+        ----------
+        data : dict
+            A data dictionary representing a batch of data.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Weights for each example in the data dictionary.  These will all
+            have a value of 1.
+
+        """
         if isinstance(self.labelKey,list):
             return np.ones((data[self.labelKey[0]].shape[0],len(self.labelKey))).astype(theano.config.floatX)
         return np.ones((data[self.labelKey].shape[0],1)).astype(theano.config.floatX)
@@ -86,6 +101,19 @@ class BinnedWeighter(Weighter):
         self.binweight /=np.sum(self.binweight)
 
     def __call__(self,data):
+        """
+        Weighs data.
+
+        Parameters
+        ----------
+        data : dict
+            A data dictionary representing a batch of data.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Weights for each example in the data dictionary. 
+        """
         if self.statPool is None:
             self.statPool = data
             self._init_stats()
@@ -155,6 +183,20 @@ class CategoricalWeighter(Weighter):
         
 
     def __call__(self,data):
+        """
+        Weighs data.
+
+        Parameters
+        ----------
+        data : dict
+            A data dictionary representing a batch of data.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Weights for each example in the data dictionary.  
+
+        """
         if self.statPool is None:
             self.statPool = data
             self._init_stats()
@@ -211,6 +253,20 @@ class BinaryWeighter(Weighter):
         self.numPos = numPos
 
     def __call__(self,data):
+        """
+        Weighs data.
+
+        Parameters
+        ----------
+        data : dict
+            A data dictionary representing a batch of data.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Weights for each example in the data dictionary. 
+
+        """
         if self.statPool is None:
             self.statPool = data
             self._init_stats()
