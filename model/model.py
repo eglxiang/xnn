@@ -425,8 +425,8 @@ class Model(object):
         """
         Construct a model from a dictionary representation.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
 
         indict : dict
             A dictionary representation of a model.

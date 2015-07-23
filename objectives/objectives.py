@@ -24,6 +24,7 @@ categorical_crossentropy = typechecker(categorical_crossentropy)
 def absolute_error(a, b):
     """Computes the element-wise absolute difference between two tensors.
     .. math:: L = abs(p - t)
+    
     Parameters
     ----------
     a, b : Theano tensor

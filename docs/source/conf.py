@@ -115,6 +115,16 @@ pygments_style = 'sphinx'
 todo_include_todos = True
 
 
+
+
+def skip(app, what, name, obj, skip, options):
+    if (name == "__init__") or (name == "__call__"):
+        return False
+    return skip
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
+
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
