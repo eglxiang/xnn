@@ -44,15 +44,23 @@
 <span class="kn">import</span> <span class="nn">theano</span>
 
 <div class="viewcode-block" id="HDF5RamPool"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool">[docs]</a><span class="k">class</span> <span class="nc">HDF5RamPool</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Define a data loader that aggregates batches from a single partition of an HDF5 file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    batchReader : :class:`HDF5BatchLoad`</span>
+<span class="sd">        Loader set up to extract desired information from an HDF5 file </span>
+<span class="sd">    partition : str</span>
+<span class="sd">        Partition in HDF5 from which to load data.</span>
+<span class="sd">    nBatchInPool :  int or None</span>
+<span class="sd">        Number of batches to load into pool initially.  If None, load all batches from HDF5 (might run out of memory).</span>
+<span class="sd">    refreshPoolProp : float</span>
+<span class="sd">        Proportion of pool examples to be refreshed between calls.  Refreshing a pool means loading different examples from the HDF5 file on disk into the pool on RAM.  If None, the pool is refreshed entirely.</span>
+<span class="sd">    poolSizeToReturn : int</span>
+<span class="sd">        Number of examples from the pool to be returned when called.  If None, entire pool is returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batchReader</span><span class="p">,</span> <span class="n">partition</span><span class="o">=</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="n">nBatchInPool</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">refreshPoolProp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">poolSizeToReturn</span><span class="o">=</span><span class="bp">None</span> <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Define a data loader that aggregates batches from a single partition of an HDF5 file</span>
-<span class="sd">        :param batchReader: HDF5BatchLoad object set up to extract desired information from HDF5 </span>
-<span class="sd">        :param partition:  partition from which to load data</span>
-<span class="sd">        :param nBatchInPool:  number of batches to load into pool initially.  If None, load all batches (might run out of memory)</span>
-<span class="sd">        :param refreshPoolProp: proportion of pool examples to be refreshed between calls.  If None, pool refreshed entirely</span>
-<span class="sd">        :param poolSizeToReturn: size of the pool to be returned when the pooler is called.  If None, entire pool returned</span>
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span> <span class="o">=</span> <span class="n">batchReader</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">poolloaded</span> <span class="o">=</span> <span class="bp">False</span>
@@ -63,15 +71,34 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span> <span class="o">=</span> <span class="n">poolSizeToReturn</span> 
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            The data in the pool.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_refreshPool</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getsubpool</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span>
    
 <div class="viewcode-block" id="HDF5RamPool.datakeys"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool.datakeys">[docs]</a>    <span class="k">def</span> <span class="nf">datakeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            The keys in the dictionary of data in the pool.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span><span class="o">.</span><span class="n">datakeys</span><span class="p">()</span>
 </div>
 <div class="viewcode-block" id="HDF5RamPool.nInPool"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool.nInPool">[docs]</a>    <span class="k">def</span> <span class="nf">nInPool</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            number of examples currently in the pool.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -143,12 +170,24 @@
         <span class="k">return</span> <span class="n">items</span>
 
 <div class="viewcode-block" id="HDF5RamPool.does_pool_update"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool.does_pool_update">[docs]</a>    <span class="k">def</span> <span class="nf">does_pool_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            Whether or not this pool will refresh when it is called.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">refreshPoolProp</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">nBatchInPool</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">False</span>
         <span class="k">return</span> <span class="bp">True</span>
 
 </div>
 <div class="viewcode-block" id="HDF5RamPool.to_dict"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary representation of this data pool.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">{</span><span class="s">&#39;batchIDlist&#39;</span><span class="p">,</span><span class="s">&#39;pool&#39;</span><span class="p">}:</span>
@@ -160,6 +199,16 @@
         <span class="k">return</span> <span class="n">properties</span>
 </div></div>
 <div class="viewcode-block" id="PoolMerger"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.PoolMerger">[docs]</a><span class="k">class</span> <span class="nc">PoolMerger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allows pooling to happen across multiple HDF5 files set up with their own</span>
+<span class="sd">    :class:`HDF5RamPool` objects.  In the case where keys in the data do not</span>
+<span class="sd">    overlap, they are filled with NaN values.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    poolers : list of :class:`HDF5RamPool`</span>
+<span class="sd">        The poolers whose data will be merged</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poolers</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">poolers</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">poolers</span> <span class="o">=</span> <span class="n">poolers</span>
@@ -171,6 +220,12 @@
 
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Data pooled from all member poolers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_get_pools</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_init_poolinfo</span><span class="p">()</span>
@@ -217,13 +272,25 @@
                     <span class="n">shp</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">datasizes</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">shp</span> 
 
-        
-
     <span class="k">def</span> <span class="nf">_get_pools</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pools</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolers</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pools</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">())</span>
-</pre></div></div>
+
+<div class="viewcode-block" id="PoolMerger.to_dict"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.PoolMerger.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary representation of the pool merger.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">plrs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolers</span><span class="p">:</span>
+            <span class="n">plrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&#39;poolers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plrs</span>
+        <span class="k">return</span> <span class="n">d</span>
+</pre></div></div></div>
 
           </div>
         </div>

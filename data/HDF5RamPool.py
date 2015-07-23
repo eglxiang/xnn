@@ -4,15 +4,23 @@ from HDF5BatchLoad import *
 import theano
 
 class HDF5RamPool(object):
+    """
+    Define a data loader that aggregates batches from a single partition of an HDF5 file
+
+    Parameters
+    ----------
+    batchReader : :class:`HDF5BatchLoad`
+        Loader set up to extract desired information from an HDF5 file 
+    partition : str
+        Partition in HDF5 from which to load data.
+    nBatchInPool :  int or None
+        Number of batches to load into pool initially.  If None, load all batches from HDF5 (might run out of memory).
+    refreshPoolProp : float
+        Proportion of pool examples to be refreshed between calls.  Refreshing a pool means loading different examples from the HDF5 file on disk into the pool on RAM.  If None, the pool is refreshed entirely.
+    poolSizeToReturn : int
+        Number of examples from the pool to be returned when called.  If None, entire pool is returned.
+    """
     def __init__(self, batchReader, partition='train', nBatchInPool=None, refreshPoolProp=None, poolSizeToReturn=None ):
-        """
-        Define a data loader that aggregates batches from a single partition of an HDF5 file
-        :param batchReader: HDF5BatchLoad object set up to extract desired information from HDF5 
-        :param partition:  partition from which to load data
-        :param nBatchInPool:  number of batches to load into pool initially.  If None, load all batches (might run out of memory)
-        :param refreshPoolProp: proportion of pool examples to be refreshed between calls.  If None, pool refreshed entirely
-        :param poolSizeToReturn: size of the pool to be returned when the pooler is called.  If None, entire pool returned
-        """
         self.batchReader = batchReader
         self.pool = {}
         self.poolloaded = False
@@ -23,15 +31,34 @@ class HDF5RamPool(object):
         self.poolSizeToReturn = poolSizeToReturn 
 
     def __call__(self):
+        """
+        Returns
+        -------
+        dict
+            The data in the pool.
+        """
         self._refreshPool()
         if self.poolSizeToReturn is not None:
             return self._getsubpool()
         return self.pool
    
     def datakeys(self):
+        """
+        Returns
+        -------
+        list
+            The keys in the dictionary of data in the pool.
+
+        """
         return self.batchReader.datakeys()
 
     def nInPool(self):
+        """
+        Returns
+        -------
+        int
+            number of examples currently in the pool.
+        """
         if len(self.pool)==0 or len(self.pool.keys())==0:
             return 0
         return self.pool[self.pool.keys()[0]].shape[0]
@@ -103,12 +130,24 @@ class HDF5RamPool(object):
         return items
 
     def does_pool_update(self):
+        """
+        Returns
+        -------
+        bool
+            Whether or not this pool will refresh when it is called.
+        """
         if (self.refreshPoolProp == 0 or self.nBatchInPool is None) and self.poolSizeToReturn is None:
             return False
         return True
 
 
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            Dictionary representation of this data pool.
+        """
         properties = {}
         for k in self.__dict__:
             if k in {'batchIDlist','pool'}:
@@ -120,6 +159,16 @@ class HDF5RamPool(object):
         return properties
 
 class PoolMerger(object):
+    """
+    Allows pooling to happen across multiple HDF5 files set up with their own
+    :class:`HDF5RamPool` objects.  In the case where keys in the data do not
+    overlap, they are filled with NaN values.
+
+    Parameters
+    ----------
+    poolers : list of :class:`HDF5RamPool`
+        The poolers whose data will be merged
+    """
     def __init__(self, poolers):
         if isinstance(poolers,list):
             self.poolers = poolers
@@ -131,6 +180,12 @@ class PoolMerger(object):
 
 
     def __call__(self):
+        """
+        Returns
+        -------
+        dict
+            Data pooled from all member poolers.
+        """
         self._get_pools()
         if self.datasizes is None:
             self._init_poolinfo()
@@ -177,10 +232,22 @@ class PoolMerger(object):
                     shp = tuple(shp)
                     self.datasizes[k][i] = shp 
 
-        
-
     def _get_pools(self):
         self.pools = []
         for p in self.poolers:
             self.pools.append(p())
+
+    def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of the pool merger.
+        """
+        d = {}
+        plrs = []
+        for p in self.poolers:
+            plrs.append(p.to_dict())
+        d['poolers'] = plrs
+        return d
 

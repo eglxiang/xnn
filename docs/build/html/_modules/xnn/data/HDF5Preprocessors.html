@@ -44,13 +44,51 @@
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
 
 <div class="viewcode-block" id="makeFloatX"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5Preprocessors.makeFloatX">[docs]</a><span class="k">def</span> <span class="nf">makeFloatX</span><span class="p">(</span><span class="n">labelslist</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts data to theano&#39;s floatX type to help with running data on the GPU</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    labelslist : list</span>
+<span class="sd">        list of labels</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`numpy.ndarray`</span>
+<span class="sd">        numpy array converted to a floatX</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">labelslist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">theano</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">floatX</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="ageG_to_hard"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5Preprocessors.ageG_to_hard">[docs]</a><span class="k">class</span> <span class="nc">ageG_to_hard</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a length-100 histogram of age labels to a one-hot encoding.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    bins : list</span>
+<span class="sd">        right edges of categories for age binning</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">18</span><span class="p">,</span><span class="mi">25</span><span class="p">,</span><span class="mi">35</span><span class="p">,</span><span class="mi">45</span><span class="p">,</span><span class="mi">55</span><span class="p">,</span><span class="mi">65</span><span class="p">,</span><span class="mi">100</span><span class="p">]):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="n">bins</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert labels into one-hot encoding</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        labels : list</span>
+<span class="sd">            length 100 histogram of age labels</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`numpy.ndarray`</span>
+<span class="sd">            one-hot representation of age groups</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">labs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bins</span><span class="p">)))</span>
         <span class="n">prebe</span> <span class="o">=</span> <span class="mi">0</span>
@@ -72,17 +110,45 @@
         <span class="k">return</span> <span class="n">OHlabels</span>
     
 <div class="viewcode-block" id="ageG_to_hard.to_dict"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5Preprocessors.ageG_to_hard.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a dictionary representation of this preprocessing function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">properties</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
         <span class="n">properties</span><span class="p">[</span><span class="s">&#39;funcName&#39;</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;ageG_to_hard&#39;</span>
         <span class="k">return</span> <span class="n">properties</span>
 
 </div></div>
 <div class="viewcode-block" id="ageG_to_soft"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5Preprocessors.ageG_to_soft">[docs]</a><span class="k">class</span> <span class="nc">ageG_to_soft</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a length-100 histogram of age labels to a probability distribution</span>
+<span class="sd">    over categories.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    bins : list</span>
+<span class="sd">        right edges of categories for age binning</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c"># TODO: Clean this up</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">18</span><span class="p">,</span><span class="mi">25</span><span class="p">,</span><span class="mi">35</span><span class="p">,</span><span class="mi">45</span><span class="p">,</span><span class="mi">55</span><span class="p">,</span><span class="mi">65</span><span class="p">,</span><span class="mi">100</span><span class="p">]):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="n">bins</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert labels into probability distribution</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        labels : list</span>
+<span class="sd">            length 100 histogram of age labels</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`numpy.ndarray`</span>
+<span class="sd">            distribution of individual labeler responses across age groups</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">labs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bins</span><span class="p">)))</span>
         <span class="n">prebe</span> <span class="o">=</span> <span class="mi">0</span>
@@ -104,17 +170,50 @@
         <span class="k">return</span> <span class="n">labels</span>
     
 <div class="viewcode-block" id="ageG_to_soft.to_dict"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5Preprocessors.ageG_to_soft.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a dictionary representation of this preprocessing function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">properties</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
         <span class="n">properties</span><span class="p">[</span><span class="s">&#39;funcName&#39;</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;ageG_to_soft&#39;</span>
         <span class="k">return</span> <span class="n">properties</span>
    </div></div>
 <div class="viewcode-block" id="pixelPreprocess"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5Preprocessors.pixelPreprocess">[docs]</a><span class="k">class</span> <span class="nc">pixelPreprocess</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process image data.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    roi : dict</span>
+<span class="sd">        A dictionary with keys &#39;x&#39;,&#39;y&#39;,&#39;width&#39;, and &#39;height&#39; specifying a</span>
+<span class="sd">        rectangle of pixels that should be extracted.</span>
+
+<span class="sd">    make_grayscale : bool</span>
+<span class="sd">        If true, RGB channels will be converted to grayscale.  Has no effect on</span>
+<span class="sd">        grayscale images.</span>
+
+<span class="sd">    flatten : bool</span>
+<span class="sd">        If true, **(1, c, w, h)**-shaped images are vectorized to **(1,c*w*h)** </span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">roi</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">make_grayscale</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">flatten</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">roi</span> <span class="o">=</span> <span class="n">roi</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">make_grayscale</span> <span class="o">=</span> <span class="n">make_grayscale</span> 
         <span class="bp">self</span><span class="o">.</span><span class="n">flatten</span> <span class="o">=</span> <span class="n">flatten</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batchdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process image data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        batchdata : list</span>
+<span class="sd">            list that contains image data in a batch</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`numpy.ndarray`</span>
+<span class="sd">            batch of images that has been preprocessed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pixels</span> <span class="o">=</span> <span class="n">batchdata</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="c"># crop to ROI if specified</span>
@@ -145,6 +244,9 @@
         <span class="k">return</span> <span class="n">pixels</span>
 
 <div class="viewcode-block" id="pixelPreprocess.to_dict"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5Preprocessors.pixelPreprocess.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a dictionary representation of this preprocessing function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">properties</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
         <span class="n">properties</span><span class="p">[</span><span class="s">&#39;funcName&#39;</span><span class="p">]</span><span class="o">=</span><span class="s">&#39;pixelPreprocess&#39;</span>
         <span class="k">return</span> <span class="n">properties</span>

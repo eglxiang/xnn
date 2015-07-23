@@ -2,6 +2,20 @@ import numpy as np
 import theano
 
 class Weighter(object):
+    """
+    A default Weighter object that returns 1 for each example
+
+    Parameters
+    ----------
+
+    labelKey : str
+        The key in the data dictionary that this weighter uses to compute its
+        weights.
+
+    statPool : dict or None
+        The dictionary from which to calculate weights for new data.  It is
+        ignored in the base :class:`Weighter` class.
+    """
     def __init__(self,labelKey,statPool=None):
         self.statPool = statPool
         self.labelKey = labelKey
@@ -17,6 +31,12 @@ class Weighter(object):
         return np.ones((data[self.labelKey].shape[0],1)).astype(theano.config.floatX)
         
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this weighter.
+        """
         properties = {}
         properties['weightType'] = 'None'
         for k in self.__dict__:
@@ -29,7 +49,25 @@ class Weighter(object):
 
 
 class BinnedWeighter(Weighter):
+    """
+    Weighs examples based on the frequency of the bin to which they
+    belong.  Examples with higher frequency labels get lower weights.
 
+    Parameter
+    ----------
+
+    labelKey : str
+        The key in the data dictionary that this weighter uses to compute its
+        weights.
+
+    bins : list
+        The right edges of the bins that are used to assign the labels to
+        categories.
+
+    statPool : dict or None
+        The dictionary from which to calculate weights for new data.  If None,
+        weights are calculated from each batch.
+    """
     def __init__(self,labelKey,bins,statPool=None):
         self.bins = bins
         super(BinnedWeighter,self).__init__(labelKey,statPool)        
@@ -61,6 +99,12 @@ class BinnedWeighter(Weighter):
         return weights
 
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this weighter.
+        """
         properties = {}
         properties['weightType'] = 'Binned'
         for k in self.__dict__:
@@ -73,6 +117,21 @@ class BinnedWeighter(Weighter):
         
 
 class CategoricalWeighter(Weighter):
+    """
+    Weighs examples based on the frequency of the category to which they
+    belong.  Examples with higher frequency labels get lower weights.
+
+    Parameters
+    ----------
+
+    labelKey : str
+        The key in the data dictionary that this weighter uses to compute its
+        weights.
+
+    statPool : dict or None
+        The dictionary from which to calculate weights for new data.  If None,
+        weights are calculated from each batch.
+    """
     def __init__(self,labelKey,statPool=None):
         super(CategoricalWeighter,self).__init__(labelKey,statPool)        
 
@@ -104,6 +163,12 @@ class CategoricalWeighter(Weighter):
         return labels.dot(self.proportions.T)
     
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this weighter.
+        """
         properties = {}
         properties['weightType'] = 'Categorical'
         for k in self.__dict__:
@@ -114,6 +179,21 @@ class CategoricalWeighter(Weighter):
         return properties
 
 class BinaryWeighter(Weighter):
+    """
+    Weighs examples based on the frequency of their binary label.  Examples in
+    the higher frequency category get lower weights.
+
+    Parameters
+    ----------
+
+    labelKey : str
+        The key in the data dictionary that this weighter uses to compute its
+        weights.
+
+    statPool : dict or None
+        The dictionary from which to calculate weights for new data.  If None,
+        weights are calculated from each batch.
+    """
     def __init__(self,labelKey,statPool=None):
         super(BinaryWeighter,self).__init__(labelKey,statPool)        
     
@@ -143,6 +223,12 @@ class BinaryWeighter(Weighter):
         return weights[:,np.newaxis]
 
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this weighter.
+        """
         properties = {}
         properties['weightType'] = 'Binary'
         for k in self.__dict__:
