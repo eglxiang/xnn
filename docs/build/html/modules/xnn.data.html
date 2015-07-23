@@ -356,22 +356,70 @@ grayscale images.</p>
 <dl class="method">
 <dt id="xnn.data.HDF5RamPool.HDF5RamPool.datakeys">
 <code class="descname">datakeys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5RamPool.html#HDF5RamPool.datakeys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5RamPool.HDF5RamPool.datakeys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
+<blockquote class="last">
+<div><p>The keys in the dictionary of data in the pool.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.data.HDF5RamPool.HDF5RamPool.does_pool_update">
 <code class="descname">does_pool_update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5RamPool.html#HDF5RamPool.does_pool_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5RamPool.HDF5RamPool.does_pool_update" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">bool</p>
+<blockquote class="last">
+<div><p>Whether or not this pool will refresh when it is called.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.data.HDF5RamPool.HDF5RamPool.nInPool">
 <code class="descname">nInPool</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5RamPool.html#HDF5RamPool.nInPool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5RamPool.HDF5RamPool.nInPool" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">int</p>
+<blockquote class="last">
+<div><p>number of examples currently in the pool.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.data.HDF5RamPool.HDF5RamPool.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5RamPool.html#HDF5RamPool.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5RamPool.HDF5RamPool.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>Dictionary representation of this data pool.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -379,7 +427,39 @@ grayscale images.</p>
 <dt id="xnn.data.HDF5RamPool.PoolMerger">
 <em class="property">class </em><code class="descclassname">xnn.data.HDF5RamPool.</code><code class="descname">PoolMerger</code><span class="sig-paren">(</span><em>poolers</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5RamPool.html#PoolMerger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5RamPool.PoolMerger" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Allows pooling to happen across multiple HDF5 files set up with their own
+<a class="reference internal" href="#xnn.data.HDF5RamPool.HDF5RamPool" title="xnn.data.HDF5RamPool.HDF5RamPool"><code class="xref py py-class docutils literal"><span class="pre">HDF5RamPool</span></code></a> objects.  In the case where keys in the data do not
+overlap, they are filled with NaN values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poolers</strong> : list of <a class="reference internal" href="#xnn.data.HDF5RamPool.HDF5RamPool" title="xnn.data.HDF5RamPool.HDF5RamPool"><code class="xref py py-class docutils literal"><span class="pre">HDF5RamPool</span></code></a></p>
+<blockquote class="last">
+<div><p>The poolers whose data will be merged</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Methods</p>
+<dl class="method">
+<dt id="xnn.data.HDF5RamPool.PoolMerger.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/HDF5RamPool.html#PoolMerger.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.HDF5RamPool.PoolMerger.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>A dictionary representation of the pool merger.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -389,21 +469,42 @@ grayscale images.</p>
 <dt id="xnn.data.samplers.BinarySampler">
 <em class="property">class </em><code class="descclassname">xnn.data.samplers.</code><code class="descname">BinarySampler</code><span class="sig-paren">(</span><em>labelKey</em>, <em>countOthers=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#BinarySampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.BinarySampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>A key sampler that tries to balance binary labels.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>labelKey</strong> : str</p>
+<blockquote>
+<div><p>The key in the data dictionary that contains the binary labels as
+either 0 or 1.</p>
+</div></blockquote>
+<p><strong>countOthers</strong> : bool</p>
+<blockquote class="last">
+<div><p>If True, counts the labels from examples selected by other
+key samplers toward this sampler&#8217;s frequencies.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Methods</p>
-<dl class="method">
-<dt id="xnn.data.samplers.BinarySampler.add_other_sample">
-<code class="descname">add_other_sample</code><span class="sig-paren">(</span><em>sampleid</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#BinarySampler.add_other_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.BinarySampler.add_other_sample" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="xnn.data.samplers.BinarySampler.reset_batch">
-<code class="descname">reset_batch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#BinarySampler.reset_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.BinarySampler.reset_batch" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="xnn.data.samplers.BinarySampler.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#BinarySampler.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.BinarySampler.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>A dictionary representation of this Sampler.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -411,21 +512,47 @@ grayscale images.</p>
 <dt id="xnn.data.samplers.BinnedSampler">
 <em class="property">class </em><code class="descclassname">xnn.data.samplers.</code><code class="descname">BinnedSampler</code><span class="sig-paren">(</span><em>labelKey</em>, <em>bins</em>, <em>countOthers=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#BinnedSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.BinnedSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>A key sampler that tries to balance binned labels.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>labelKey</strong> : str</p>
+<blockquote>
+<div><p>The key in the data dictionary that contains the labels.  These labels
+are single numbers for each example, which will be assigned to a bin by
+the sampler.</p>
+</div></blockquote>
+<p><strong>bins</strong> : list</p>
+<blockquote>
+<div><p>The right edges of the bins that are used to assign the value of <code class="xref py py-attr docutils literal"><span class="pre">labelKey</span></code> to a category</p>
+</div></blockquote>
+<p><strong>countOthers</strong> : bool</p>
+<blockquote class="last">
+<div><p>If True, counts the labels from examples selected by other
+key samplers toward this sampler&#8217;s frequencies.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Methods</p>
-<dl class="method">
-<dt id="xnn.data.samplers.BinnedSampler.add_other_sample">
-<code class="descname">add_other_sample</code><span class="sig-paren">(</span><em>sampleid</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#BinnedSampler.add_other_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.BinnedSampler.add_other_sample" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="xnn.data.samplers.BinnedSampler.reset_batch">
-<code class="descname">reset_batch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#BinnedSampler.reset_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.BinnedSampler.reset_batch" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="xnn.data.samplers.BinnedSampler.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#BinnedSampler.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.BinnedSampler.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>A dictionary representation of this Sampler.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -433,21 +560,50 @@ grayscale images.</p>
 <dt id="xnn.data.samplers.CategoricalSampler">
 <em class="property">class </em><code class="descclassname">xnn.data.samplers.</code><code class="descname">CategoricalSampler</code><span class="sig-paren">(</span><em>labelKey</em>, <em>pickLowestFrequency=False</em>, <em>countOthers=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#CategoricalSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.CategoricalSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>A key sampler that tries to balance categorical labels.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>labelKey</strong> : str or list</p>
+<blockquote>
+<div><p>If a string, the key in the data dictionary that contains the
+categorical labels as either probability distribution encoding.  If a
+list, the list of keys in the data dictionary that, when their values
+are concatenated along axis 1, gives the categorical labels.</p>
+</div></blockquote>
+<p><strong>pickLowestFrequency</strong> : bool</p>
+<blockquote>
+<div><p>If True, selects examples based on which have the current lowest
+frequency in the batch being created.  If False, selects uniformly from
+available labels for each example.</p>
+</div></blockquote>
+<p><strong>countOthers</strong> : bool</p>
+<blockquote class="last">
+<div><p>If True, counts the probability mass from examples selected by other
+key samplers toward this sampler&#8217;s frequencies.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Methods</p>
-<dl class="method">
-<dt id="xnn.data.samplers.CategoricalSampler.add_other_sample">
-<code class="descname">add_other_sample</code><span class="sig-paren">(</span><em>sampleid</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#CategoricalSampler.add_other_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.CategoricalSampler.add_other_sample" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="xnn.data.samplers.CategoricalSampler.reset_batch">
-<code class="descname">reset_batch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#CategoricalSampler.reset_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.CategoricalSampler.reset_batch" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="xnn.data.samplers.CategoricalSampler.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#CategoricalSampler.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.CategoricalSampler.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>A dictionary representation of this Sampler.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -455,11 +611,66 @@ grayscale images.</p>
 <dt id="xnn.data.samplers.Sampler">
 <em class="property">class </em><code class="descclassname">xnn.data.samplers.</code><code class="descname">Sampler</code><span class="sig-paren">(</span><em>pooler</em>, <em>keysamplers=[]</em>, <em>samplemethod='sequential'</em>, <em>batchsize=128</em>, <em>numbatches=None</em>, <em>nanOthers=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#Sampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.Sampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Breaks data in a pool into batches based on a sampling strategy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>pooler</strong> : <code class="xref py py-class docutils literal"><span class="pre">HDF5RamPool</span></code> or <code class="xref py py-class docutils literal"><span class="pre">PoolMerger</span></code> or anything that, when called, returns a data dictionary</p>
+<blockquote>
+<div><p>This object returns a dictionary when called.  This object will be
+called before every batch is returned.</p>
+</div></blockquote>
+<p><strong>keysamplers</strong> : list</p>
+<blockquote>
+<div><p>List of samplers.  If the <code class="xref py py-attr docutils literal"><span class="pre">samplemethod</span></code> is &#8216;balance&#8217;,
+each batch will be constructed by calling each sampler in this list
+uniformly.  When called, a sampler must return a single example.</p>
+</div></blockquote>
+<p><strong>samplemethod</strong> : str</p>
+<blockquote>
+<div><p>Which sampling strategy to use.  &#8216;sequential&#8217; means that batches are
+constructed from the pool by taking the next <code class="xref py py-attr docutils literal"><span class="pre">batchsize</span></code>
+examples.  &#8216;uniform&#8217; selects uniformly from the examples in the pool.
+&#8216;balance&#8217; uses the keysamplers to return a batch balanced between
+examples selected from each keysampler.</p>
+</div></blockquote>
+<p><strong>batchsize</strong> : int</p>
+<blockquote>
+<div><p>Number of examples to be returned with each call.</p>
+</div></blockquote>
+<p><strong>numbatches</strong> : int or None</p>
+<blockquote>
+<div><p>Number of batches to be returned.  Useful for defining the length of an epoch.  If None, the sampler will return enough batches to cover the number of examples in the underlying pool (<strong>Note:</strong> this does not mean each example will be returned in an epoch, since sampling can be random).</p>
+</div></blockquote>
+<p><strong>nanOthers</strong> : bool</p>
+<blockquote class="last">
+<div><p>If True, and if <code class="xref py py-attr docutils literal"><span class="pre">samplemethod</span></code> is &#8216;balance&#8217;, each time a keysampler
+returns an example, the labels not examined by that keysampler are set
+to NaN. This is useful in multi-task learning where sampling to
+balance one task will unbalance another.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Methods</p>
 <dl class="method">
 <dt id="xnn.data.samplers.Sampler.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/data/samplers.html#Sampler.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.data.samplers.Sampler.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dict</p>
+<blockquote class="last">
+<div><p>A dictionary representation of this Sampler.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
