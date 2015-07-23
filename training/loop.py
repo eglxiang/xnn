@@ -7,16 +7,42 @@ class Loop(object):
     """
     An example training loop.  The trainer will learn from learndata, apply metrics to validdata, plot to bokeh server at url if supplied, and save to csv file.
 
-    :param trainer: The trainer to run
-    :param learndata:  A list of generator functions that yield batches of data from which the trainer will learn
-    :param validdata:  A list of generator functions that yield batches of data to which the metrics will be applied
-    :param metrics:  A list of metrics to apply to the validdata.  Each entry is a tuple, the first element of which is the key in the model.predict output from which the metric should be calculated, the second element of which is the metric, the third element of which is either 'max' or 'min' to specify which direction is best
-    :param url: A string representing the url where the bokeh server is running (e.g. 'http://127.0.0.1:5006'). If None, or if server cannot be connected, no plotting will occur
-    :param savefilenamecsv:  The name of a file into which to write metric results at each epoch.
-    :param weightdict:  Dictionary of Weighters.  Keys in weightdict are keys into which the weight results will be inserted in the data dictionary.  Weights are calculated for every training batch.
-    :param printflag: Whether to print results to stdout after each epoch
-    :param plotmetricmean: Whether to print/save/plot mean of all metrics.  Depending on the metrics, this value might not make sense.
-    :param savemodelnamebase: Base name for saving metrics.  If not None, models will be saved for the best values of each metric as looping procedes.
+    Parameters
+    ----------
+
+    trainer : :class:`Trainer`
+        The trainer to run
+    learndata : list
+        A list of generator functions that yield batches of data from which the
+        trainer will learn
+    validdata : list
+        A list of generator functions that yield batches of data to which the
+        metrics will be applied
+    metrics :  list
+        A list of metrics to apply to the validdata.  Each entry is a tuple,
+        the first element of which is the key in the model.predict output from
+        which the metric should be calculated, the second element of which is
+        the metric, the third element of which is either 'max' or 'min' to
+        specify which direction is best
+    url: str or None
+        A string representing the url where the bokeh server is running (e.g.
+        'http://127.0.0.1:5006'). If None, or if server cannot be connected, no
+        plotting will occur
+    savefilenamecsv : str
+        The name of a file into which to write metric results at each epoch.
+    weightdict :  dict or None
+        Dictionary of :class:`Weighter` objects.  Keys in weightdict are keys
+        into which the weight results will be inserted in the data dictionary.
+        Weights are calculated for every training batch.  If None, do no
+        weighting.
+    printflag : bool
+        Whether to print results to stdout after each epoch
+    plotmetricmean : bool
+        Whether to print/save/plot mean of all metrics.  Depending on the
+        metrics, this value might not make sense.
+    savemodelnamebase : str
+        Base name for saving metrics.  If not None, models will be saved for
+        the best values of each metric as looping procedes.
     """
 
     def __init__(self,trainer,learndata=[],validdata=[],metrics=[],url=None,savefilenamecsv=None,weightdict={},printflag=True,plotmetricmean=True,savemodelnamebase=None):
@@ -49,14 +75,18 @@ class Loop(object):
         self.ep = 0
         
 
-    """
-    Run the Loop by calling it with a number of epochs as argument
 
-    :param niter: number of iterations (epochs) to run
-    """
+    def __call__(self,nepoch=1):
+        """
+        Run the Loop by calling it with a number of epochs as argument
+    
+        Parameters
+        ----------
 
-    def __call__(self,niter=1):
-        endep = self.ep+niter
+        nepoch : int
+            number of epochs to run
+        """
+        endep = self.ep+nepoch
         for ep in xrange(self.ep,endep):
             start = time.time()
             self.ep += 1
@@ -107,7 +137,7 @@ class Loop(object):
                 self._savemodel(isbest_nontrainerr)
 
         if self._print_flag:
-            print('Finished %d epochs at %s'%(niter,time.strftime('%I:%M:%S %p')))
+            print('Finished %d epochs at %s'%(nepoch,time.strftime('%I:%M:%S %p')))
 
     def _weight(self,batch):
         for k,w in self.weightdict.iteritems():
