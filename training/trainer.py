@@ -9,6 +9,16 @@ from inspect import getargspec
 import copy
 
 class ParamUpdateSettings(object):
+    """
+    Settings to be used for parameters to be updated. 
+
+    Parameters
+    ----------
+    update : :class:`lasagne.updates` function.
+        Used to update parameters
+    **kwargs : Parameters for update. Read docstring for function in :class:`lasagne.updates` for more information.
+        Must contain all required arguments for the update function. Values not passed in will use the defaults if available.
+    """
     def __init__(self,
                  update=None,
                  **kwargs
@@ -43,6 +53,19 @@ class ParamUpdateSettings(object):
         return properties
 
 class Trainer(object):
+    """
+    The default trainer object. Updates parameters in a given model using given update parameters.
+
+    Parameters
+    ----------
+    model : A :class:`Model` object
+        Model to be trained.
+    global_update_settings : A :class:`ParamUpdateSettings` object
+        Update settings to be used for all parameters which haven't been given their own settings via :func:`bind_update`
+    dataSharedVarDict : a dict or None, optional
+        Only to be used if the data is stored on shared variables.
+        If so, dataSharedVarDict should be a dictionary with the data keys bound to the model as keys and the cooresponding shared variables as values.
+    """
     def __init__(self, model, global_update_settings,dataSharedVarDict=None):#trainerSettings = TrainerSettings()):
         # self.__dict__.update(trainerSettings.__dict__)
         global_update_settings._check_settings()
@@ -56,8 +79,15 @@ class Trainer(object):
         """
         Attach a regularization penalty to a list of layers. 
 
-        :param penalty: a theano expression compatible with lasagne.regularization.apply_penalty
-        :param lnamelist: a list of layer names to which this regularization should apply.  If None, all layers in the model will be added.  If a list of tuples, specify regularization coefficents: [(lname,coeff),...].  If a float, all layers will be added with the float as a coefficient
+        Parameters
+        ----------
+        penalty : A theano expression compatible with :func:`lasagne.regularization.apply_penalty`
+            See :func:`lasagne.regularization.apply_penalty` docstring for details.
+        lnamelist : A list of strings or a list of tuples or a float or None, optional
+            If a list of strings, list of layer names to which this regularization should apply.
+            If a list of tuples, specify regularization coefficents: [(lname,coeff),...].
+            If a float, all layers will be added with the float as a coefficient
+            If None, all layers in the model will be added.
         """
         if isinstance(lnamelist,float):
             lnamelist = [(l,lnamelist) for l in self.model.layers.keys()]
@@ -71,6 +101,20 @@ class Trainer(object):
         self.train_func=None
 
     def bind_update(self, layerlist, update_settings):
+        """
+        Set update settings to a list of layers. 
+
+        Parameters
+        ----------
+        layerlist : A string or :class:`lasagne.layer` object, or list of strings or :class:`lasagne.layers` objects
+            Strings must be names of layers in the model. These layers will have the given update settings rather than the global update settings.
+        update_settings : A :class:`ParamUpdateSettings` object
+            Settings to be used on layer or layers in layerlist.
+
+        Notes
+        -----
+        If the update type is the same as the previous update type, update can be left as None in update_settings
+        """
         if type(layerlist) != list:
             layerlist = [layerlist]
         for layer in layerlist:
@@ -88,6 +132,20 @@ class Trainer(object):
             self.layer_updates[layer_name] = update_setting
 
     def bind_global_update(self, update_settings, overwrite=False):
+        """
+        Set new global update settings.
+
+        Parameters
+        ----------
+        update_settings : A :class:`ParamUpdateSettings` object
+            Settings to be used as new global settings
+        overwrite : A Boolean or None, optional
+            If True, all layers given settings via :func:`bind_update` will use the new global update settings instead.
+
+        Notes
+        -----
+        If the update type is the same as the previous update type, update can be left as None in update_settings
+        """
         prev_settings = self.global_update_settings
         u = update_settings.update
         if (u is None) or (u == prev_settings.update):
@@ -102,11 +160,12 @@ class Trainer(object):
             self.layer_updates=dict()
 
     def set_model(self,model):
+        """Assign a different model to the trainer."""
         self.layer_updates=dict()
         self.train_func = None
         self.model = model
 
-    def init_ins_variables(self):
+    def _init_ins_variables(self):
         inputs = self.model.inputs
         ins    = []#OrderedDict()
         for input_key,input_layers in inputs.iteritems():
@@ -114,7 +173,7 @@ class Trainer(object):
                 ins.append((input_key, input_layer.input_var))
         return ins
 
-    def get_outputs(self):
+    def _get_outputs(self):
         all_layers_dict = self.model.layers
         outputs         = self.model.outputs
         all_layers      = all_layers_dict.values()
@@ -123,7 +182,7 @@ class Trainer(object):
         outsTrain       = [all_outs_dict[outputlayer] for outputlayer in outputs.keys()]
         return all_outs_dict,outsTrain
 
-    def get_cost(self,layer_name,layer_dict,all_outs_dict,ins):
+    def _get_cost(self,layer_name,layer_dict,all_outs_dict,ins):
         preds = all_outs_dict[layer_name]
         target_type = layer_dict['target_type']
         if target_type == 'label':
@@ -180,7 +239,7 @@ class Trainer(object):
             raise Exception('This should have been caught earlier')
         return cost, ins
 
-    def get_update(self,layer_name,ins,costTotal):
+    def _get_update(self,layer_name,ins,costTotal):
         all_layers = self.model.layers
         params = all_layers[layer_name].get_params()
         update = OrderedDict()
@@ -220,13 +279,13 @@ class Trainer(object):
         all_layers = self.model.layers
 
         # Get costs
-        ins = self.init_ins_variables()
-        all_outs_dict,outsTrain = self.get_outputs()
+        ins = self._init_ins_variables()
+        all_outs_dict,outsTrain = self._get_outputs()
 
         costs = []
         for layer_name, layer_dict in outputs.iteritems():
             # {layer_name:{output_layer,target,target_type,loss_function,aggregation_type}}
-            cost,ins = self.get_cost(layer_name,layer_dict,all_outs_dict,ins)
+            cost,ins = self._get_cost(layer_name,layer_dict,all_outs_dict,ins)
             cost *= layer_dict['scale']
             costs.append(cost)
         costs.extend(self._get_regularization_costs())
@@ -236,7 +295,7 @@ class Trainer(object):
         updates = OrderedDict()
         self._all_update_args = dict()
         for layer_name in all_layers:
-            update,ins = self.get_update(layer_name,ins,costTotal)
+            update,ins = self._get_update(layer_name,ins,costTotal)
             updates.update(update)
 
         # Create functions
@@ -294,6 +353,7 @@ class Trainer(object):
             ins.append(inval)
         return ins
     def train_step(self,batch_dict):
+        """Perform training on one chunk of data. Compiles first time it is called."""
         if self.train_func is None:
             self.train_func = self._create_train_func()
         ins = self._sort_ins(batch_dict)
