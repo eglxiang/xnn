@@ -44,15 +44,23 @@
 <span class="kn">import</span> <span class="nn">theano</span>
 
 <div class="viewcode-block" id="HDF5RamPool"><a class="viewcode-back" href="../../../modules/xnn.data.html#xnn.data.HDF5RamPool.HDF5RamPool">[docs]</a><span class="k">class</span> <span class="nc">HDF5RamPool</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Define a data loader that aggregates batches from a single partition of an HDF5 file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    batchReader : :class:`HDF5BatchLoad`</span>
+<span class="sd">        Loader set up to extract desired information from an HDF5 file </span>
+<span class="sd">    partition : str</span>
+<span class="sd">        Partition in HDF5 from which to load data.</span>
+<span class="sd">    nBatchInPool :  int or None</span>
+<span class="sd">        Number of batches to load into pool initially.  If None, load all batches from HDF5 (might run out of memory).</span>
+<span class="sd">    refreshPoolProp : float</span>
+<span class="sd">        Proportion of pool examples to be refreshed between calls.  Refreshing a pool means loading different examples from the HDF5 file on disk into the pool on RAM.  If None, the pool is refreshed entirely.</span>
+<span class="sd">    poolSizeToReturn : int</span>
+<span class="sd">        Number of examples from the pool to be returned when called.  If None, entire pool is returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batchReader</span><span class="p">,</span> <span class="n">partition</span><span class="o">=</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="n">nBatchInPool</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">refreshPoolProp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">poolSizeToReturn</span><span class="o">=</span><span class="bp">None</span> <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Define a data loader that aggregates batches from a single partition of an HDF5 file</span>
-<span class="sd">        :param batchReader: HDF5BatchLoad object set up to extract desired information from HDF5 </span>
-<span class="sd">        :param partition:  partition from which to load data</span>
-<span class="sd">        :param nBatchInPool:  number of batches to load into pool initially.  If None, load all batches (might run out of memory)</span>
-<span class="sd">        :param refreshPoolProp: proportion of pool examples to be refreshed between calls.  If None, pool refreshed entirely</span>
-<span class="sd">        :param poolSizeToReturn: size of the pool to be returned when the pooler is called.  If None, entire pool returned</span>
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batchReader</span> <span class="o">=</span> <span class="n">batchReader</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">poolloaded</span> <span class="o">=</span> <span class="bp">False</span>
@@ -63,6 +71,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span> <span class="o">=</span> <span class="n">poolSizeToReturn</span> 
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            The data in the pool.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_refreshPool</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">poolSizeToReturn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getsubpool</span><span class="p">()</span>

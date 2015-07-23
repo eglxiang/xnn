@@ -4,15 +4,23 @@ from HDF5BatchLoad import *
 import theano
 
 class HDF5RamPool(object):
+    """
+    Define a data loader that aggregates batches from a single partition of an HDF5 file
+
+    Parameters
+    ----------
+    batchReader : :class:`HDF5BatchLoad`
+        Loader set up to extract desired information from an HDF5 file 
+    partition : str
+        Partition in HDF5 from which to load data.
+    nBatchInPool :  int or None
+        Number of batches to load into pool initially.  If None, load all batches from HDF5 (might run out of memory).
+    refreshPoolProp : float
+        Proportion of pool examples to be refreshed between calls.  Refreshing a pool means loading different examples from the HDF5 file on disk into the pool on RAM.  If None, the pool is refreshed entirely.
+    poolSizeToReturn : int
+        Number of examples from the pool to be returned when called.  If None, entire pool is returned.
+    """
     def __init__(self, batchReader, partition='train', nBatchInPool=None, refreshPoolProp=None, poolSizeToReturn=None ):
-        """
-        Define a data loader that aggregates batches from a single partition of an HDF5 file
-        :param batchReader: HDF5BatchLoad object set up to extract desired information from HDF5 
-        :param partition:  partition from which to load data
-        :param nBatchInPool:  number of batches to load into pool initially.  If None, load all batches (might run out of memory)
-        :param refreshPoolProp: proportion of pool examples to be refreshed between calls.  If None, pool refreshed entirely
-        :param poolSizeToReturn: size of the pool to be returned when the pooler is called.  If None, entire pool returned
-        """
         self.batchReader = batchReader
         self.pool = {}
         self.poolloaded = False
@@ -23,6 +31,12 @@ class HDF5RamPool(object):
         self.poolSizeToReturn = poolSizeToReturn 
 
     def __call__(self):
+        """
+        Returns
+        -------
+        dict
+            The data in the pool.
+        """
         self._refreshPool()
         if self.poolSizeToReturn is not None:
             return self._getsubpool()
