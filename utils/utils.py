@@ -7,10 +7,23 @@ import pylab as pl
 import signal
 import pydot
 from PIL import Image
+from ..layers import Layer
 
 def theano_digitize(x, bins):
     """
-    Equivalent to numpy digitize
+    Equivalent to numpy digitize.
+
+    Parameters
+    ----------
+    x : Theano tensor or array_like
+        The array or matrix to be digitized
+    bins : array_like
+        The bins with which x should be digitized
+
+    Returns
+    -------
+    A Theano tensor
+        The indices of the bins to which each value in input array belongs.
     """
     binned = T.zeros_like(x)
     for i in range(len(bins)):
@@ -24,6 +37,24 @@ def theano_digitize(x, bins):
     return binned
 
 def numpy_one_hot(x,numclasses=None):
+    """
+    Changes an array of values to one-hot encoding
+
+    Parameters
+    ----------
+    x : Array_like of ints
+        The array to be one-hot encoded
+    numclasses : int or None, optional
+        The number of classes to use for encoding.
+        If int, must be at least of length x.max()
+        If None or default, max(x)+1 will be used
+
+    Returns
+    -------
+    An array_like
+        Array of shape (x.shape,numclasses)
+        The one-hot encoded version of x
+    """
     if x.shape==():
         x = x[None]
     if numclasses is None:
@@ -37,23 +68,93 @@ def numpy_one_hot(x,numclasses=None):
     return result
 
 def Tnanmean(x,axis=None,keepdims=False):
+    """
+    Theano version of numpy nanmean.
+
+    Parameters
+    ----------
+    x : Theano.tensor or array_like
+        The array to be nanmeaned
+    axis : int or None, optional
+        Axis to do nanmean along.
+        If None or default, nanmean is done over entire array
+    keepdims : Boolean, optional
+        If this is set to True, the axes which are reduced are left in the result as dimensions with size one.
+
+
+    Returns
+    -------
+    An array-like
+        Nan is returned for slices that contain only NaNs.
+    """
     mask1 = T.switch(T.isnan(x),0,x)
     mask2 = T.switch(T.isnan(x),0,1)
     return T.true_div(mask1.sum(axis=axis,keepdims=keepdims),mask2.sum(axis=axis,keepdims=keepdims))
 
 def Tnanmax(x,axis=None,keepdims=False):
+    """
+    Theano version of numpy nanmax.
+
+    Parameters
+    ----------
+    x : Theano.tensor or array_like
+        The array to be nanmaxed
+    axis : int or None, optional
+        Axis to do nanmax along.
+        If None or default, nanmax is done over entire array
+    keepdims : Boolean, optional
+        If this is set to True, the axes which are reduced are left in the result as dimensions with size one.
+
+
+    Returns
+    -------
+    An array-like
+        Nan is returned for slices that contain only NaNs.
+    """
     mask = T.switch(T.isnan(x),-np.inf,x)
     return mask.max(axis=axis,keepdims=keepdims)
 
 def Tnansum(x, axis=None, keepdims=False):
+    """
+    Theano version of numpy nansum.
+
+    Parameters
+    ----------
+    x : Theano.tensor or array_like
+        The array to be nansumed
+    axis : int or None, optional
+        Axis to do nansum along.
+        If None or default, nansum is done over entire array
+    keepdims : Boolean, optional
+        If this is set to True, the axes which are reduced are left in the result as dimensions with size one.
+
+
+    Returns
+    -------
+    An array-like
+        Nan is returned for slices that contain only NaNs.
+    """
     mask = T.switch(T.isnan(x),0,x)
     return mask.sum(axis=axis,keepdims=keepdims)
 
 class Progbar(object):
+    '''
+    A progress bar with eta shown.
+
+    Parameters
+    ----------
+    target : int
+        Total number of steps expected
+    width : int, optional
+        Width of progress bar. Default is 30 characters
+    verbose : int, 1 or 2, optional
+        TODO: Write docstring
+
+    Notes
+    -----
+    Once the Progbar object has been created, update it by using the add function each iteration
+    '''
     def __init__(self, target, width=30, verbose=1):
-        '''
-            @param target: total number of steps expected
-        '''
         self.width = width
         self.target = target
         self.sum_values = {}
@@ -63,7 +164,7 @@ class Progbar(object):
         self.seen_so_far = 0
         self.verbose = verbose
 
-    def update(self, current, values=[]):
+    def _update(self, current, values=[]):
         '''
             @param current: index of current step
             @param values: list of tuples (name, value_for_last_step).
@@ -134,11 +235,27 @@ class Progbar(object):
                     info += ' - %s: %.4f' % (k, self.sum_values[k][0]/self.sum_values[k][1])
                 sys.stdout.write(info + "\n")
 
-
     def add(self, n, values=[]):
-        self.update(self.seen_so_far+n, values)
+        '''
+        Update progress bar
+
+        Parameters
+        ----------
+        n : int,
+            Number of steps since last update
+        values : list of tuples, optional
+            List of (key, value) pairs to be shown with the progress bar.
+            The key is a string to be used as the label.
+            The value can be a float or a string
+            If it is a string, the string will be displayed
+            If it is a float, the average value for this key will be displayed
+        '''
+        self._update(self.seen_so_far+n, values)
 
 class GracefulStop(object):
+    '''
+    TODO: Add docstring
+    '''
     def __enter__(self):
         self.signal_received = False
         self.old_handler = signal.getsignal(signal.SIGINT)
@@ -158,23 +275,26 @@ class GracefulStop(object):
         if self.signal_received:
             self.old_handler(*self.signal_received)
 
-class lengthExpection(Exception):
+class _lengthExpection(Exception):
     pass
 
-class nonNegativeExpection(Exception):
+class _nonNegativeExpection(Exception):
     pass
 
-class noProbVectorException(Exception):
+class _noProbVectorException(Exception):
     pass
 
 
 def probEmbarrasingMistakeForAge(fHuman,pMachine,bins=[18,25,35,45,55,65,100]):
-# compute probabiliity of embarrasing mistake for age estimation
-# fHuman is a n-by-100 dimensional vector of human estimates of age
-# fHuman[j][k]=10 means that 10 people thought the age of person j was k
-# pMachine is probability of machine producing an age estimate within a specific interval
-# pMachine[j][0]=0.1  means that 10% of time the machine estimate the age of the person j is in category 0
-# the  upper limits in years for each of the categories are in an array defined in bins
+    """
+    TODO: Write docstring
+    """
+    # compute probabiliity of embarrasing mistake for age estimation
+    # fHuman is a n-by-100 dimensional vector of human estimates of age
+    # fHuman[j][k]=10 means that 10 people thought the age of person j was k
+    # pMachine is probability of machine producing an age estimate within a specific interval
+    # pMachine[j][0]=0.1  means that 10% of time the machine estimate the age of the person j is in category 0
+    # the  upper limits in years for each of the categories are in an array defined in bins
 
     categoryUpperLims=bins
     nc=len(categoryUpperLims)
@@ -183,15 +303,15 @@ def probEmbarrasingMistakeForAge(fHuman,pMachine,bins=[18,25,35,45,55,65,100]):
     if type(pMachine)==list:
         pMachine = array(pMachine)
     if fHuman.shape[1] != 100:
-        raise lengthExpection('vector of human age estimates is not of dimension 100')
+        raise _lengthExpection('vector of human age estimates is not of dimension 100')
     if pMachine.shape[1]!=nc:
-        raise lengthExpection('vector of probability estimates is not of dimension expected:', nc)
+        raise _lengthExpection('vector of probability estimates is not of dimension expected:', nc)
     if sum(fHuman<0)>0:
-        raise nonNegativeExpection('vector of human age estimates has negative values')
+        raise _nonNegativeExpection('vector of human age estimates has negative values')
     if sum(pMachine<0)>0:
-        raise nonNegativeExpection('vector of machine probabilities contains negative values')
+        raise _nonNegativeExpection('vector of machine probabilities contains negative values')
     if pMachine.sum()!=pMachine.shape[0]:
-        raise nonNegativeExpection('vector of machine probabilities does not add up to one')
+        raise _nonNegativeExpection('vector of machine probabilities does not add up to one')
 
     # use frequency of human labels to do probabiity density estimation
     # with Gaussian kernels
@@ -205,8 +325,8 @@ def probEmbarrasingMistakeForAge(fHuman,pMachine,bins=[18,25,35,45,55,65,100]):
             pHuman[:,k1] = pHuman[:,k1] + exp(-0.5*d2/s2) * fHuman[:,k2]/(sd+0.)
 
     pHuman = pHuman/pHuman.sum(1,keepdims=True)
-# based on the year by year probabiilty estimates
-# compute the probability of each age category
+    # based on the year by year probabiilty estimates
+    # compute the probability of each age category
 
     pHumanC=zeros(pMachine.shape)
     c1=categoryUpperLims[0]+1
@@ -219,12 +339,12 @@ def probEmbarrasingMistakeForAge(fHuman,pMachine,bins=[18,25,35,45,55,65,100]):
         pHumanC[:,k]=pHuman[:,c0:c1+1].sum(1)
 
 
-# a machine probability estimate is not embarrasing if either one of the two people agrees with us, or
-# the two people provide estimates that bracket our estimate. If X1 and X2 are the two human estimates
-# and y is the machine estimate then
-# prob(no embarrasing | y)= p(X1 <= y)p(X2 >= y)
+    # a machine probability estimate is not embarrasing if either one of the two people agrees with us, or
+    # the two people provide estimates that bracket our estimate. If X1 and X2 are the two human estimates
+    # and y is the machine estimate then
+    # prob(no embarrasing | y)= p(X1 <= y)p(X2 >= y)
 
-# Compute the expected probability of embarrasing (1 - prob OK)
+    # Compute the expected probability of embarrasing (1 - prob OK)
     probOK=zeros((fHuman.shape[0],))
     for y in range(nc):
     #y is the index to the category chosen by humans
@@ -235,6 +355,15 @@ def probEmbarrasingMistakeForAge(fHuman,pMachine,bins=[18,25,35,45,55,65,100]):
 
 
 def typechecker(f):
+    """
+    Function decorator for functions which return theano variables.
+    If no inputs are theano variables, eval() is called on the output.
+
+    Parameters
+    ----------
+    f : function
+        Function to be decorated
+    """
     def typecheck(*args,**kwargs):
         all_args = list(args)+kwargs.values()
         tmp = T.matrix()
@@ -249,12 +378,14 @@ def typechecker(f):
 def draw_to_file(model, filename, **kwargs):
     """
     Draws a network diagram to a file
-    :parameters:
-        - model : list
-            List of the layers, as obtained from lasange.layers.get_all_layers, or model object
-        - filename: string
-            The filename to save output to.
-        - **kwargs: see docstring of _get_pydot_graph for other options
+
+    Parameters
+    ----------
+    model : list or :class:`Model` instance
+       List of the layers, as obtained from lasange.layers.get_all_layers, or model object
+    filename : string
+       The filename to save output to.
+    **kwargs : see docstring of _get_pydot_graph for other options
     """
     def _get_hex_color(layer_type):
         """
@@ -352,8 +483,12 @@ def draw_to_file(model, filename, **kwargs):
             pydot_graph.add_edge(
                 pydot.Edge(pydot_nodes[edge[0]], pydot_nodes[edge[1]]))
         return pydot_graph
-    if not isinstance(model,list):
+    if isinstance(model,Layer):
+        model = [model]
+    elif hasattr(model,'layers'):
         model = model.layers.values()
+    elif not isinstance(model,list):
+        raise TypeError("model must be a Layer or list of Layers, or a Model object")
     dot = _get_pydot_graph(model, **kwargs)
     dot.get_node("")
     ext = filename[filename.rfind('.') + 1:]

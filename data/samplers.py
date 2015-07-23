@@ -3,6 +3,40 @@ from copy import deepcopy
 import theano
 
 class Sampler(object):
+    """
+    Breaks data in a pool into batches based on a sampling strategy.
+
+    Parameters
+    ----------
+    pooler : :class:`HDF5RamPool` or :class:`PoolMerger` or anything that, when called, returns a data dictionary 
+        This object returns a dictionary when called.  This object will be
+        called before every batch is returned.
+
+    keysamplers : list
+        List of samplers.  If the :py:attr:`samplemethod` is 'balance',
+        each batch will be constructed by calling each sampler in this list
+        uniformly.  When called, a sampler must return a single example.
+
+    samplemethod : str
+        Which sampling strategy to use.  'sequential' means that batches are
+        constructed from the pool by taking the next :py:attr:`batchsize`
+        examples.  'uniform' selects uniformly from the examples in the pool.
+        'balance' uses the keysamplers to return a batch balanced between
+        examples selected from each keysampler.
+
+    batchsize : int
+        Number of examples to be returned with each call.
+
+    numbatches : int or None
+        Number of batches to be returned.  Useful for defining the length of an epoch.  If None, the sampler will return enough batches to cover the number of examples in the underlying pool (**Note:** this does not mean each example will be returned in an epoch, since sampling can be random).
+
+    nanOthers : bool
+        If True, and if :py:attr:`samplemethod` is 'balance', each time a keysampler
+        returns an example, the labels not examined by that keysampler are set
+        to NaN. This is useful in multi-task learning where sampling to
+        balance one task will unbalance another.  
+
+    """
     def __init__(self, pooler,keysamplers=[],samplemethod='sequential',batchsize=128, numbatches=None, nanOthers=False):
         self.POSSIBLE_METHODS = {'uniform','balance','sequential'}
         self.pooler = pooler
@@ -46,7 +80,7 @@ class Sampler(object):
         
     def _reset_batch(self):
         for ks in self.keysamplers:
-            ks.reset_batch()
+            ks._reset_batch()
 
     def _samplebalanced(self,pool):
         keyids = np.random.choice(np.arange(len(self.keylist)),self.batchsize)
@@ -59,7 +93,7 @@ class Sampler(object):
                 for sm in self.keysamplers:
                     if sm == self.keysamplers[ki]:
                         continue
-                    sm.add_other_sample(bi,pool)
+                    sm._add_other_sample(bi,pool)
             allbatchids.append(bi)
         return allbatchids,keyids 
 
@@ -73,6 +107,12 @@ class Sampler(object):
         return batch
 
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this Sampler.
+        """
         properties = {}
         for k in self.__dict__:
             if k == 'POSSIBLE_METHODS':
@@ -87,6 +127,27 @@ class Sampler(object):
 
 
 class CategoricalSampler(object):
+    """
+    A key sampler that tries to balance categorical labels.
+
+    Parameters
+    ----------
+    labelKey : str or list
+        If a string, the key in the data dictionary that contains the
+        categorical labels as either probability distribution encoding.  If a
+        list, the list of keys in the data dictionary that, when their values
+        are concatenated along axis 1, gives the categorical labels.
+
+    pickLowestFrequency : bool
+        If True, selects examples based on which have the current lowest
+        frequency in the batch being created.  If False, selects uniformly from
+        available labels for each example.
+
+    countOthers : bool
+        If True, counts the probability mass from examples selected by other
+        key samplers toward this sampler's frequencies.
+
+    """
     def __init__(self,labelKey,pickLowestFrequency=False,countOthers=False):
         self.labelKey = labelKey
         self.pickLowestFrequency = pickLowestFrequency
@@ -143,14 +204,20 @@ class CategoricalSampler(object):
         l[np.isnan(l)] = 0
         self.massSoFar += l 
 
-    def reset_batch(self):
+    def _reset_batch(self):
         self.newbatch=True
 
-    def add_other_sample(self,sampleid,data):
+    def _add_other_sample(self,sampleid,data):
         if self.countOthers:
             self._add_one_sample(sampleid,data[self.labelKey])
 
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this Sampler.
+        """
         properties = {}
         for k in self.__dict__:
             if k in {'idsSoFar'}:
@@ -160,6 +227,20 @@ class CategoricalSampler(object):
         return properties
 
 class BinarySampler(object):
+    """
+    A key sampler that tries to balance binary labels.
+
+    Parameters
+    ----------
+    labelKey : str
+        The key in the data dictionary that contains the binary labels as
+        either 0 or 1.
+
+    countOthers : bool
+        If True, counts the labels from examples selected by other
+        key samplers toward this sampler's frequencies.
+
+    """
     def __init__(self,labelKey,countOthers=False):
         self.labelKey = labelKey
         self.idsSoFar = []
@@ -199,14 +280,20 @@ class BinarySampler(object):
         self.numPos += l 
         self.numNeg += 1-l 
 
-    def reset_batch(self):
+    def _reset_batch(self):
         self.newbatch = True
 
-    def add_other_sample(self,sampleid,data):
+    def _add_other_sample(self,sampleid,data):
         if self.countOthers:
             self._add_one_sample(sampleid,data[self.labelKey])
     
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this Sampler.
+        """
         properties = {}
         for k in self.__dict__:
             if k in {'idsSoFar'}:
@@ -216,6 +303,24 @@ class BinarySampler(object):
         return properties
 
 class BinnedSampler(object):
+    """
+    A key sampler that tries to balance binned labels.
+
+    Parameters
+    ----------
+    labelKey : str
+        The key in the data dictionary that contains the labels.  These labels
+        are single numbers for each example, which will be assigned to a bin by
+        the sampler.
+
+    bins : list
+        The right edges of the bins that are used to assign the value of :py:attr:`labelKey` to a category
+
+    countOthers : bool
+        If True, counts the labels from examples selected by other
+        key samplers toward this sampler's frequencies.
+
+    """
     def __init__(self,labelKey,bins,countOthers=False):
         self.labelKey = labelKey
         self.bins=bins
@@ -256,14 +361,20 @@ class BinnedSampler(object):
             return
         self.bincounts[l] += 1
 
-    def add_other_sample(self,sampleid,data):
+    def _add_other_sample(self,sampleid,data):
         if self.countOthers:
             self._add_one_sample(sampleid,np.digitize(data[self.labelKey].flatten(),bins=self.bins))
     
-    def reset_batch(self):
+    def _reset_batch(self):
         self.newbatch=True
 
     def to_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dictionary representation of this Sampler.
+        """
         properties = {}
         for k in self.__dict__:
             if k in {'idsSoFar'}:
