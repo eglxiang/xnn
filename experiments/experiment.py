@@ -168,13 +168,30 @@ class Experiment(object):
 
         Returns
         -------
-        An iterator which iterates over :class:`ExperimentCondition` instances in the experiment.
+        An iterator which iterates over :class:`ExperimentCondition` instances
+        defined by the cross-product of experiment factors.
         """
         stop = self.get_num_conditions() if stop is None else stop
         for i in range(start, stop):
             yield self.get_nth_condition(i)
 
     def get_conditions_slice_iterator(self, variable_keys, fixed_dict):
+        """
+        Returns an iterator over a slice of experiment conditions defined by specified factor(s)
+        to vary and specified fixed values.
+
+        Parameters
+        ----------
+        variable_keys : a list of strings where each string must match a particular factor key
+            Specifies the list of factor names to iterate over their values
+        fixed_dict : a dict where key/value pairs define experiment variables to hold fixed
+            Fix these factors at a particular level
+
+        Returns
+        -------
+        An iterator which iterates over :class:`ExperimentCondition` instances
+        defined by the specified fixed and variable factors specified.
+        """
         factors = dict()
         for variable_key in variable_keys:
             factors[variable_key] = self.factors[variable_key]
@@ -187,6 +204,16 @@ class Experiment(object):
             yield self._patch_condition(cond)
 
     def get_all_conditions_changes(self):
+        """
+        Returns a dictionary of dictionaries containing the experiment variables for each
+        condition that differ from the set of values specified in default_condition.
+
+        Returns
+        -------
+        dict of dicts
+            A dictionary where key is condition id and value is a dictionary of
+            key/value pairs listing the factor values specific to each condition
+        """
         self._check_max_to_return()
         conditions = dict()
         for i in range(self.get_num_conditions()):
