@@ -12,23 +12,38 @@ __all__ = [
 LOG10E = float(np.log10(np.exp(1)))
 
 def hard_sigmoid(x):
-    """Piecewise linear approximation to a Sigmoid activation function
-    Approx in 3 parts: 0, scaled linear, 1
-        slope = 0.2
-        shift = 0.5
-    Removing the slope and shift does not make it faster.
+    """
+    Piecewise linear approximation to a Sigmoid activation function
+    Approximation in 3 parts: 0, scaled linear, 1.
+    The scaled linear section has slope = 0.2 and shift = 0.5.
+
     Parameters
     ----------
-    x : float32
-        The activation (the summed, weighted input of a neuron).
+    x : theano tensor
+        The tensor hard sigmoid will be applied to
+
     Returns
     -------
-    float32 in [0, 1]
-        The output of the sigmoid function applied to the activation.
+    theano tensor in [0, 1]
+        The output of the sigmoid function applied to x.
     """
     return theano.tensor.nnet.hard_sigmoid(x)
 
 class scale(object):
+    """
+    Object which, when called on a value, returns the scaled value
+
+    Parameters
+    ----------
+    s : float, optional, for initialization
+        The amount by which to scale. Default is 1.0
+    x : scalar, numpy array, or theano tensor, for call
+        Value to scale
+
+    Returns
+    -------
+    x scaled by s. Same type as x.
+    """
     def __init__(self, s=1.0):
         """Specify a floating point number to scale"""
         self.s = s
