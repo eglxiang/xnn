@@ -1,3 +1,4 @@
+build/
 mnist.pkl.gz
 *.idea
 *.pyc
