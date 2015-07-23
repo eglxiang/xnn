@@ -196,7 +196,16 @@ def test_aggregation():
     print "Aggregation test succeeded"
 
 def test_trainer_serialization():
-    raise NotImplementedError("Need to add a test of trainer serialization!")
+    batch_size = 128
+    img_size = 10
+    num_hid = 100
+
+    m = _build_model(batch_size,img_size,num_hid)
+
+    global_update_settings = ParamUpdateSettings(update=lasagne.updates.nesterov_momentum, learning_rate=0.1, momentum=0.5)
+
+    trainer = Trainer(m,global_update_settings)
+    print trainer.to_dict()
 
 def _build_model(batch_size,img_size,num_hid):
     m = Model('test model cpu')
