@@ -8,10 +8,18 @@ class HDF5FieldReader(object):
     def __init__(self, name, fields=None, preprocessFunc=None, missingValue=None):
         """
         Read data from the HDF5 batch
-        :param name: What name to associate with read and preprocessed data
-        :param fields: list of fields to read.  if a element i is a str, read batch[field[i]].  if element i is a tuple, read batch[field[i][0]][field[i][1]]
-        :param preprocessFunc: function to apply to data before it is returned.  This function will get a list of numpy arrays, and return a single numpy array
-        :param missingValueFlag: If not none, labels matching this float value will be set to NaN
+
+        Parameters
+        ----------
+
+        name : str
+            What name to associate with read and preprocessed data
+        fields : list
+            List of fields to read.  if element i is a str, read batch[fields[i]].  if element i is a tuple, read batch[fields[i][0]][fields[i][1]]
+        preprocessFunc : function
+            The function to apply to data before it is returned.  This function will get a list of numpy arrays, and return a single numpy array
+        missingValueFlag : float or None 
+            If not None, labels matching this float value will be set to NaN
         """
         self.name=name
         if fields is None:
@@ -22,9 +30,30 @@ class HDF5FieldReader(object):
         self.missingValue=missingValue
 
     def getName(self):
+        """
+        Gets the name of the this :class:`HDF5FieldReader`.
+
+        Returns
+        -------
+        str
+            The name of this :class:`HDF5FieldReader`.
+        """
         return self.name
 
     def readBatch(self,batch):
+        """
+        Reads the fields for which this object is responsible from a batch of data.
+
+        Parameters
+        ----------
+
+        batch : The HDF5 dataset that contains data from a single HDF5 batch.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            The preprocessed data from the fields for which this object is responsible.
+        """
         if type(self.fields) is str:
             self.fields = [self.fields]
        
@@ -54,6 +83,15 @@ class HDF5FieldReader(object):
         return value
 
     def to_dict(self):
+        """
+        Serialize to a dictionary representation.
+
+        Returns
+        -------
+        dict
+            A dictionary representation of the :class:`HDF5FieldReader`
+        """
+
         properties = deepcopy(self.__dict__) 
         for k in properties:
             if hasattr(properties[k],'to_dict'):

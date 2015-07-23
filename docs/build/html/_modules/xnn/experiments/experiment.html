@@ -49,7 +49,21 @@
 
 
 <div class="viewcode-block" id="ExperimentCondition"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.ExperimentCondition">[docs]</a><span class="k">class</span> <span class="nc">ExperimentCondition</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The :class:`ExperimentCondition` class represents a structure holding experiment variable values.</span>
+
+<span class="sd">    This class is used to parametrize experiment conditions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="ExperimentCondition.to_dict"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.ExperimentCondition.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a JSON-serializable python dictionary representing experiment condition variables.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dictionary of native python types</span>
+<span class="sd">            A dictionary holding experiment condition variables</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">properties</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
             <span class="n">properties</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_convert_property_value</span><span class="p">(</span><span class="n">properties</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
@@ -57,13 +71,39 @@
 
 </div></div>
 <div class="viewcode-block" id="Experiment"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment">[docs]</a><span class="k">class</span> <span class="nc">Experiment</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The :class:`Experiment` class manages specifying and iterating through an experiment design.</span>
+
+<span class="sd">    It is intended to specify factors whose values define models (e.g. neural nets) and to</span>
+<span class="sd">    manage iterating, querying, and reporting on particular experimental conditions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">default_condition</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Instantiates the experiment.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        id : a string or None</span>
+<span class="sd">            An optional experiment ID.</span>
+<span class="sd">        default_condition : a :class:`ExperimentCondition` instance</span>
+<span class="sd">            The experiment condition object defining experiment variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">factors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default_condition</span> <span class="o">=</span> <span class="n">default_condition</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conditions</span> <span class="o">=</span> <span class="bp">None</span>
 
 <div class="viewcode-block" id="Experiment.to_dict"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a JSON-serializable python dictionary representing the experiment specification.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dictionary of native python types</span>
+<span class="sd">            A dictionary with keys &quot;factors&quot; and &quot;default_condition&quot; holding the specified</span>
+<span class="sd">            factors and condition information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">factors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">factorkey</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">[</span><span class="n">factorkey</span><span class="p">]:</span>
@@ -76,6 +116,16 @@
         <span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Experiment.add_factor"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.add_factor">[docs]</a>    <span class="k">def</span> <span class="nf">add_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">levels</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds a factor to the experiment specifying levels of a particular condition to vary.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : a string that must match one of the keys in the default_condition member variable</span>
+<span class="sd">            the name of a key in default_condition whose values are to be varied.</span>
+<span class="sd">        levels : a list of appropriate types (not type-safe)</span>
+<span class="sd">            the values that define the levels of the factor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_condition</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
             <span class="n">errstr</span> <span class="o">=</span> <span class="s">&quot;name </span><span class="si">%s</span><span class="s"> is not a valid property. Must be one of these:</span><span class="se">\n\t</span><span class="si">%s</span><span class="s">&quot;</span> \
                 <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;</span><span class="se">\n\t</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_condition</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
@@ -84,27 +134,82 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_generate_conditions</span><span class="p">()</span>
 </div>
 <div class="viewcode-block" id="Experiment.get_num_conditions"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_num_conditions">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_conditions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the number of experiment conditions (the cross-product of factor levels)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            An integer specifying the number of experiment conditions in the experiment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">reduce</span><span class="p">(</span><span class="n">mul</span><span class="p">,</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">[</span><span class="n">factor</span><span class="p">])</span> <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
 </div>
-<div class="viewcode-block" id="Experiment.get_nth_condition_changes"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_nth_condition_changes">[docs]</a>    <span class="k">def</span> <span class="nf">get_nth_condition_changes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Experiment.get_nth_condition_changes"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_nth_condition_changes">[docs]</a>    <span class="k">def</span> <span class="nf">get_nth_condition_changes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a dictionary containing the experiment variables for a particular condition</span>
+<span class="sd">        that differ from the set of values specified in default_condition.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : an int</span>
+<span class="sd">            the condition number to query</span>
+<span class="sd">        conditions : an optional itertools.product instance</span>
+<span class="sd">            cartesian product of experiment factors.</span>
+<span class="sd">            If not specified uses the conditions generated for the specified experiment.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary where keys/values are experiment condition variable names and values</span>
+<span class="sd">            for those items that are based on specified factors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">conditions_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditions</span> <span class="k">if</span> <span class="n">conditions</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">conditions</span>
-        <span class="n">condition</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">islice</span><span class="p">(</span><span class="n">conditions_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span> <span class="n">default</span><span class="p">)</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">islice</span><span class="p">(</span><span class="n">conditions_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span> <span class="p">{})</span>
         <span class="c"># print n</span>
-        <span class="n">condition</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span> <span class="k">if</span> <span class="n">condition</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="c"># TODO: allow maintaining position in generator rather than resetting</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_generate_conditions</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">condition</span>
 </div>
-<div class="viewcode-block" id="Experiment.get_nth_condition"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_nth_condition">[docs]</a>    <span class="k">def</span> <span class="nf">get_nth_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Experiment.get_nth_condition"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_nth_condition">[docs]</a>    <span class="k">def</span> <span class="nf">get_nth_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a :class:`ExperimentCondition` instance containing the experiment variables for a particular condition.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : an int</span>
+<span class="sd">            the condition number to query</span>
+<span class="sd">        conditions : an optional itertools.product instance</span>
+<span class="sd">            cartesian product of experiment factors.</span>
+<span class="sd">            If not specified uses the conditions generated for the specified experiment.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A :class:`ExperimentCondition` instance</span>
+<span class="sd">            Contains the experiment variables for a particular condition.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">conditions_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditions</span> <span class="k">if</span> <span class="n">conditions</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">conditions</span>
-        <span class="n">cond</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">islice</span><span class="p">(</span><span class="n">conditions_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span> <span class="n">default</span><span class="p">)</span>
+        <span class="n">cond</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">islice</span><span class="p">(</span><span class="n">conditions_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span> <span class="p">{})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_generate_conditions</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patch_condition</span><span class="p">(</span><span class="n">cond</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Experiment.get_conditions_iterator"><a class="viewcode-back" href="../../../modules/xnn.experiments.html#xnn.experiments.experiment.Experiment.get_conditions_iterator">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_iterator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns an iterator over experiment conditions between start and end condition indices.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        start : an int (default 0)</span>
+<span class="sd">            A condition index to start the iterator.</span>
+<span class="sd">        stop : an int or None (Default None)</span>
+<span class="sd">            A condition index to end the iterator (None means continue through all conditions).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        An iterator which iterates over :class:`ExperimentCondition` instances in the experiment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_conditions</span><span class="p">()</span> <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">stop</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">):</span>
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nth_condition</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>

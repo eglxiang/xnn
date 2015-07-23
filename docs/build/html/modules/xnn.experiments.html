@@ -46,11 +46,31 @@
 <dt id="xnn.experiments.experiment.Experiment">
 <em class="property">class </em><code class="descclassname">xnn.experiments.experiment.</code><code class="descname">Experiment</code><span class="sig-paren">(</span><em>id</em>, <em>default_condition</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>The <a class="reference internal" href="#xnn.experiments.experiment.Experiment" title="xnn.experiments.experiment.Experiment"><code class="xref py py-class docutils literal"><span class="pre">Experiment</span></code></a> class manages specifying and iterating through an experiment design.</p>
+<p>It is intended to specify factors whose values define models (e.g. neural nets) and to
+manage iterating, querying, and reporting on particular experimental conditions.</p>
 <p class="rubric">Methods</p>
 <dl class="method">
 <dt id="xnn.experiments.experiment.Experiment.add_factor">
 <code class="descname">add_factor</code><span class="sig-paren">(</span><em>name</em>, <em>levels</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment.add_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment.add_factor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a factor to the experiment specifying levels of a particular condition to vary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong> : a string that must match one of the keys in the default_condition member variable</p>
+<blockquote>
+<div><p>the name of a key in default_condition whose values are to be varied.</p>
+</div></blockquote>
+<p><strong>levels</strong> : a list of appropriate types (not type-safe)</p>
+<blockquote class="last">
+<div><p>the values that define the levels of the factor</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.experiments.experiment.Experiment.get_all_conditions_changes">
@@ -60,7 +80,27 @@
 <dl class="method">
 <dt id="xnn.experiments.experiment.Experiment.get_conditions_iterator">
 <code class="descname">get_conditions_iterator</code><span class="sig-paren">(</span><em>start=0</em>, <em>stop=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment.get_conditions_iterator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment.get_conditions_iterator" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns an iterator over experiment conditions between start and end condition indices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>start</strong> : an int (default 0)</p>
+<blockquote>
+<div><p>A condition index to start the iterator.</p>
+</div></blockquote>
+<p><strong>stop</strong> : an int or None (Default None)</p>
+<blockquote>
+<div><p>A condition index to end the iterator (None means continue through all conditions).</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An iterator which iterates over <a class="reference internal" href="#xnn.experiments.experiment.ExperimentCondition" title="xnn.experiments.experiment.ExperimentCondition"><code class="xref py py-class docutils literal"><span class="pre">ExperimentCondition</span></code></a> instances in the experiment.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.experiments.experiment.Experiment.get_conditions_slice_iterator">
@@ -69,23 +109,100 @@
 
 <dl class="method">
 <dt id="xnn.experiments.experiment.Experiment.get_nth_condition">
-<code class="descname">get_nth_condition</code><span class="sig-paren">(</span><em>n</em>, <em>default=None</em>, <em>conditions=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment.get_nth_condition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment.get_nth_condition" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">get_nth_condition</code><span class="sig-paren">(</span><em>n</em>, <em>conditions=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment.get_nth_condition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment.get_nth_condition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a <a class="reference internal" href="#xnn.experiments.experiment.ExperimentCondition" title="xnn.experiments.experiment.ExperimentCondition"><code class="xref py py-class docutils literal"><span class="pre">ExperimentCondition</span></code></a> instance containing the experiment variables for a particular condition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>n</strong> : an int</p>
+<blockquote>
+<div><p>the condition number to query</p>
+</div></blockquote>
+<p><strong>conditions</strong> : an optional itertools.product instance</p>
+<blockquote>
+<div><p>cartesian product of experiment factors.
+If not specified uses the conditions generated for the specified experiment.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A <a class="reference internal" href="#xnn.experiments.experiment.ExperimentCondition" title="xnn.experiments.experiment.ExperimentCondition"><code class="xref py py-class docutils literal"><span class="pre">ExperimentCondition</span></code></a> instance</p>
+<blockquote class="last">
+<div><p>Contains the experiment variables for a particular condition.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.experiments.experiment.Experiment.get_nth_condition_changes">
-<code class="descname">get_nth_condition_changes</code><span class="sig-paren">(</span><em>n</em>, <em>default=None</em>, <em>conditions=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment.get_nth_condition_changes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment.get_nth_condition_changes" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">get_nth_condition_changes</code><span class="sig-paren">(</span><em>n</em>, <em>conditions=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment.get_nth_condition_changes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment.get_nth_condition_changes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary containing the experiment variables for a particular condition
+that differ from the set of values specified in default_condition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>n</strong> : an int</p>
+<blockquote>
+<div><p>the condition number to query</p>
+</div></blockquote>
+<p><strong>conditions</strong> : an optional itertools.product instance</p>
+<blockquote>
+<div><p>cartesian product of experiment factors.
+If not specified uses the conditions generated for the specified experiment.</p>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<p><strong>&#8212;&#8212;-</strong></p>
+<p><strong>dict</strong></p>
+<blockquote class="last">
+<div><p>A dictionary where keys/values are experiment condition variable names and values
+for those items that are based on specified factors.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.experiments.experiment.Experiment.get_num_conditions">
 <code class="descname">get_num_conditions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment.get_num_conditions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment.get_num_conditions" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the number of experiment conditions (the cross-product of factor levels)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">int</p>
+<blockquote class="last">
+<div><p>An integer specifying the number of experiment conditions in the experiment.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="xnn.experiments.experiment.Experiment.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#Experiment.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.Experiment.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns a JSON-serializable python dictionary representing the experiment specification.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dictionary of native python types</p>
+<blockquote class="last">
+<div><p>A dictionary with keys &#8220;factors&#8221; and &#8220;default_condition&#8221; holding the specified
+factors and condition information.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -93,11 +210,26 @@
 <dt id="xnn.experiments.experiment.ExperimentCondition">
 <em class="property">class </em><code class="descclassname">xnn.experiments.experiment.</code><code class="descname">ExperimentCondition</code><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#ExperimentCondition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.ExperimentCondition" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>The <a class="reference internal" href="#xnn.experiments.experiment.ExperimentCondition" title="xnn.experiments.experiment.ExperimentCondition"><code class="xref py py-class docutils literal"><span class="pre">ExperimentCondition</span></code></a> class represents a structure holding experiment variable values.</p>
+<p>This class is used to parametrize experiment conditions.</p>
 <p class="rubric">Methods</p>
 <dl class="method">
 <dt id="xnn.experiments.experiment.ExperimentCondition.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xnn/experiments/experiment.html#ExperimentCondition.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xnn.experiments.experiment.ExperimentCondition.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns a JSON-serializable python dictionary representing experiment condition variables.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">dictionary of native python types</p>
+<blockquote class="last">
+<div><p>A dictionary holding experiment condition variables</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
