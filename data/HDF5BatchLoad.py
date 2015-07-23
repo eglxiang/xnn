@@ -4,25 +4,25 @@ from copy import deepcopy
 from HDF5FieldReader import *
 
 class HDF5BatchLoad(object):
+    """
+    Define a batch generator that reads batches directly from an HDF5 file.
+    The HDF5 file must be structured with the groups
+    'train','test','valid'.  Each of these groups must contain a group for
+    each batch, with the group name 'batchN' where N is an integer in the
+    range 0 to the number of batches.  Each batch group must have datasets
+    inside it that contain the data of interest.
+
+    Parameters
+    ----------
+
+    filepath : str
+        The path to the hdf5 file.
+    partition : str
+        'train', 'test', or 'valid'
+    inputReaders : list of :class:`HDF5FieldReader` 
+        Readers that extract input from the HDF5 file
+    """
     def __init__(self, filepath, inputReaders=[]):
-        """
-        Define a batch generator that reads batches directly from an HDF5 file.
-        The HDF5 file must be structured with the groups
-        'train','test','valid'.  Each of these groups must contain a group for
-        each batch, with the group name 'batchN' where N is an integer in the
-        range 0 to the number of batches.  Each batch group must have datasets
-        inside it that contain the data of interest.
-
-        Parameters
-        ----------
-
-        filepath : str
-            The path to the hdf5 file.
-        partition : str
-            'train', 'test', or 'valid'
-        inputReaders : list of :class:`HDF5FieldReader` 
-            Readers that extract input from the HDF5 file
-        """
         self.filepath = filepath
         self.hdf5data = h5py.File(self.filepath, 'r')
         self.inputReaders = []

@@ -170,7 +170,7 @@ class CategoricalSampler(object):
 
     def __call__(self,data):
         """
-        Select a single sample based on the labels specified in :py:attr:`labelKey'.
+        Select a single sample based on the labels specified in :py:attr:`labelKey`.
 
         Parameters
         ----------
@@ -275,7 +275,7 @@ class BinarySampler(object):
 
     def __call__(self,data):
         """
-        Select a single sample based on the labels specified in :py:attr:`labelKey'.
+        Select a single sample based on the labels specified in :py:attr:`labelKey`.
 
         Parameters
         ----------
@@ -368,7 +368,7 @@ class BinnedSampler(object):
 
     def __call__(self,data):
         """
-        Select a single sample based on the labels specified in :py:attr:`labelKey'.
+        Select a single sample based on the labels specified in :py:attr:`labelKey`.
 
         Parameters
         ----------
