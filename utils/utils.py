@@ -25,7 +25,7 @@ def theano_digitize(x, bins):
     A Theano tensor
         The indices of the bins to which each value in input array belongs.
     """
-    binned = T.zeros_like(x)
+    binned = T.zeros_like(x) + len(bins)
     for i in range(len(bins)):
         bin=bins[i]
         if i == 0:
@@ -55,6 +55,8 @@ def numpy_one_hot(x,numclasses=None):
         Array of shape (x.shape,numclasses)
         The one-hot encoded version of x
     """
+    if type(x) == list:
+        x = np.array(x)
     if x.shape==():
         x = x[None]
     if numclasses is None:
