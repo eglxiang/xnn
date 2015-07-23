@@ -10,19 +10,21 @@ MAXCONDITIONSINMEMORY = 10000
 
 class ExperimentCondition(object):
     """
-    The :class:`ExperimentCondition` class represents a structure holding experiment variable values.
-
-    This class is used to parametrize experiment conditions.
+    The :class:`ExperimentCondition` class is a base-class for representing
+    various experimental variables and their default values.
+    A given experiment should create a subclass with specific members
+    representing the variables for the experiment.
     """
 
     def to_dict(self):
         """
-        Returns a JSON-serializable python dictionary representing experiment condition variables.
+        Returns a JSON-serializable python dictionary storing experiment variable names and values.
 
         Returns
         -------
-        dictionary of native python types
-            A dictionary holding experiment condition variables
+        dictionary holding native python types
+            A dictionary where keys are experiment variable names and values are the particular values
+            that define the condition.
         """
         properties = deepcopy(self.__dict__)
         for key in properties:
@@ -34,8 +36,8 @@ class Experiment(object):
     """
     The :class:`Experiment` class manages specifying and iterating through an experiment design.
 
-    It is intended to specify factors whose values define models (e.g. neural nets) and to
-    manage iterating, querying, and reporting on particular experimental conditions.
+    It is intended to specify factors whose combinations of values define models
+    (e.g. neural nets) and to manage iterating, querying, and reporting results.
     """
 
     def __init__(self, id, default_condition):
