@@ -176,7 +176,7 @@ class PoolMerger(object):
             self.poolers = [poolers]
         self.datasizes = None
         self.datakeys  = None
-        self.pool = None
+        self.pool = {} 
 
 
     def __call__(self):
@@ -189,7 +189,7 @@ class PoolMerger(object):
         self._get_pools()
         if self.datasizes is None:
             self._init_poolinfo()
-        if self.pool is None or self.anyupdate:
+        if len(self.pool) == 0 or self.anyupdate:
             self._merge_pools()
         return self.pool
         
@@ -236,6 +236,17 @@ class PoolMerger(object):
         self.pools = []
         for p in self.poolers:
             self.pools.append(p())
+
+    def nInPool(self):
+        """
+        Returns
+        -------
+        int
+            number of examples currently in the pool.
+        """
+        if len(self.pool)==0 or len(self.pool.keys())==0:
+            return 0
+        return self.pool[self.pool.keys()[0]].shape[0]
 
     def to_dict(self):
         """
