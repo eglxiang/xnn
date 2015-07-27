@@ -102,11 +102,11 @@ class HDF5FieldReader(object):
     
 
 pixelReader =HDF5FieldReader('pixels',['pixels'],preprocessFunc=pixelPreprocess())
-genderReader=HDF5FieldReader('isMale',['isMale'],missingValue=-12345.)
-ageReader = HDF5FieldReader('age',['age'],missingValue=-12345.)
-ageGuessSoftReader = HDF5FieldReader('age_guesses_soft',['age_guesses'],missingValue=-12345.,preprocessFunc=ageG_to_soft())
-ageGuessHardReader = HDF5FieldReader('age_guesses_hard',['age_guesses'],missingValue=-12345.,preprocessFunc=ageG_to_hard())
-ethnicityReader = HDF5FieldReader('ethnicitylabels',[('ethnicitylabels','asian'),('ethnicitylabels','black'),('ethnicitylabels','hispanic'),('ethnicitylabels','indian'),('ethnicitylabels','white')],preprocessFunc=np.hstack,missingValue=-12345.) 
+genderReader=HDF5FieldReader('isMale',['isMale'],preprocessFunc=makeFloatX)
+ageReader = HDF5FieldReader('age',['age'],preprocessFunc=makeFloatX)
+ageGuessSoftReader = HDF5FieldReader('age_guesses_soft',['age_guesses'],preprocessFunc=ageG_to_soft())
+ageGuessHardReader = HDF5FieldReader('age_guesses_hard',['age_guesses'],preprocessFunc=ageG_to_hard())
+ethnicityReader = HDF5FieldReader('ethnicitylabels',[('ethnicitylabels','asian'),('ethnicitylabels','black'),('ethnicitylabels','hispanic'),('ethnicitylabels','indian'),('ethnicitylabels','white')],preprocessFunc=np.hstack) 
 impathReader = HDF5FieldReader('imagepaths',['imagepath'])
 pixelhashReader=HDF5FieldReader('pixelhashid',['pixelhashid'])
 identityReader = HDF5FieldReader('identity',['personidentity'])

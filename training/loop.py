@@ -152,7 +152,11 @@ class Loop(object):
             isbest = isbest[1:] 
         for (mk,mt),ib in zip(self.metrics,isbest):
             if ib:
-                fname = self.savemodelnamebase + '_' + mk + '_'+ xnn.metrics.metric_names[mt.metric]
+                if mt.metric in xnn.metrics.metric_names:
+                    name = xnn.metrics.metric_names[mt.metric]
+                else:
+                    name = mt.metric.__name__
+                fname = self.savemodelnamebase + '_' + mk + '_'+ name
                 self.trainer.model.save_model(fname)
     
     def _update_best(self,ep,trainerr,metvals):
@@ -160,7 +164,7 @@ class Loop(object):
         best = []
         bestatep = []
         if self._plotmetricmean:
-            vals = [trainerr] + [np.mean(metvals)] + metvals
+            vals = [trainerr] + [np.nanmean(metvals)] + metvals
             dirs = ['min'] + ['min'] + self.metdirs
         else:
             vals = [trainerr]+metvals
@@ -191,7 +195,7 @@ class Loop(object):
         if self._datasources is None:
             self._make_figures(ep,trainerr,metvals)
         if self._plotmetricmean:
-            vals = [trainerr] + [np.mean(metvals)] + metvals
+            vals = [trainerr] + [np.nanmean(metvals)] + metvals
         else:
             vals = [trainerr] + metvals
         for v,ds in zip(vals,self._datasources):
@@ -212,12 +216,15 @@ class Loop(object):
         if self._plotmetricmean:
             figures.append(fig)
             fig = figure(title='Metric Mean',x_axis_label='Epoch',y_axis_label='Mean')
-            fig.line([ep],[np.mean(metvals)],name='plot')
+            fig.line([ep],[np.nanmean(metvals)],name='plot')
             ds = fig.select(dict(name='plot'))[0].data_source
             self._datasources.append(ds)
             figures.append(fig)
         for mv,(mk,m) in zip(metvals,self.metrics):
-            name = xnn.metrics.metric_names[m.metric]
+            if m.metric in xnn.metrics.metric_names:
+                name = xnn.metrics.metric_names[m.metric]
+            else:
+                name = m.metric.__name__
             fig = figure(title=mk,x_axis_label='Epoch',y_axis_label=name)
             fig.line([ep],[mv],name='plot')
             ds = fig.select(dict(name='plot'))[0].data_source
@@ -236,11 +243,14 @@ class Loop(object):
         print '----------'
         beststartid = 1
         if self._plotmetricmean:
-            print fmt.format('Overall Mean','',np.mean(metvals),self._bestmetvals[1],self._bestatep[1])
+            print fmt.format('Overall Mean','',np.nanmean(metvals),self._bestmetvals[1],self._bestatep[1])
             print '----------'
             beststartid = 2
         for mv,(mk,m),bv,be in zip(metvals,self.metrics,self._bestmetvals[beststartid:],self._bestatep[beststartid:]):
-            name = xnn.metrics.metric_names[m.metric]
+            if m.metric in xnn.metrics.metric_names:
+                name = xnn.metrics.metric_names[m.metric]
+            else:
+                name = m.metric.__name__
             print fmt.format(name,mk,mv,bv,be)
             
     def _timedone(self,ep,totalep):
@@ -256,7 +266,7 @@ class Loop(object):
         with open(self.savefilenamecsv,'a') as f:
             f.write(('%0.4f,'%trainerr))
             if self._plotmetricmean:
-                f.write(('%0.4f,'%np.mean(metvals)))
+                f.write(('%0.4f,'%np.nanmean(metvals)))
             for mv in metvals:
                 f.write(('%0.4f,'%mv))
             f.write('\n')
@@ -268,7 +278,10 @@ class Loop(object):
             if self._plotmetricmean:
                 f.write('Overall mean,')
             for mk,m in self.metrics:
-                name = xnn.metrics.metric_names[m.metric]
+                if m.metric in xnn.metrics.metric_names:
+                    name = xnn.metrics.metric_names[m.metric]
+                else:
+                    name = m.metric.__name__
                 f.write(name+'_'+mk+',')
             f.write('\n')
             f.flush()

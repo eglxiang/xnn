@@ -61,12 +61,16 @@ class Trainer(object):
     model : A :class:`Model` object
         Model to be trained.
     global_update_settings : A :class:`ParamUpdateSettings` object
-        Update settings to be used for all parameters which haven't been given their own settings via :func:`bind_update`
+        Update settings to be used for all parameters which haven't been given
+        their own settings via :func:`bind_update`
     dataSharedVarDict : a dict or None, optional
-        Only to be used if the data is stored on shared variables.
-        If so, dataSharedVarDict should be a dictionary with the data keys bound to the model as keys and the cooresponding shared variables as values.
+        Only to be used if the data is stored on shared variables.  If so,
+        dataSharedVarDict should be a dictionary with the data keys bound to
+        the model as keys and the cooresponding shared variables as values.
+    missingvalue :
+        value of labels that should be treated as missing.
     """
-    def __init__(self, model, global_update_settings,dataSharedVarDict=None):#trainerSettings = TrainerSettings()):
+    def __init__(self, model, global_update_settings,dataSharedVarDict=None,missingvalue=-12345.0):#trainerSettings = TrainerSettings()):
         # self.__dict__.update(trainerSettings.__dict__)
         global_update_settings._check_settings()
         self.global_update_settings = global_update_settings
@@ -74,6 +78,7 @@ class Trainer(object):
         self.layer_updates = dict()
         self.set_model(model)
         self.regularizations=dict()
+        self.missingvalue = missingvalue
 
     def bind_regularization(self, penalty, lnamelist=None):
         """
@@ -82,10 +87,12 @@ class Trainer(object):
         Parameters
         ----------
         penalty : A theano expression compatible with :func:`lasagne.regularization.apply_penalty`
-            See :func:`lasagne.regularization.apply_penalty` docstring for details.
+            See :func:`lasagne.regularization.apply_penalty` docstring for
+            details.
         lnamelist : A list of strings or a list of tuples or a float or None, optional
-            If a list of strings, list of layer names to which this regularization should apply.
-            If a list of tuples, specify regularization coefficents: [(lname,coeff),...].
+            If a list of strings, list of layer names to which this
+            regularization should apply.  If a list of tuples, specify
+            regularization coefficents: [(lname,coeff),...].
             If a float, all layers will be added with the float as a coefficient
             If None, all layers in the model will be added.
         """
@@ -107,13 +114,16 @@ class Trainer(object):
         Parameters
         ----------
         layerlist : A string or :class:`lasagne.layer` object, or list of strings or :class:`lasagne.layers` objects
-            Strings must be names of layers in the model. These layers will have the given update settings rather than the global update settings.
+            Strings must be names of layers in the model. These layers will
+            have the given update settings rather than the global update
+            settings.
         update_settings : A :class:`ParamUpdateSettings` object
             Settings to be used on layer or layers in layerlist.
 
         Notes
         -----
-        If the update type is the same as the previous update type, update can be left as None in update_settings
+        If the update type is the same as the previous update type, update can
+        be left as None in update_settings
         """
         if type(layerlist) != list:
             layerlist = [layerlist]
@@ -193,9 +203,6 @@ class Trainer(object):
         else:
             raise Exception('This should have been caught earlier')
         cost = layer_dict['loss_function'](preds,targs)
-        ## In order to use weighting on vectors need to add an extra dimension
-        #if (cost.ndim < 2):
-        #    cost = cost.dimshuffle(0,'x')
         aggregation_type = layer_dict['aggregation_type']
         # regular aggregations
         if aggregation_type == 'mean':
@@ -205,10 +212,11 @@ class Trainer(object):
         elif aggregation_type == 'weighted_mean':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
+            wsum = T.sum(weights)
             if cost.ndim < 2:
-                cost = T.sum(cost*weights.T)/T.sum(weights.T)
+                cost = theano.ifelse.ifelse(T.eq(wsum,0),0.0,T.sum(cost*weights.T)/wsum)
             else:
-                cost = T.sum(cost*weights)/T.sum(weights)
+                cost = theano.ifelse.ifelse(T.eq(wsum,0),0.0,T.sum(cost*weights)/wsum)
         elif aggregation_type == 'weighted_sum':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
@@ -218,23 +226,36 @@ class Trainer(object):
                 cost = T.sum(cost*weights)
         # nan-protected aggregations
         elif aggregation_type == 'nanmean':
-            cost = Tnanmean(cost)
+            cost = T.mean(cost[T.all(T.neq(targs,self.missingvalue),axis=1)])
         elif aggregation_type == 'nansum':
-            cost = Tnansum(cost)
+            cost = T.sum(cost[T.all(T.neq(targs,self.missingvalue),axis=1)])
         elif aggregation_type == 'nanweighted_mean':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
+            wsum = T.sum(weights)
             if cost.ndim < 2:
-                cost = Tnansum(cost*weights.T)/Tnansum(weights.T)
+                inds = T.all(T.neq(targs,self.missingvalue),axis=1)
+                wc = cost*weights.T 
+                wc = T.switch(inds,wc,0)
+                cost = theano.ifelse.ifelse(T.eq(wsum,0),0.0,T.sum(wc)/wsum)
             else:
-                cost = Tnansum(cost*weights)/Tnansum(weights)
+                inds = T.all(T.neq(targs,self.missingvalue),axis=1,keepdims=True)
+                wc = cost*weights 
+                wc = T.switch(inds,wc,0)
+                cost = theano.ifelse.ifelse(T.eq(wsum,0),0.0,T.sum(wc)/wsum)
         elif aggregation_type == 'nanweighted_sum':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
             if cost.ndim < 2:
-                cost = Tnansum(cost*weights.T)
+                inds = T.all(T.neq(targs,self.missingvalue),axis=1)
+                wc = cost*weights.T 
+                wc = T.switch(inds,wc,0)
+                cost = T.sum(wc)
             else:
-                cost = Tnansum(cost*weights)
+                inds = T.all(T.neq(targs,self.missingvalue),axis=1,keepdims=True)
+                wc = cost*weights 
+                wc = T.switch(inds,wc,0)
+                cost = T.sum(wc)
         else:
             raise Exception('This should have been caught earlier')
         return cost, ins

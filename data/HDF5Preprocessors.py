@@ -67,7 +67,7 @@ class ageG_to_hard(object):
             maxtoolow = mlab < 0#.5
             nanlabind = (morethanone|maxtoolow).flatten()
             OHlabels[nanlabind,:] = np.nan
-        return OHlabels
+        return OHlabels.astype(theano.config.floatX)
     
     def to_dict(self):
         """
@@ -127,7 +127,7 @@ class ageG_to_soft(object):
             OHlabels[nanlabind,:] = np.nan
 
             labels[nanlabind,:] = np.nan
-        return labels
+        return labels.astype(theano.config.floatX)
     
     def to_dict(self):
         """

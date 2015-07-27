@@ -36,8 +36,11 @@ class Sampler(object):
         to NaN. This is useful in multi-task learning where sampling to
         balance one task will unbalance another.  
 
+    nanreplacement :
+        If NaNs are found in the labels of a sampled batch, they will be
+        converted to this value before the batch is returned.  
     """
-    def __init__(self, pooler,keysamplers=[],samplemethod='sequential',batchsize=128, numbatches=None, nanOthers=False):
+    def __init__(self, pooler,keysamplers=[],samplemethod='sequential',batchsize=128, numbatches=None, nanOthers=False, nanreplacement = -12345.0):
         self.POSSIBLE_METHODS = {'uniform','balance','sequential'}
         self.pooler = pooler
         self.batchsize=batchsize
@@ -46,6 +49,7 @@ class Sampler(object):
         self.keylist = [k.labelKey for k in self.keysamplers]
         self.nanOthers = nanOthers
         self.samplemethod = samplemethod
+        self.nanreplacement = nanreplacement
         if samplemethod not in self.POSSIBLE_METHODS:
             raise NotImplementedError(("samplemethod should be one of: %s"%', '.join(self.POSSIBLE_METHODS)))
 
@@ -74,6 +78,8 @@ class Sampler(object):
             else:
                 batchinds,keyids = self._samplesequential(i)
             batch = self._extractInds(pool,batchinds,keyids)
+            for k in batch:
+                batch[k][np.isnan(batch[k])] = self.nanreplacement
             yield batch
 
     def _samplesequential(self,i):
@@ -156,8 +162,11 @@ class CategoricalSampler(object):
         If True, counts the probability mass from examples selected by other
         key samplers toward this sampler's frequencies.
 
+    missingvalue :
+        If this value is found in the labels, it will be treated as a missing
+        label.
     """
-    def __init__(self,labelKey,pickLowestFrequency=False,countOthers=False):
+    def __init__(self,labelKey,pickLowestFrequency=False,countOthers=False,missingvalue=-12345.):
         self.labelKey = labelKey
         self.pickLowestFrequency = pickLowestFrequency
         self.massSoFar = None
@@ -167,6 +176,7 @@ class CategoricalSampler(object):
         self.exampleProbs = None
         self.labels = None
         self.exshape = None
+        self.missingvalue = missingvalue
 
     def __call__(self,data):
         """
@@ -205,14 +215,15 @@ class CategoricalSampler(object):
         self.exshape = {}
         for i in xrange(labels.shape[1]):
             labelsCT = labels[:,i].flatten().astype(theano.config.floatX)
-            labelindsTotal = np.nansum(labelsCT)
+            notmissinginds = labelsCT!=self.missingvalue
+            labelindsTotal = np.nansum(labelsCT[notmissinginds])
             if labelindsTotal == 0:
                 exampleProbs = np.ones_like(labelsCT,dtype=float)
-                exampleProbs[np.isnan(labelsCT)] = 0
+                exampleProbs[np.logical_or(np.isnan(labelsCT),~notmissinginds)] = 0
                 exampleProbs /= np.sum(exampleProbs)
             else:
-                exampleProbs = labelsCT/np.nansum(labelsCT)
-                exampleProbs[np.isnan(exampleProbs)]=0
+                exampleProbs = labelsCT/np.nansum(labelsCT[notmissinginds])
+                exampleProbs[np.logical_or(np.isnan(exampleProbs),~notmissinginds)]=0
             ep = exampleProbs.astype(float)/np.sum(exampleProbs.astype(float))
             self.exampleProbs[i] = ep
             self.exshape[i] = np.arange(self.exampleProbs[i].shape[0])
@@ -223,7 +234,7 @@ class CategoricalSampler(object):
             self.massSoFar = np.zeros((1,labels.shape[1])).astype(theano.config.floatX)
         self.idsSoFar.append(sampleid)
         l = labels[sampleid,:]
-        l[np.isnan(l)] = 0
+        l[np.logical_or(np.isnan(l),l==self.missingvalue)] = 0
         self.massSoFar += l 
 
     def _reset_batch(self):
@@ -312,8 +323,8 @@ class BinarySampler(object):
         l = labels[sampleid,0]
         if l!=l:
             return
-        self.numPos += l 
-        self.numNeg += 1-l 
+        self.numPos += l==1 
+        self.numNeg += l==0 
 
     def _reset_batch(self):
         self.newbatch = True
@@ -355,8 +366,11 @@ class BinnedSampler(object):
         If True, counts the labels from examples selected by other
         key samplers toward this sampler's frequencies.
 
+    missingvalue :
+        If this value is found in the labels, it will be treated as a missing
+        label.
     """
-    def __init__(self,labelKey,bins,countOthers=False):
+    def __init__(self,labelKey,bins,countOthers=False,missingvalue=-12345.0):
         self.labelKey = labelKey
         self.bins=bins
         self.bincounts = np.zeros((len(self.bins),))
@@ -365,6 +379,7 @@ class BinnedSampler(object):
         self.labelsBinned = None
         self.binids = None
         self.nexrange = None
+        self.missingvalue = missingvalue
 
     def __call__(self,data):
         """
@@ -392,9 +407,10 @@ class BinnedSampler(object):
         return exampleInd[0]
 
     def _set_up_new_batch(self,data):
-        labels = data[self.labelKey]
+        labels = data[self.labelKey].flatten()
         self.nexrange = np.arange(labels.shape[0])
-        self.labelsBinned = np.digitize(labels.flatten(),bins=self.bins)
+        self.labelsBinned = np.digitize(labels,bins=self.bins)
+        self.labelsBinned[labels==self.missingvalue] = len(self.bincounts)
         self.binids = {}
         for i in xrange(len(self.bincounts)):
             self.binids[i] = np.where(self.labelsBinned.flatten()==i)[0]

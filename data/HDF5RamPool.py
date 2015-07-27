@@ -244,9 +244,10 @@ class PoolMerger(object):
         int
             number of examples currently in the pool.
         """
-        if len(self.pool)==0 or len(self.pool.keys())==0:
-            return 0
-        return self.pool[self.pool.keys()[0]].shape[0]
+        numpool = 0
+        for p in self.poolers:
+            numpool += p.nInPool()
+        return numpool 
 
     def to_dict(self):
         """

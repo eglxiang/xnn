@@ -82,23 +82,31 @@ class BinnedWeighter(Weighter):
     statPool : dict or None
         The dictionary from which to calculate weights for new data.  If None,
         weights are calculated from each batch.
+
+    missingvalue : 
+        the value in labels to ignore when calculating weights
     """
-    def __init__(self,labelKey,bins,statPool=None):
+    def __init__(self,labelKey,bins,statPool=None,missingvalue=-12345.0):
         self.bins = bins
+        self.missingvalue = missingvalue
         super(BinnedWeighter,self).__init__(labelKey,statPool)        
 
     def _init_stats(self):
         labels = self.statPool[self.labelKey]
-        binlabels = np.digitize(labels[~np.isnan(labels)],bins=self.bins)
-        bincounts = np.bincount(binlabels,minlength=len(self.bins))
-        bincounts = bincounts[0:len(self.bins)]
-        self.bincount = bincounts 
+        inds = np.logical_and(~np.isnan(labels),labels!=self.missingvalue)
+        if np.sum(inds)==0:
+            bincounts = np.zeros_like(self.bins)
+        else:
+            binlabels = np.digitize(labels[inds],bins=self.bins)
+            bincounts = np.bincount(binlabels,minlength=len(self.bins))
+            bincounts = bincounts[0:len(self.bins)]
+        self.bincount = bincounts.astype(np.float32)
         # smooth the bin counts
-        if 0 in self.bincount:
+        #if 0 in self.bincount:
             #TODO: make this smoothing dependent on data?
-            self.bincount += .25
+        self.bincount += .25
         self.binweight = 1./self.bincount
-        self.binweight /=np.sum(self.binweight)
+        self.binweight /= np.sum(self.binweight)
 
     def __call__(self,data):
         """
@@ -119,12 +127,15 @@ class BinnedWeighter(Weighter):
             self._init_stats()
             self.statPool = None
         labels = data[self.labelKey]
+        inds = np.logical_or(np.isnan(labels),labels==self.missingvalue)
         binlabels = np.digitize(labels.flatten(), bins=self.bins)
+        binlabels[inds.flatten()] = len(self.bins) 
         weightsfunc = lambda x: self.binweight[x] if x < len(self.bins) else 0
         weights = np.array([weightsfunc(binlabel) for binlabel in binlabels])
         weights = weights.reshape(-1,1)
         weights[np.isnan(labels)] = 0
-        return weights
+        return weights.astype(theano.config.floatX)
+
 
     def to_dict(self):
         """
@@ -168,14 +179,18 @@ class CategoricalWeighter(Weighter):
             labs = []
             for l in self.labelKey:
                 labs.append(source[l])
-            return np.hstack(labs)
+            retval =  np.hstack(labs)
         else:
-            return source[self.labelKey]
+            retval = source[self.labelKey]
+        return retval
 
 
     def _init_stats(self):
         labels = self._get_labels(self.statPool) #self.statPool[self.labelKey] 
-        self.frequencies = np.nansum(labels, axis=0, keepdims=True)
+
+        inds = np.all(np.logical_and(labels<=1.0,labels>=0),axis=1)
+        self.inds = inds
+        self.frequencies = np.nansum(labels[inds,...], axis=0, keepdims=True)
         #if 0 in self.frequencies:
         self.frequencies += .1 
         self.proportions = (1./self.frequencies).astype(theano.config.floatX)
@@ -202,7 +217,10 @@ class CategoricalWeighter(Weighter):
             self._init_stats()
             self.statPool = None
         labels = self._get_labels(data) #data[self.labelKey]
-        return labels.dot(self.proportions.T)
+        wgt = labels.dot(self.proportions.T).astype(theano.config.floatX)
+        wgt[np.isnan(wgt)] = 0
+        wgt[np.any(np.logical_or(labels<0,labels>1),axis=1,keepdims=True)] = 0
+        return wgt 
     
     def to_dict(self):
         """
@@ -241,11 +259,11 @@ class BinaryWeighter(Weighter):
     
     def _init_stats(self):
         lab = self.statPool[self.labelKey]
-        numPos = np.nansum(lab, axis=0, keepdims=True)
-        numNeg = np.nansum(1-lab, axis=0, keepdims=True)
+        numPos = np.nansum(lab==1, axis=0, keepdims=True)
+        numNeg = np.nansum(lab==0, axis=0, keepdims=True)
         meanNum = numPos+numNeg/2
-        self.posWeight = meanNum / (numPos) 
-        self.negWeight = meanNum / (numNeg)
+        self.posWeight = meanNum / (numPos+.1) 
+        self.negWeight = meanNum / (numNeg+.1)
         nrm = self.posWeight + self.negWeight
         self.posWeight/=nrm
         self.negWeight/=nrm
@@ -276,7 +294,7 @@ class BinaryWeighter(Weighter):
         weights = np.zeros_like(labels)
         weights[labels==1] = self.posWeight
         weights[labels==0] = self.negWeight
-        return weights[:,np.newaxis]
+        return weights[:,np.newaxis].astype(theano.config.floatX)
 
     def to_dict(self):
         """

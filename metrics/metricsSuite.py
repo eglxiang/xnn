@@ -80,8 +80,11 @@ class Metric(object):
         string, can be 'mean','sum','weighted_mean','weighted_sum', or 'none'.
         If a function, the output of the metric will be passed to it, and its
         return value will be returned from this :class:`Metric`.
+
+    missingvalue :
+        The value in labels that should be ignored when calculating metrics
     """
-    def __init__(self,metric,targkeys,outkeys=None,weightkey=None,aggregation_type='mean',**kwargs):
+    def __init__(self,metric,targkeys,outkeys=None,weightkey=None,aggregation_type='mean',missingvalue=-12345.0,**kwargs):
         if type(metric) == str:
             self.metric = metric_types[metric.lower()]
         else:
@@ -95,6 +98,7 @@ class Metric(object):
         self.settings  = kwargs
         self.weightkey = weightkey
         self.aggregation_type=aggregation_type
+        self.missingvalue = missingvalue
 
         if not (isinstance(targkeys,str) or isinstance(targkeys,list)):
             raise TypeError("targetkeys needs to be a string or a list of strings")
@@ -140,8 +144,11 @@ class Metric(object):
                 targ[k] = datadict[k]
         settings_copy = self.settings.copy()
 
-        weights       = datadict[self.weightkey] if self.weightkey is not None else None
-        output        = self.metric(out,targ,**settings_copy)
+        inds          = np.any(np.logical_and(~np.isnan(targ),targ!=self.missingvalue),axis=1)
+        weights       = datadict[self.weightkey][inds] if self.weightkey is not None else None
+        outFilt       = out[inds]
+        targFilt      = targ[inds]
+        output        = self.metric(outFilt,targFilt,**settings_copy)
 
         if self.aggregation_type == 'mean':
             output = np.nanmean(output)

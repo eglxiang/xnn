@@ -25,21 +25,19 @@ def test_binarizedBER():
 
 def test_cce_and_KL():
     cce = xnn.metrics.Metric('cce','probtarg',aggregation_type='none')
-    # print "cce",cce(probpred,td)
+    print "cce",cce(probpred,td)
     assert np.allclose(cce(probpred,td)[0:4], [1.33217907, 0.50040239, 50., 50.])
-    assert np.isnan(cce(probpred,td)[-1])
-    # print "bettercce",cce(betterprobpred,td)
+    print "bettercce",cce(betterprobpred,td)
     assert np.allclose(cce(betterprobpred,td)[0:4], [0.59191859, 0.50040239, 50., 50.])
-    assert np.isnan(cce(betterprobpred,td)[-1])
     cceMean = xnn.metrics.Metric('cce','probtarg',aggregation_type='mean')
-    # print "cceMean",cceMean(probpred,td)
+    print "cceMean",cceMean(probpred,td)
     assert np.allclose(cceMean(probpred,td),25.4581)
     kl = xnn.metrics.Metric('kl','probtarg',aggregation_type='none')
-    # print "kl",kl(probpred,td)
-    assert np.allclose(kl(probpred,td),[  0.83177662, 0., 50., 50., 0.])
+    print "kl",kl(probpred,td)
+    assert np.allclose(kl(probpred,td),[  0.83177662, 0., 50., 50.])
     klMean = xnn.metrics.Metric('kl','probtarg',aggregation_type='mean')
-    # print "klMean",klMean(probpred,td)
-    assert np.allclose(klMean(probpred,td),20.1664)
+    print "klMean",klMean(probpred,td)
+    assert np.allclose(klMean(probpred,td),25.2079)
 
 def test_optimized_threshold():
     obeMean = xnn.metrics.Metric('obe','bintarg',aggregation_type='none')
@@ -84,8 +82,8 @@ def test_confmat():
 
 
 if __name__=="__main__":
-    test_binarizedBER()
+    #test_binarizedBER()
     test_cce_and_KL()
-    test_optimized_threshold()
-    test_regression_metrics()
-    test_confmat()
+    #test_optimized_threshold()
+    #test_regression_metrics()
+    #test_confmat()
