@@ -226,9 +226,19 @@ class Trainer(object):
                 cost = T.sum(cost*weights)
         # nan-protected aggregations
         elif aggregation_type == 'nanmean':
-            cost = T.mean(cost[T.all(T.neq(targs,self.missingvalue),axis=1)])
+            if cost.ndim < 2:
+                inds = T.all(T.neq(targs,self.missingvalue),axis=1)
+            else:
+                inds = T.all(T.neq(targs,self.missingvalue),axis=1,keepdims=True)
+            cost = T.switch(inds,cost,0.0)
+            cost = T.mean(cost)
         elif aggregation_type == 'nansum':
-            cost = T.sum(cost[T.all(T.neq(targs,self.missingvalue),axis=1)])
+            if cost.ndim < 2:
+                inds = T.all(T.neq(targs,self.missingvalue),axis=1)
+            else:
+                inds = T.all(T.neq(targs,self.missingvalue),axis=1,keepdims=True)
+            cost = T.switch(inds,cost,0.0)
+            cost = T.mean(cost)
         elif aggregation_type == 'nanweighted_mean':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
@@ -311,6 +321,7 @@ class Trainer(object):
             costs.append(cost)
         costs.extend(self._get_regularization_costs())
         costTotal = T.sum(costs)
+        outsTrain.extend(costs)
         outsTrain.append(costTotal)
         # Get updates
         updates = OrderedDict()
