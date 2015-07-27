@@ -321,7 +321,7 @@ class Trainer(object):
             costs.append(cost)
         costs.extend(self._get_regularization_costs())
         costTotal = T.sum(costs)
-        outsTrain.extend(costs)
+        #outsTrain.extend(costs)
         outsTrain.append(costTotal)
         # Get updates
         updates = OrderedDict()
