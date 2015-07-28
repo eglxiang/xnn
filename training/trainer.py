@@ -6,6 +6,7 @@ from .. import regularization
 from collections import OrderedDict
 from ..utils import Tnanmean, Tnansum
 from inspect import getargspec
+import numpy as np
 import copy
 
 class ParamUpdateSettings(object):
@@ -202,6 +203,7 @@ class Trainer(object):
     def _get_cost(self,layer_name,layer_dict,all_outs_dict,ins):
         preds = all_outs_dict[layer_name]
         target_type = layer_dict['target_type']
+        TfloatZero = np.array(0,dtype=theano.config.floatX)
         if target_type == 'label':
             targs = T.matrix('targets')
             ins.append((layer_dict['target'], targs))
@@ -221,9 +223,9 @@ class Trainer(object):
             ins.append((layer_dict['weight_key'], weights))
             wsum = T.sum(weights)
             if cost.ndim < 2:
-                cost = theano.ifelse.ifelse(T.eq(wsum,0),0.0,T.sum(cost*weights.T)/wsum)
+                cost = theano.ifelse.ifelse(T.eq(wsum,0),TfloatZero,T.sum(cost*weights.T)/wsum)
             else:
-                cost = theano.ifelse.ifelse(T.eq(wsum,0),0.0,T.sum(cost*weights)/wsum)
+                cost = theano.ifelse.ifelse(T.eq(wsum,0),TfloatZero,T.sum(cost*weights)/wsum)
         elif aggregation_type == 'weighted_sum':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
@@ -237,14 +239,14 @@ class Trainer(object):
                 inds = T.all(T.neq(targs,self.missingvalue),axis=1)
             else:
                 inds = T.all(T.neq(targs,self.missingvalue),axis=1,keepdims=True)
-            cost = T.switch(inds,cost,0.0)
+            cost = T.switch(inds,cost,TfloatZero)
             cost = T.mean(cost)
         elif aggregation_type == 'nansum':
             if cost.ndim < 2:
                 inds = T.all(T.neq(targs,self.missingvalue),axis=1)
             else:
                 inds = T.all(T.neq(targs,self.missingvalue),axis=1,keepdims=True)
-            cost = T.switch(inds,cost,0.0)
+            cost = T.switch(inds,cost,TfloatZero)
             cost = T.mean(cost)
         elif aggregation_type == 'nanweighted_mean':
             weights = T.matrix('weights')
@@ -254,12 +256,12 @@ class Trainer(object):
                 inds = T.all(T.neq(targs,self.missingvalue),axis=1)
                 wc = cost*weights.T 
                 wc = T.switch(inds,wc,0)
-                cost = theano.ifelse.ifelse(T.eq(wsum,0),0.0,T.sum(wc)/wsum)
+                cost = theano.ifelse.ifelse(T.eq(wsum,0),TfloatZero,(T.sum(wc)/wsum))
             else:
                 inds = T.all(T.neq(targs,self.missingvalue),axis=1,keepdims=True)
                 wc = cost*weights 
                 wc = T.switch(inds,wc,0)
-                cost = theano.ifelse.ifelse(T.eq(wsum,0),0.0,T.sum(wc)/wsum)
+                cost = theano.ifelse.ifelse(T.eq(wsum,0),TfloatZero,(T.sum(wc)/wsum))
         elif aggregation_type == 'nanweighted_sum':
             weights = T.matrix('weights')
             ins.append((layer_dict['weight_key'], weights))
