@@ -69,6 +69,13 @@ class Trainer(object):
         the model as keys and the cooresponding shared variables as values.
     missingvalue :
         value of labels that should be treated as missing.
+
+    Notes
+    ---------
+    Data passed to the trainer should not have NaN values, since Theano seems
+    to have difficulty calculating gradients with NaN labels. Instead, use a
+    particular value to signify that an example is missing, and pass that value
+    into the :py:attr:`missingvalue` parameter of the trainer.
     """
     def __init__(self, model, global_update_settings,dataSharedVarDict=None,missingvalue=-12345.0):#trainerSettings = TrainerSettings()):
         # self.__dict__.update(trainerSettings.__dict__)

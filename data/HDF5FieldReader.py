@@ -5,22 +5,27 @@ from HDF5Preprocessors import *
 from copy import deepcopy
 
 class HDF5FieldReader(object):
+    """
+    Read data from the HDF5 batch
+
+    Parameters
+    ----------
+
+    name : str
+        What name to associate with read and preprocessed data
+    fields : list
+        List of fields to read.  if element i is a str, read batch[fields[i]].
+        if element i is a tuple, read batch[fields[i][0]][fields[i][1]]
+    preprocessFunc : function
+        The function to apply to data before it is returned.  This function
+        will get a list of numpy arrays, and return a single numpy array
+    missingValueFlag : float or None 
+        If not None, labels matching this float value will be set to NaN.
+        Note that the :class:`xnn.training.Trainer` cannot work with NaN
+        values, so using this parameter means you must revert back from
+        representing missing values as NaN to using a particular value.
+    """
     def __init__(self, name, fields=None, preprocessFunc=None, missingValue=None):
-        """
-        Read data from the HDF5 batch
-
-        Parameters
-        ----------
-
-        name : str
-            What name to associate with read and preprocessed data
-        fields : list
-            List of fields to read.  if element i is a str, read batch[fields[i]].  if element i is a tuple, read batch[fields[i][0]][fields[i][1]]
-        preprocessFunc : function
-            The function to apply to data before it is returned.  This function will get a list of numpy arrays, and return a single numpy array
-        missingValueFlag : float or None 
-            If not None, labels matching this float value will be set to NaN
-        """
         self.name=name
         if fields is None:
             self.fields=name
