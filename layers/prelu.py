@@ -1,6 +1,7 @@
 from ..layers import Layer
 from .. import utils
 from lasagne import init
+from lasagne import nonlinearities
 
 # import theano
 # from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
@@ -29,5 +30,5 @@ class PReLULayer(Layer):
         x = input
         p = self.pivot
         a = self.coef
-        return T.maximum(x - p, 0) - a * (T.maximum((-(x - p)), 0))
+        return nonlinearities.rectify(x-p) - a * nonlinearities.rectify(-(x - p))
 
