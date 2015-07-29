@@ -138,6 +138,7 @@ class Loop(object):
 
         if self._print_flag:
             print('Finished %d epochs at %s'%(nepoch,time.strftime('%I:%M:%S %p')))
+        return metvals
 
     def _weight(self,batch):
         for k,w in self.weightdict.iteritems():
