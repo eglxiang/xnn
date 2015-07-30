@@ -1,6 +1,7 @@
 from itertools import product, islice
 from operator import mul
 from copy import deepcopy
+from collections import OrderedDict
 
 
 class ExperimentCondition(object):
@@ -70,6 +71,7 @@ class ExperimentGroup(object):
     def get_chained_factors(self):
         groups = self._get_chain('root')
         chained_factors = dict()
+        # children override parent factors of the same name
         for group in groups:
             for key in group.local_factors:
                 chained_factors[key] = group.local_factors[key]
@@ -150,12 +152,13 @@ class Experiment(object):
         self.groups = dict(
             base=ExperimentGroup('base')
         )
-        self.leaves = dict(base=self.groups['base'])
+        self.leaves = OrderedDict(base=self.groups['base'])
 
     def to_dict(self):
         raise NotImplementedError
 
     def add_group(self, groupname, parentname='base'):
+        # TODO: check if groupname in groups and fail if so
         parent = self.groups[parentname]
         self.groups[groupname] = ExperimentGroup(groupname, parent)
         if parentname in self.leaves:
@@ -173,7 +176,7 @@ class Experiment(object):
             num_conditions += self.groups[groupname].get_num_conditions()
         return num_conditions
 
-    def get_nth_group_condition(self, n, groupname, changes_only=False):
+    def get_group_nth_condition(self, n, groupname, changes_only=False):
         cond = None if changes_only else self.default_condition
         return self.groups[groupname].get_nth_condition(n, cond)
 
