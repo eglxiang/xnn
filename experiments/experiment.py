@@ -46,12 +46,12 @@ class ExperimentGroup(object):
 
     def to_dict(self):
         """
-        Returns a JSON-serializable python dictionary representing the factors specific to this group.
+        Returns a JSON-serializable python dictionary representing this experiment group.
 
         Returns
         -------
         dictionary of native python types
-            A dictionary with factor names as keys and factor values
+            A dictionary containing the groupname, the parent groupname, and the dictionary of factors.
         """
         factors = dict()
         for factorkey in self.local_factors:
@@ -59,7 +59,12 @@ class ExperimentGroup(object):
                 factors.setdefault(factorkey, [])
                 converted = _convert_property_value(item)
                 factors[factorkey].append(converted)
-        return factors
+        outdict = dict(
+            groupname=self.name,
+            parentname=self.parent.name if self.parent is not None else None,
+            factors=factors
+        )
+        return outdict
 
     def add_factor(self, name, values):
         if not isinstance(values, list):
@@ -146,8 +151,8 @@ class ExperimentGroup(object):
 
 
 class Experiment(object):
-    def __init__(self, id, default_condition):
-        self.id = id
+    def __init__(self, name, default_condition):
+        self.name = name
         self.default_condition = default_condition
         self.groups = dict(
             base=ExperimentGroup('base')
@@ -155,7 +160,13 @@ class Experiment(object):
         self.leaves = OrderedDict(base=self.groups['base'])
 
     def to_dict(self):
-        raise NotImplementedError
+        groupsdict = {groupname: self.groups[groupname].to_dict() for groupname in self.groups}
+        outdict = dict(
+            name=self.name,
+            default_condition=self.default_condition.to_dict(),
+            groups=groupsdict
+        )
+        return outdict
 
     def add_group(self, groupname, parentname='base'):
         # TODO: check if groupname in groups and fail if so
