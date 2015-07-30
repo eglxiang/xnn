@@ -1,0 +1,11 @@
+Lasagne>=0.1.dev
+theano>=0.7.0
+h5py
+numpy>=1.9.1
+scipy
+bokeh
+pillow
+pydot
+cPickle
+pylab
+
