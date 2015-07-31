@@ -2,6 +2,7 @@ from itertools import product, islice
 from operator import mul
 from copy import deepcopy
 from collections import OrderedDict
+from itertools import ifilter
 
 
 class ExperimentCondition(object):
@@ -235,6 +236,12 @@ class Experiment(object):
                     items['condition'] = self.groups[groupname].get_nth_condition(n_offset, cond)
                 return items
 
+    def get_conditions(self, numlist, changes_only=False):
+        condition_list = []
+        for n in numlist:
+            condition_list.append(self.get_nth_condition(n, changes_only=changes_only))
+        return condition_list
+
     def get_group_condition_iterator(self, groupname, changes_only=False, start=0, stop=None):
         cond = None if changes_only else self.default_condition
         return self.groups[groupname].get_condition_iterator(cond, start, stop)
@@ -249,8 +256,14 @@ class Experiment(object):
             self.get_all_condition_iterator(changes_only=True))])
 
     def get_condition_numbers(self, fixed_dict, groupname=None):
-        # find the conditions where the fixed_dict factor values are set as specified
-        raise NotImplementedError
+        def _filter_func(items):
+            filter_list = [items['changes'][key] == val for key, val in fixed_dict.iteritems()]
+            if groupname is not None:
+                filter_list.append(items['groupname']==groupname)
+            return all(filter_list)
+        all_it = self.get_all_condition_iterator(changes_only=True)
+        filtered_it = ifilter(_filter_func, all_it)
+        return [c['condition_num'] for c in filtered_it]
 
 
 class MySchema(ExperimentCondition):
@@ -297,7 +310,7 @@ def main():
     print json.dumps(expt_dict, indent=4, sort_keys=True)
 
     print expt_dict == newexpt.to_dict()
-
+    return expt
 
 
 if __name__ == '__main__':
