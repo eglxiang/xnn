@@ -14,12 +14,10 @@ Clone repository with following command::
 	git clone ssh://git@stash.emotient.local/res/xnn.git
 
 It is encouraged to install the libraries in a virtual environment. 
-To do so, enter this command to create a virtualenvironment and activate it:
+To do so, enter these commands to create a virtualenvironment and activate it::
 
-```
-virtualenv venv
-. venv/bin/activate
-```
+	virtualenv venv
+	. venv/bin/activate
 
 More information on virtual environments can be found at https://virtualenv.pypa.io/en/latest/
 
@@ -27,6 +25,7 @@ To install the libraries required for XNN, run the following commands::
 
 	cd xnn
 	pip install --upgrade -r requirements.txt
+	brew install graphviz
 
 To add XNN to your python path, run the following command where <DIR_ABOVE_XNN> is the path to the dir above the xnn directory::
 
