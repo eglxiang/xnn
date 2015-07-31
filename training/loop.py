@@ -105,9 +105,11 @@ class Loop(object):
                 vals = []
                 for batch in vd():
                     outs = self.trainer.model.predict(batch)
+                    bmv = []
                     for metkey,met in self.metrics:
-                        vals.append(met(outs[metkey],batch))
-                metvals.append(vals)
+                        bmv.append(met(outs[metkey],batch))
+                    vals.append(bmv)
+                metvals.append(np.mean(np.array(vals),axis=0).tolist())
             metvals = np.mean(metvals,axis=0).tolist()
             end = time.time()
             dur = end-start
