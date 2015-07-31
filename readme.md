@@ -5,9 +5,7 @@
 	 / \  |  \| |  \|
 	o   o o   o o   o
 
-----------------------------------
  xnn neural network library V 0.2
-----------------------------------
 
 
 Authors:
@@ -15,7 +13,7 @@ Josh Susskind, Max Anger, Walter Talbott
 Emotient, Inc.
 
 
-# Building the documentation for XNN
+## Building the documentation for XNN
 First install sphynx into your python installation (we recommend using virtualenv).
 
 ```
