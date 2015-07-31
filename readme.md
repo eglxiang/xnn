@@ -24,7 +24,7 @@ git clone ssh://git@stash.emotient.local/res/xnn.git
 First install sphynx into your python installation (we recommend using virtualenv).
 
 ```
-pip install sphynx
+pip install sphinx
 pip install numpydoc
 ```
 
