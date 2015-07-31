@@ -167,7 +167,24 @@ class Experiment(object):
         self.group_ordering = []
 
     def add_results(self, condition_num, results):
-        # TODO: Add proper documentation noting that results is expected to be json serializable
+        """
+        Adds a set of results for a given experimental condition. The results are intended to be stored as a
+        JSON-serializable data structure.
+
+        Parameters
+        ----------
+
+        parentlayer : lasagne :class:`Layer`
+            layer whose outputs are the input to the dense layer.
+        num_units : int
+            The number of units in the dense layer.
+        nonlinearity : function
+            The nonlinearity function to use on this layer.  If None, :py:meth:`xnn.nonlinearities.rectify` is used.
+        condition_num : int
+            The condition number in the experiment associated with these results.
+        results : JSON-serializable python data
+            The result data to be stored for the given condition number. E.g. performance of net on test data.
+        """
         self.results[condition_num] = results
 
     def to_dict(self):
@@ -198,7 +215,8 @@ class Experiment(object):
         return expt
 
     def add_group(self, groupname, parentname='base'):
-        # TODO: check if groupname in groups and fail if so
+        if groupname in self.groups:
+            raise RuntimeError("group %s already exists! Each group name must be unique." % groupname)
         parent = self.groups[parentname]
         self.groups[groupname] = ExperimentGroup(groupname, parent)
         if parentname in self.leaves:
@@ -207,6 +225,8 @@ class Experiment(object):
         self.group_ordering.append(groupname)
 
     def add_factor(self, name, values, groupname='base'):
+        if not hasattr(self.default_condition, name):
+            raise RuntimeError("name %s is not an attribute of default experiment condition!" % name)
         group = self.groups[groupname]
         group.add_factor(name, values)
 
@@ -266,52 +286,9 @@ class Experiment(object):
         return [c['condition_num'] for c in filtered_it]
 
 
-class MySchema(ExperimentCondition):
-    def __init__(self):
-        self.servings = None
-        self.preparation = None
-        self.ripeness = None
-        self.type = None
-        self.mode = None
-        self.seeds = None
-
-
 def _convert_property_value(value):
     if hasattr(value, 'to_dict'):
         value = value.to_dict()
     elif hasattr(value, 'func_name'):
         value = value.func_name
     return value
-
-
-def main():
-    expt = Experiment("food", default_condition=MySchema())
-    expt.add_group('fruit')
-    expt.add_group('veggies')
-    expt.add_group('banana', parentname='fruit')
-    expt.add_group('orange', parentname='fruit')
-    expt.add_group('zucchini', parentname='veggies')
-
-    expt.add_factor('servings', [1, 2, 3])
-    expt.add_factor('mode', ['real', 'fake'])
-    expt.add_factor('preparation', ['juice', 'whole', 'sliced'], groupname='fruit')
-    expt.add_factor('preparation', ['uncooked', 'grilled', 'boiled'], groupname='veggies')
-    expt.add_factor('ripeness', ['raw', 'ripe', 'overripe'], groupname='banana')
-    expt.add_factor('type', ['naval', 'blood', 'valencia'], groupname='orange')
-    expt.add_factor('seeds', True, groupname='zucchini')
-
-    expt.add_results(5, 'good')
-    expt.add_results(73, 'bad')
-
-    expt_dict = expt.to_dict()
-    newexpt = Experiment.from_dict(expt_dict)
-
-    import json
-    print json.dumps(expt_dict, indent=4, sort_keys=True)
-
-    print expt_dict == newexpt.to_dict()
-    return expt
-
-
-if __name__ == '__main__':
-    main()
