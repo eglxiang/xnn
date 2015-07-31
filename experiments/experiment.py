@@ -208,6 +208,7 @@ class ExperimentGroup(object):
             else:
                 yield changes
 
+    # private methods
     def _get_chained_factors(self):
 
         groups = self._get_chain('root')
@@ -252,6 +253,7 @@ class ExperimentGroup(object):
 
 class Experiment(object):
     def __init__(self, name, default_condition):
+
         self.name = name
         self.default_condition = default_condition
         self.groups = dict(
@@ -260,6 +262,7 @@ class Experiment(object):
         self.leaves = OrderedDict(base=self.groups['base'])
         self.results = dict()
         self.group_ordering = []
+        self._populate_default_factors()
 
     def add_results(self, condition_num, results):
         """
@@ -379,7 +382,13 @@ class Experiment(object):
         filtered_it = ifilter(_filter_func, all_it)
         return [c['condition_num'] for c in filtered_it]
 
+    def _populate_default_factors(self):
+        for key in self.default_condition.to_dict():
+            val = getattr(self.default_condition, key)
+            self.add_factor(key, val)
 
+
+# private helper function
 def _convert_property_value(value):
     if hasattr(value, 'to_dict'):
         value = value.to_dict()

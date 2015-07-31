@@ -140,6 +140,8 @@ def test_flat_experiment_serialization():
         groups=dict(
             base=dict(
                 factors=dict(
+                    batchsize=[10],
+                    numpix=[3],
                     numhid=[100],
                     lr=[0.01, 0.05, 0.1, 0.5],
                     mom=[0.01, 0.5, 0.9],
@@ -172,9 +174,25 @@ def test_add_duplicate_group_name():
     expt.add_group("group1")
 
 
+def test_get_condition_numbers():
+    expt = _make_flat_experiment()
+
+    # first check to make sure that a factor that only has one variant returns all condition numbers
+    expected = range(expt.get_num_conditions())
+    actual = expt.get_condition_numbers({'numhid':100})
+    assert expected == actual
+
+    # second make sure that a factor was created implicitly
+    # for a variable in default_condition that was never added as a factor explicitly
+    expected = range(expt.get_num_conditions())
+    actual = expt.get_condition_numbers({'batchsize': 10})
+    assert expected == actual
+
+
 if __name__ == "__main__":
     test_flat_experiment()
     test_flat_experiment_serialization()
     test_add_invalid_factor_name()
     test_add_duplicate_group_name()
     test_nested_experiment()
+    test_get_condition_numbers()

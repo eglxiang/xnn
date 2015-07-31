@@ -1,7 +1,16 @@
 #!/usr/bin/env python
-import xnn
+# import xnn
 from mnist import *
+import pprint
 
+
+"""
+Example to illustrate use of the Experiment class for iterating over hyperparameters to find
+the best performing neural net.
+"""
+
+
+# Define the variables that are relevant for exporing hyperparameter space in this experiment
 class Cond(xnn.experiments.ExperimentCondition):
     def __init__(self):
         self.learning_rate = 0.1
@@ -10,6 +19,7 @@ class Cond(xnn.experiments.ExperimentCondition):
         self.hiddropout    = 0.5
 
 
+# Set up the experiment design (this one is a nested design with groups for std drop and gauss drop)
 def set_up_experiment():
     expt = xnn.experiments.Experiment(name='mnist mlp',default_condition=Cond())
     expt.add_group('std drop')
@@ -17,12 +27,15 @@ def set_up_experiment():
     expt.add_factor('learning_rate',[0.001,0.1])
     expt.add_factor('hiddenunits',[20,200,500])
     expt.add_factor('droptype','gauss',groupname='gauss drop')
-    expt.add_factor('droptype','standard',groupname='std drop')
     expt.add_factor('hiddropout',[.3,1.5],groupname='gauss drop')
     expt.add_factor('hiddropout',[.3,.75],groupname='std drop')
 
+    # print specific values for each condition
+    pprint.pprint(expt.get_all_condition_changes_dict())
     return expt
 
+
+# Train all experiment conditions for one epoch each and then report results
 def run_experiment():
     #--------
     # Set up data, experiment, and metrics 
@@ -87,6 +100,7 @@ def run_experiment():
             print "%d: %0.3f"%(sn,pc)  
     for bh,hu  in zip(bhu,[20,200,500]):
         print "Best %d HU PC: %0.3f"%(hu,bh)
+
 
 if __name__ == '__main__':
     run_experiment()
