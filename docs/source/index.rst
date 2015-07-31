@@ -6,13 +6,22 @@
 Welcome to xnn's documentation!
 ================================
 
-Contents:
+############
+Installation
+############
+Clone repository with following command::
 
-.. toctree::
-   :maxdepth: 2
+	git clone ssh://git@stash.emotient.local/res/xnn.git
 
+To install the libraries required for XNN, run the following command::
+
+	pip install -r xnn/requirements.txt
+
+XNN is closely tied with the Lasagne library. For more information on Lasagne, go to http://lasagne.readthedocs.org/
+
+#######
 Modules
-==========
+#######
 .. toctree::
    :maxdepth: 2
 
@@ -27,8 +36,9 @@ Modules
    modules/xnn.training
    modules/xnn.utils
 
+##################
 Indices and tables
-==================
+##################
 
 * :ref:`genindex`
 * :ref:`modindex`
