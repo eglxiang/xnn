@@ -13,16 +13,24 @@ Clone repository with following command::
 
 	git clone ssh://git@stash.emotient.local/res/xnn.git
 
-It is encouraged install the libraries in a virtual environment. Information on virtual environments can be found at https://virtualenv.pypa.io/en/latest/
+It is encouraged to install the libraries in a virtual environment. 
+To do so, enter this command to create a virtualenvironment and activate it:
+
+```
+virtualenv venv
+. venv/bin/activate
+```
+
+More information on virtual environments can be found at https://virtualenv.pypa.io/en/latest/
 
 To install the libraries required for XNN, run the following commands::
 
 	cd xnn
-	pip install -r requirements.txt
+	pip install --upgrade -r requirements.txt
 
-To add XNN to your python path, run the following command::
+To add XNN to your python path, run the following command where <DIR_ABOVE_XNN> is the path to the dir above the xnn directory::
 
-	export PYTHONPATH=$PYTHONPATH:./
+	export PYTHONPATH=$PYTHONPATH:<DIR_ABOVE_XNN>/
 
 XNN is closely tied with the Lasagne library. For more information on Lasagne, go to http://lasagne.readthedocs.org/
 
@@ -30,6 +38,7 @@ XNN is closely tied with the Lasagne library. For more information on Lasagne, g
 Verifying installation and testing library
 ##########################################
 Run nosetests to ensure that all tests pass within your installation environment.
+Note that the first time you run nosetests with a fresh xnn installation it will take a few minutes to compile various theano functions. Go grab a coffee.
 
 To run nosetests using the CPU, run the following command from the root directory of the xnn repository::
 
