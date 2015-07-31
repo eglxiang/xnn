@@ -1,11 +1,9 @@
-Lasagne>=0.1.dev
-theano>=0.7.0
 h5py
-numpy>=1.9.1
+numpy
 scipy
 bokeh
 pillow
 pydot
-cPickle
 pylab
-
+git+https://github.com/Theano/Theano.git@36d1eca8#egg=Theano==0.8.git
+git+https://github.com/Lasagne/Lasagne.git

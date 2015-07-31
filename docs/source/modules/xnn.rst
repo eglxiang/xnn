@@ -6,7 +6,6 @@ Subpackages
 
 .. toctree::
 
-    xnn.adjusters
     xnn.data
     xnn.experiments
     xnn.init
