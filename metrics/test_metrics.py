@@ -1,6 +1,7 @@
 import xnn
 from xnn.metrics.metricsSuite import *
 import numpy as np
+import warnings
 
 binpred = np.array([[1,0,0],[0,1,0],[0,0,0],[.4,1,0],[1.,1.,1.]])
 bintarg = np.array([[1,0,0],[0,1,0],[0,1,0],[1,0,0],[np.nan,np.nan,np.nan]])
@@ -51,7 +52,9 @@ def test_optimized_threshold():
     print 'BE categorical',bbec(betterprobpred,td)
     obec = xnn.metrics.Metric('obec','probtarg',aggregation_type='none')
     print 'optimalBE categorical',obec(probpred,td)
-    print 'optimalBE categorical',obec(betterprobpred,td)
+    with warnings.catch_warnings(True) as w:
+        print 'optimalBE categorical',obec(betterprobpred,td)
+        assert str(w[0].message[0]) == 'Mean of empty slice'
 
     
     ofoMean = xnn.metrics.Metric('of1','bintarg',aggregation_type='none')
