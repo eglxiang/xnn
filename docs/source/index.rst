@@ -13,9 +13,16 @@ Clone repository with following command::
 
 	git clone ssh://git@stash.emotient.local/res/xnn.git
 
-To install the libraries required for XNN, run the following command::
+It is encouraged install the libraries in a virtual environment. Information on virtual environments can be found at https://virtualenv.pypa.io/en/latest/
 
-	pip install -r xnn/requirements.txt
+To install the libraries required for XNN, run the following commands::
+
+	cd xnn
+	pip install -r requirements.txt
+
+To add XNN to your python path, run the following command::
+
+	export PYTHONPATH=$PYTHONPATH:./
 
 XNN is closely tied with the Lasagne library. For more information on Lasagne, go to http://lasagne.readthedocs.org/
 
