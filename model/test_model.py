@@ -17,7 +17,7 @@ def test_build_model():
 
     m.bind_input(l_in, "pixels")
     m.bind_output(l_h1, xnn.objectives.categorical_crossentropy, "emotions", "label", "mean")
-    m.bind_output(l_out, xnn.objectives.mse, "l_in", "recon", "mean")
+    m.bind_output(l_out, xnn.objectives.squared_error, "l_in", "recon", "mean")
 
 def test_convenience_build():
     m2 = _build_model()
